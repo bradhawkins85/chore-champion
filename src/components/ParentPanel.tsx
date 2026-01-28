@@ -49,6 +49,7 @@ interface ParentPanelProps {
   parentPin: string | null
   celebrationSettings: CelebrationSettings
   categories: Category[]
+  childCategoryPoints?: Map<string, Map<string, number>>
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -95,6 +96,7 @@ export function ParentPanel({
   parentPin,
   celebrationSettings,
   categories,
+  childCategoryPoints,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -395,6 +397,8 @@ export function ParentPanel({
                   key={child.id}
                   child={child}
                   totalPoints={childPoints.get(child.id) || 0}
+                  categoryPoints={childCategoryPoints?.get(child.id)}
+                  categories={categories}
                   onEdit={handleEditChild}
                   onDelete={setDeleteChildId}
                   onClick={handleChildCardClick}

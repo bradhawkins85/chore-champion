@@ -2,8 +2,9 @@ import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { Gear, Trophy } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward } from '@/lib/types'
+import { Child, GoalTracker, Reward, Category } from '@/lib/types'
 import { getRewardCostForChild } from '@/lib/helpers'
 
 interface ChildSelectorProps {
@@ -14,6 +15,8 @@ interface ChildSelectorProps {
   onParentMode: () => void
   trackedGoals?: GoalTracker[]
   rewards?: Reward[]
+  categoryPoints?: Map<string, Map<string, number>>
+  categories?: Category[]
 }
 
 export function ChildSelector({ 
@@ -24,6 +27,8 @@ export function ChildSelector({
   onParentMode,
   trackedGoals = [],
   rewards = [],
+  categoryPoints,
+  categories = [],
 }: ChildSelectorProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
@@ -50,6 +55,7 @@ export function ChildSelector({
             const currentPoints = childPoints.get(child.id) || 0
             const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id) : 0
             const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
+            const childCategoryPoints = categoryPoints?.get(child.id)
 
             return (
               <motion.div
@@ -79,9 +85,27 @@ export function ChildSelector({
                     <h2 className="text-3xl font-fredoka font-bold mb-2">
                       {child.name}
                     </h2>
-                    <p className="text-2xl font-fredoka text-accent">
+                    <p className="text-2xl font-fredoka text-accent mb-3">
                       {currentPoints} ⭐
                     </p>
+                    
+                    {childCategoryPoints && categories.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-2 mb-3">
+                        {categories.map((category) => {
+                          const points = childCategoryPoints.get(category.id) || 0
+                          return (
+                            <Badge
+                              key={category.id}
+                              variant="outline"
+                              className="font-fredoka text-sm"
+                              style={{ borderColor: category.color, color: category.color }}
+                            >
+                              {category.name}: {points}
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    )}
                     
                     {goalReward && (
                       <div className="mt-4 pt-4 border-t space-y-2">

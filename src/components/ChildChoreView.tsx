@@ -25,6 +25,7 @@ interface ChildChoreViewProps {
   trackedGoal?: GoalTracker | null
   rewards?: Reward[]
   categories?: Category[]
+  categoryPoints?: Map<string, number>
 }
 
 export function ChildChoreView({
@@ -41,6 +42,7 @@ export function ChildChoreView({
   trackedGoal,
   rewards = [],
   categories = [],
+  categoryPoints,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -212,9 +214,28 @@ export function ChildChoreView({
             </Avatar>
             <div>
               <h1 className="text-4xl font-fredoka font-bold">{child.name}'s Chores</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Star weight="fill" className="h-6 w-6 text-accent" />
-                <span className="text-3xl font-fredoka text-accent">{totalPoints}</span>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Star weight="fill" className="h-6 w-6 text-accent" />
+                  <span className="text-3xl font-fredoka text-accent">{totalPoints}</span>
+                </div>
+                {categoryPoints && categories.length > 0 && (
+                  <>
+                    {categories.map((category) => {
+                      const points = categoryPoints.get(category.id) || 0
+                      return (
+                        <Badge
+                          key={category.id}
+                          variant="outline"
+                          className="font-fredoka text-base"
+                          style={{ borderColor: category.color, color: category.color }}
+                        >
+                          {category.name}: {points}
+                        </Badge>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             </div>
           </div>

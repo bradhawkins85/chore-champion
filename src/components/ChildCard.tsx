@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash, Star, ListChecks } from '@phosphor-icons/react'
-import { Child } from '@/lib/types'
+import { Child, Category } from '@/lib/types'
 
 interface ChildCardProps {
   child: Child
@@ -11,9 +11,11 @@ interface ChildCardProps {
   onEdit: (child: Child) => void
   onDelete: (childId: string) => void
   onClick: (child: Child) => void
+  categoryPoints?: Map<string, number>
+  categories?: Category[]
 }
 
-export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick }: ChildCardProps) {
+export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, categoryPoints, categories = [] }: ChildCardProps) {
   const initials = child.name
     .split(' ')
     .map((n) => n[0])
@@ -54,11 +56,30 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick }: Chi
         </div>
       </CardHeader>
       <CardContent className="pb-3">
-        <div className="flex items-center gap-2">
-          <Star weight="fill" className="h-5 w-5 text-accent" />
-          <Badge variant="secondary" className="font-fredoka text-base">
-            {totalPoints} points
-          </Badge>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Star weight="fill" className="h-5 w-5 text-accent" />
+            <Badge variant="secondary" className="font-fredoka text-base">
+              {totalPoints} total points
+            </Badge>
+          </div>
+          {categoryPoints && categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => {
+                const points = categoryPoints.get(category.id) || 0
+                return (
+                  <Badge
+                    key={category.id}
+                    variant="outline"
+                    className="font-fredoka text-sm"
+                    style={{ borderColor: category.color, color: category.color }}
+                  >
+                    {category.name}: {points}
+                  </Badge>
+                )
+              })}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="pt-0">

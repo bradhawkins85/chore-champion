@@ -26,7 +26,7 @@ import {
   DayOfWeek,
   RepeatPattern,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -158,6 +158,25 @@ function App() {
     })
     return points
   }, [childrenList, completions, choresMap, assignments])
+
+  const childCategoryPoints = useMemo(() => {
+    const categoryPointsMap = new Map<string, Map<string, number>>()
+    ;(childrenList || []).forEach((child) => {
+      const childCatPoints = new Map<string, number>()
+      ;(categories || []).forEach((category) => {
+        const points = getChildPointsByCategory(
+          completions || [],
+          choresMap,
+          child.id,
+          category.id,
+          assignments || []
+        )
+        childCatPoints.set(category.id, points)
+      })
+      categoryPointsMap.set(child.id, childCatPoints)
+    })
+    return categoryPointsMap
+  }, [childrenList, categories, completions, choresMap, assignments])
 
   const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     const newChore: Chore = {
@@ -605,6 +624,7 @@ function App() {
           parentPin={parentPin ?? null}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
           categories={categories || []}
+          childCategoryPoints={childCategoryPoints}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -675,6 +695,7 @@ function App() {
             trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
             rewards={rewards || []}
             categories={categories || []}
+            categoryPoints={childCategoryPoints.get(selectedChild.id)}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}
@@ -709,6 +730,8 @@ function App() {
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={trackedGoals || []}
               rewards={rewards || []}
+              categoryPoints={childCategoryPoints}
+              categories={categories || []}
               onSelect={setSelectedChild}
               onParentMode={handleOpenParentMode}
             />
