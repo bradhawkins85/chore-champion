@@ -75,6 +75,7 @@ export function ChoreDialog({
       : ''
   )
   const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
+  const [desiredTime, setDesiredTime] = useState(editChore?.desiredTime || '')
 
   const weekDays: { value: DayOfWeek; label: string }[] = [
     { value: 'monday', label: 'Mon' },
@@ -106,6 +107,7 @@ export function ChoreDialog({
           : ''
       )
       setPointOverrides(editChore.pointOverrides || [])
+      setDesiredTime(editChore.desiredTime || '')
     }
   }, [editChore])
 
@@ -212,6 +214,10 @@ export function ChoreDialog({
       choreData.pointOverrides = pointOverrides
     }
 
+    if (desiredTime) {
+      choreData.desiredTime = desiredTime
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -229,6 +235,7 @@ export function ChoreDialog({
       setRepeatSpecificDays([])
       setRepeatAnchorDate('')
       setPointOverrides([])
+      setDesiredTime('')
     }
     onOpenChange(false)
   }
@@ -521,6 +528,18 @@ export function ChoreDialog({
                   </p>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="desired-time">Desired Completion Time (optional)</Label>
+                  <Input
+                    id="desired-time"
+                    type="time"
+                    value={desiredTime}
+                    onChange={(e) => setDesiredTime(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for sorting chores by time - not displayed to children
+                  </p>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="completion-type">Completion Type</Label>
                   <Select value={completionType} onValueChange={(v) => setCompletionType(v as ChoreCompletionType)}>
                     <SelectTrigger id="completion-type">
@@ -750,6 +769,18 @@ export function ChoreDialog({
                 {timeOfDay === 'pm' && 'Only shows after noon'}
                 {timeOfDay === 'both' && 'Requires completion in morning and evening'}
                 {timeOfDay === 'anytime' && 'Can be completed at any time of day'}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="desired-time-edit">Desired Completion Time (optional)</Label>
+              <Input
+                id="desired-time-edit"
+                type="time"
+                value={desiredTime}
+                onChange={(e) => setDesiredTime(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for sorting chores by time - not displayed to children
               </p>
             </div>
             <div className="grid gap-2">

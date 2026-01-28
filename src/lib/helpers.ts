@@ -450,3 +450,22 @@ export function canPurchaseReward(
     maxCount: maxPurchases,
   }
 }
+
+export function timeToMinutes(time?: string): number {
+  if (!time) return Infinity
+  
+  const [hours, minutes] = time.split(':').map(Number)
+  if (isNaN(hours) || isNaN(minutes)) return Infinity
+  
+  return hours * 60 + minutes
+}
+
+export function sortChoresByDesiredTime<T extends { chore: { desiredTime?: string } }>(
+  items: T[]
+): T[] {
+  return [...items].sort((a, b) => {
+    const timeA = timeToMinutes(a.chore.desiredTime)
+    const timeB = timeToMinutes(b.chore.desiredTime)
+    return timeA - timeB
+  })
+}

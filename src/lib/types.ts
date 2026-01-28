@@ -29,6 +29,7 @@ export interface Chore {
   daysOfWeek?: DayOfWeek[]
   repeatPattern?: RepeatPattern
   pointOverrides?: ChorePointOverride[]
+  desiredTime?: string
 }
 
 export interface Child {

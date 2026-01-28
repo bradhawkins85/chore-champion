@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 
 interface ChildChoreViewProps {
@@ -121,7 +121,11 @@ export function ChildChoreView({
       }
     })
 
-    return { pendingChores: pending, completedChores: completed, missedChores: missed }
+    return { 
+      pendingChores: sortChoresByDesiredTime(pending), 
+      completedChores: completed, 
+      missedChores: missed 
+    }
   }, [childChores, completions, child.id, currentTimeOfDay])
 
   const initials = child.name
