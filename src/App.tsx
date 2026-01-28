@@ -64,11 +64,10 @@ function App() {
 
   useEffect(() => {
     if (!hasInitializedCategories.current && categories && categories.length === 0) {
-      const timestamp = Date.now()
       const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
-        id: `category_${timestamp}_${index}`,
-        createdAt: timestamp,
+        id: `category_default_${index}`,
+        createdAt: 0,
       }))
       setCategories(defaultCategories)
       hasInitializedCategories.current = true
