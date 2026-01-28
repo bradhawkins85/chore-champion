@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
@@ -16,6 +16,7 @@ interface ChildChoreViewProps {
   completions: ChoreCompletion[]
   totalPoints: number
   onComplete: (choreId: string, timeOfDay?: 'am' | 'pm') => void
+  onUndo: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onBack: () => void
   onShopClick: () => void
 }
@@ -27,6 +28,7 @@ export function ChildChoreView({
   completions,
   totalPoints,
   onComplete,
+  onUndo,
   onBack,
   onShopClick,
 }: ChildChoreViewProps) {
@@ -318,6 +320,18 @@ export function ChildChoreView({
                               {chore.points} pts
                             </Badge>
                           </div>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onUndo(chore.id, timeOfDay)
+                            }}
+                            className="flex-shrink-0"
+                          >
+                            <ArrowCounterClockwise className="h-5 w-5 mr-2" />
+                            Undo
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

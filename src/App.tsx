@@ -144,6 +144,27 @@ function App() {
     setCompletions((current) => [...(current || []), newCompletion])
   }
 
+  const handleUndoChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    setCompletions((current) => {
+      const currentCompletions = current || []
+      const sortedCompletions = [...currentCompletions].sort((a, b) => b.completedAt - a.completedAt)
+      
+      const completionToRemove = sortedCompletions.find(
+        (c) =>
+          c.childId === childId &&
+          c.choreId === choreId &&
+          c.timeOfDay === timeOfDay
+      )
+      
+      if (completionToRemove) {
+        toast.info('Chore completion undone')
+        return currentCompletions.filter((c) => c.id !== completionToRemove.id)
+      }
+      
+      return currentCompletions
+    })
+  }
+
   const handleAddReward = (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
     const newReward: Reward = {
       ...rewardData,
@@ -292,6 +313,7 @@ function App() {
             completions={completions || []}
             totalPoints={childPoints.get(selectedChild.id) || 0}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
+            onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}
             onShopClick={() => setShowRewardShop(true)}
           />
