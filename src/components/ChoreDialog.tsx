@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -61,8 +61,19 @@ export function ChoreDialog({
   const [endDate, setEndDate] = useState(
     editChore?.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : ''
   )
+  const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(editChore?.daysOfWeek || [])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+
+  const weekDays: { value: DayOfWeek; label: string }[] = [
+    { value: 'monday', label: 'Mon' },
+    { value: 'tuesday', label: 'Tue' },
+    { value: 'wednesday', label: 'Wed' },
+    { value: 'thursday', label: 'Thu' },
+    { value: 'friday', label: 'Fri' },
+    { value: 'saturday', label: 'Sat' },
+    { value: 'sunday', label: 'Sun' },
+  ]
 
   useEffect(() => {
     if (editChore) {
@@ -74,6 +85,7 @@ export function ChoreDialog({
       setCompletionType(editChore.completionType)
       setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
       setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
+      setDaysOfWeek(editChore.daysOfWeek || [])
     }
   }, [editChore])
 
@@ -89,6 +101,17 @@ export function ChoreDialog({
     setPoints(template.points.toString())
     setFrequency(template.frequency)
     setTimeOfDay(template.timeOfDay || 'anytime')
+    setDaysOfWeek([])
+  }
+
+  const toggleDayOfWeek = (day: DayOfWeek) => {
+    setDaysOfWeek((current) => {
+      if (current.includes(day)) {
+        return current.filter((d) => d !== day)
+      } else {
+        return [...current, day]
+      }
+    })
   }
 
   const handleSave = () => {
@@ -101,6 +124,10 @@ export function ChoreDialog({
       frequency,
       timeOfDay,
       completionType,
+    }
+
+    if (daysOfWeek.length > 0) {
+      choreData.daysOfWeek = daysOfWeek
     }
 
     if (startDate) {
@@ -126,6 +153,7 @@ export function ChoreDialog({
       setCompletionType('individual')
       setStartDate('')
       setEndDate('')
+      setDaysOfWeek([])
     }
     onOpenChange(false)
   }
@@ -282,6 +310,29 @@ export function ChoreDialog({
                   </Select>
                 </div>
                 <div className="grid gap-2">
+                  <Label>Days of Week (optional)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={daysOfWeek.includes(day.value) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => toggleDayOfWeek(day.value)}
+                        className="font-fredoka"
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {daysOfWeek.length === 0 
+                      ? 'Leave empty to show every day' 
+                      : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
+                    }
+                  </p>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="time-of-day">Time of Day</Label>
                   <Select value={timeOfDay} onValueChange={(v) => setTimeOfDay(v as ChoreTimeOfDay)}>
                     <SelectTrigger id="time-of-day">
@@ -396,6 +447,29 @@ export function ChoreDialog({
                   <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Days of Week (optional)</Label>
+              <div className="flex flex-wrap gap-2">
+                {weekDays.map((day) => (
+                  <Button
+                    key={day.value}
+                    type="button"
+                    variant={daysOfWeek.includes(day.value) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleDayOfWeek(day.value)}
+                    className="font-fredoka"
+                  >
+                    {day.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {daysOfWeek.length === 0 
+                  ? 'Leave empty to show every day' 
+                  : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
+                }
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="time-of-day">Time of Day</Label>

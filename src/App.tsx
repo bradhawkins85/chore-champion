@@ -40,6 +40,7 @@ function App() {
       ...chore,
       timeOfDay: chore.timeOfDay || 'anytime',
       completionType: chore.completionType || 'individual',
+      daysOfWeek: chore.daysOfWeek || undefined,
     }))
   }, [chores])
 

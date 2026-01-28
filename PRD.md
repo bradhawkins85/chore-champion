@@ -27,11 +27,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Clean transition between modes, appropriate features visible for each role, PIN protection active
 
 ### Chore Management (Parent)
-- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), time of day scheduling (AM/PM/Both/Anytime), completion type (Individual/Shareable/Once Per Day), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
-- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores, with time-specific scheduling for morning/evening routines and flexible completion modes for different chore types. Templates accelerate setup and provide realistic point values and descriptions.
+- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), day-of-week selection, time of day scheduling (AM/PM/Both/Anytime), completion type (Individual/Shareable/Once Per Day), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
+- **Purpose**: Give parents full control over what tasks children need to complete, including scheduling chores for specific days (e.g., Monday/Wednesday/Friday only), temporary or seasonal chores, with time-specific scheduling for morning/evening routines and flexible completion modes for different chore types. Templates accelerate setup and provide realistic point values and descriptions.
 - **Trigger**: "Add Chore" button or "Quick Add" button in parent panel
-- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Set time of day (AM only shows before noon, PM only shows after noon, Both requires completion twice, Anytime is always available) → Set completion type (Individual: each child completes independently for full points, Shareable: children can work together and share points equally, Once Per Day: only first child to complete gets points) → Adjust if needed → Save → Chore appears in list
-- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency, time of day, and completion type, inactive chores (outside date range) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon, shareable chores split points among children who complete them, once-per-day chores disappear from other children after first completion
+- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Set frequency → Optionally select specific days of week (leave empty for every day) → Set time of day (AM only shows before noon, PM only shows after noon, Both requires completion twice, Anytime is always available) → Set completion type (Individual: each child completes independently for full points, Shareable: children can work together and share points equally, Once Per Day: only first child to complete gets points) → Adjust if needed → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency and selected days, chores only appear on their assigned days, inactive chores (outside date range or wrong day) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon, shareable chores split points among children who complete them, once-per-day chores disappear from other children after first completion
 
 ### Child Assignment (Parent)
 - **Functionality**: Create child profiles and assign specific chores to each child. Click on a child's card in the Children tab to view and manage their assigned chores.
@@ -92,9 +92,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled or unfulfilled
 - **Multiple Pending Purchases**: Bulk fulfill option to mark all pending purchases as complete at once
 - **Deleted Rewards with Purchase History**: Past purchases remain visible even if reward is deleted
-- **Inactive Chores**: Chores outside their date range are hidden from child view but visible in parent view with "Inactive" badge
+- **Inactive Chores**: Chores outside their date range or assigned days are hidden from child view but visible in parent view with "Inactive" badge
 - **Future Start Date**: Chores with future start dates show start date in parent view
 - **Expired Chores**: Chores past their end date show end date in parent view and are filtered from child assignments
+- **Day-of-Week Filtering**: Chores with specific days assigned only appear on those days (e.g., Monday/Wednesday/Friday chores won't show on Tuesday)
+- **Empty Day Selection**: If no days are selected, the chore appears every day
 - **Duplicate Template Addition**: Users can add the same template multiple times if they want (e.g., multiple "Make Your Bed" chores for different children)
 - **Missed AM Chores**: AM-only chores not completed before noon are marked as missed and shown in a separate section with 0 points awarded
 - **PM Chores in Morning**: PM-only chores are hidden in the morning and only appear after noon
@@ -206,6 +208,7 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - SunHorizon (Phosphor) for AM time indicators
   - MoonStars (Phosphor) for PM time indicators
   - Warning (Phosphor) for missed chores
+  - Calendar (Phosphor) for day-of-week indicators
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container

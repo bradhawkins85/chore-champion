@@ -1,4 +1,17 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek } from './types'
+
+export function getCurrentDayOfWeek(): DayOfWeek {
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  return days[new Date().getDay()]
+}
+
+export function isChoreActiveToday(chore: Chore): boolean {
+  if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
+    return true
+  }
+  const today = getCurrentDayOfWeek()
+  return chore.daysOfWeek.includes(today)
+}
 
 export function getCurrentTimeOfDay(): 'am' | 'pm' {
   const hour = new Date().getHours()

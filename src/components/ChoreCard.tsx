@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy } from '@phosphor-icons/react'
-import { Chore } from '@/lib/types'
+import { Chore, DayOfWeek } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
 
 interface ChoreCardProps {
@@ -70,6 +70,27 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
     }
   }
 
+  const getDaysOfWeekDisplay = () => {
+    if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
+      return null
+    }
+    const dayLabels: Record<DayOfWeek, string> = {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu',
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun',
+    }
+    return (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <Calendar className="h-3 w-3" />
+        {chore.daysOfWeek.map(d => dayLabels[d]).join(', ')}
+      </Badge>
+    )
+  }
+
   return (
     <Card className={!active ? 'opacity-60' : ''}>
       <CardHeader className="pb-3">
@@ -116,6 +137,7 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
             <Calendar className="h-4 w-4" />
             <span className="capitalize">{chore.frequency}</span>
           </div>
+          {getDaysOfWeekDisplay()}
           {getTimeOfDayBadge()}
           {getCompletionTypeBadge()}
           {chore.startDate && (
