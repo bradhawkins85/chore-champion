@@ -47,11 +47,20 @@ export interface ChoreCompletion {
   completedAt: number
   timeOfDay?: 'am' | 'pm'
   undoneAt?: number
+  overridden?: boolean
+}
+
+export interface MissedChore {
+  childId: string
+  choreId: string
+  timeOfDay?: 'am' | 'pm'
+  missedDate: number
+  dismissed?: boolean
 }
 
 export interface ChoreHistoryEvent {
   id: string
-  type: 'complete' | 'undo'
+  type: 'complete' | 'undo' | 'override-complete' | 'override-dismiss'
   childId: string
   choreId: string
   timestamp: number

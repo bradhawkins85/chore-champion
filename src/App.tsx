@@ -18,6 +18,7 @@ import {
   ChoreHistoryEvent,
   Reward,
   RewardPurchase,
+  MissedChore,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints } from '@/lib/helpers'
 
@@ -36,6 +37,7 @@ function App() {
   const [rewards, setRewards] = useKV<Reward[]>('rewards', [])
   const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
   const [history, setHistory] = useKV<ChoreHistoryEvent[]>('chore-history', [])
+  const [dismissedMissedChores, setDismissedMissedChores] = useKV<MissedChore[]>('dismissed-missed-chores', [])
 
   const migratedChores = useMemo(() => {
     return (chores || []).map((chore) => ({
@@ -273,6 +275,62 @@ function App() {
     toast.success('Parent PIN changed successfully!')
   }
 
+  const handleOverrideComplete = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const completionId = `completion_${Date.now()}_${Math.random()}`
+    const newCompletion: ChoreCompletion = {
+      id: completionId,
+      childId,
+      choreId,
+      completedAt: Date.now(),
+      timeOfDay,
+      overridden: true,
+    }
+    setCompletions((current) => [...(current || []), newCompletion])
+    
+    const historyEvent: ChoreHistoryEvent = {
+      id: `history_${Date.now()}_${Math.random()}`,
+      type: 'override-complete',
+      childId,
+      choreId,
+      timestamp: Date.now(),
+      timeOfDay,
+      completionId,
+    }
+    setHistory((current) => [...(current || []), historyEvent])
+
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+    const child = (childrenList || []).find((c) => c.id === childId)
+    toast.success(`Awarded ${chore?.points || 0} points to ${child?.name || 'child'}`, {
+      description: 'Missed chore marked as complete',
+    })
+  }
+
+  const handleDismissMissed = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const dismissedChore: MissedChore = {
+      childId,
+      choreId,
+      timeOfDay,
+      missedDate: today.getTime(),
+      dismissed: true,
+    }
+    setDismissedMissedChores((current) => [...(current || []), dismissedChore])
+    
+    const historyEvent: ChoreHistoryEvent = {
+      id: `history_${Date.now()}_${Math.random()}`,
+      type: 'override-dismiss',
+      childId,
+      choreId,
+      timestamp: Date.now(),
+      timeOfDay,
+    }
+    setHistory((current) => [...(current || []), historyEvent])
+
+    toast.info('Missed chore dismissed')
+  }
+
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
@@ -289,6 +347,7 @@ function App() {
           rewards={rewards || []}
           purchases={purchases || []}
           history={history || []}
+          dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
@@ -304,6 +363,8 @@ function App() {
           onFulfillPurchase={handleFulfillPurchase}
           onUnfulfillPurchase={handleUnfulfillPurchase}
           onChangePin={handleChangePin}
+          onOverrideComplete={handleOverrideComplete}
+          onDismissMissed={handleDismissMissed}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

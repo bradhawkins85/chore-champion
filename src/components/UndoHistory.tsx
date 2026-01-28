@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ArrowCounterClockwise, CheckCircle } from '@phosphor-icons/react'
+import { ArrowCounterClockwise, CheckCircle, Warning, XCircle } from '@phosphor-icons/react'
 import { Child, Chore, ChoreHistoryEvent } from '@/lib/types'
 import { format, isToday, isYesterday } from 'date-fns'
 
@@ -71,8 +71,12 @@ export function UndoHistory({ history, childrenList, chores }: UndoHistoryProps)
                   <div className="mt-0.5">
                     {event.type === 'complete' ? (
                       <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
-                    ) : (
+                    ) : event.type === 'undo' ? (
                       <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
+                    ) : event.type === 'override-complete' ? (
+                      <Warning className="h-5 w-5 text-primary" weight="fill" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
                     )}
                   </div>
 
@@ -80,12 +84,23 @@ export function UndoHistory({ history, childrenList, chores }: UndoHistoryProps)
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{getChildName(event.childId)}</span>
                       <span className="text-muted-foreground">
-                        {event.type === 'complete' ? 'completed' : 'undid'}
+                        {event.type === 'complete' 
+                          ? 'completed' 
+                          : event.type === 'undo' 
+                          ? 'undid' 
+                          : event.type === 'override-complete'
+                          ? 'was awarded points for'
+                          : 'had dismissed'}
                       </span>
                       <span className="font-medium">{getChoreName(event.choreId)}</span>
                       {event.timeOfDay && (
                         <Badge variant="secondary" className="text-xs">
                           {event.timeOfDay.toUpperCase()}
+                        </Badge>
+                      )}
+                      {(event.type === 'override-complete' || event.type === 'override-dismiss') && (
+                        <Badge variant="outline" className="text-xs">
+                          Parent Override
                         </Badge>
                       )}
                     </div>

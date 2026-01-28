@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -32,6 +32,7 @@ import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 import { WeeklySummary } from './WeeklySummary'
 import { ChangePinDialog } from './ChangePinDialog'
 import { UndoHistory } from './UndoHistory'
+import { MissedChoresManager } from './MissedChoresManager'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -42,6 +43,7 @@ interface ParentPanelProps {
   rewards: Reward[]
   purchases: RewardPurchase[]
   history: ChoreHistoryEvent[]
+  dismissedMissedChores: MissedChore[]
   parentPin: string | null
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
@@ -57,6 +59,8 @@ interface ParentPanelProps {
   onFulfillPurchase: (purchaseId: string) => void
   onUnfulfillPurchase: (purchaseId: string) => void
   onChangePin: (newPin: string) => void
+  onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
+  onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onExitParentMode: () => void
 }
 
@@ -69,6 +73,7 @@ export function ParentPanel({
   rewards,
   purchases,
   history,
+  dismissedMissedChores,
   parentPin,
   onAddChore,
   onEditChore,
@@ -84,6 +89,8 @@ export function ParentPanel({
   onFulfillPurchase,
   onUnfulfillPurchase,
   onChangePin,
+  onOverrideComplete,
+  onDismissMissed,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -97,6 +104,62 @@ export function ParentPanel({
   const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
 
   const popularTemplates = choreTemplates.slice(0, 6)
+
+  const missedChoresCount = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayTimestamp = today.getTime()
+    const currentTimeOfDay = new Date().getHours() < 12 ? 'am' : 'pm'
+
+    let count = 0
+    childrenList.forEach((child) => {
+      const childAssignments = assignments.filter((a) => a.childId === child.id)
+
+      childAssignments.forEach((assignment) => {
+        const chore = chores.find((c) => c.id === assignment.choreId)
+        if (!chore) return
+
+        const isDismissed = (timeOfDay?: 'am' | 'pm') =>
+          dismissedMissedChores.some(
+            (d) =>
+              d.childId === child.id &&
+              d.choreId === chore.id &&
+              d.timeOfDay === timeOfDay &&
+              d.missedDate === todayTimestamp &&
+              d.dismissed
+          )
+
+        if (chore.timeOfDay === 'both') {
+          const amCompleted = completions.some(
+            (c) =>
+              c.choreId === chore.id &&
+              c.childId === child.id &&
+              c.completedAt >= todayTimestamp &&
+              c.timeOfDay === 'am'
+          )
+          
+          if (currentTimeOfDay === 'pm' && !amCompleted && !isDismissed('am')) {
+            count++
+          }
+        } else if (chore.timeOfDay === 'am') {
+          if (currentTimeOfDay === 'pm') {
+            const amCompleted = completions.some(
+              (c) =>
+                c.choreId === chore.id &&
+                c.childId === child.id &&
+                c.completedAt >= todayTimestamp &&
+                c.timeOfDay === 'am'
+            )
+            if (!amCompleted && !isDismissed('am')) {
+              count++
+            }
+          }
+        }
+      })
+    })
+
+    return count
+  }, [childrenList, chores, assignments, completions, dismissedMissedChores])
 
   const handleQuickAddTemplate = (template: ChoreTemplate) => {
     const choreData: Omit<Chore, 'id' | 'createdAt'> = {
@@ -180,6 +243,15 @@ export function ParentPanel({
             <ChartBar className="h-4 w-4 mr-2" />
             Weekly Summary
           </TabsTrigger>
+          <TabsTrigger value="missed">
+            <Warning className="h-4 w-4 mr-2" />
+            Missed Chores
+            {missedChoresCount > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                {missedChoresCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="children">
             <Users className="h-4 w-4 mr-2" />
             Children
@@ -227,6 +299,32 @@ export function ParentPanel({
             completions={completions}
             purchases={purchases}
             childPoints={childPoints}
+          />
+        </TabsContent>
+
+        <TabsContent value="missed" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Missed Chores</h2>
+              <p className="text-sm text-muted-foreground">
+                Override missed chores by awarding points or dismissing them
+              </p>
+            </div>
+            {missedChoresCount > 0 && (
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                {missedChoresCount} missed
+              </Badge>
+            )}
+          </div>
+
+          <MissedChoresManager
+            childrenList={childrenList}
+            chores={chores}
+            assignments={assignments}
+            completions={completions}
+            dismissedMissedChores={dismissedMissedChores}
+            onOverrideComplete={onOverrideComplete}
+            onDismissMissed={onDismissMissed}
           />
         </TabsContent>
 
