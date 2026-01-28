@@ -20,11 +20,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Clean transition between modes, appropriate features visible for each role
 
 ### Chore Management (Parent)
-- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), and optional start/end dates
-- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores
-- **Trigger**: "Add Chore" button in parent panel
-- **Progression**: Click add → Fill form (name, points, frequency, optional dates) → Save → Chore appears in list
-- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency, inactive chores (outside date range) are clearly marked
+- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
+- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores. Templates accelerate setup and provide realistic point values and descriptions.
+- **Trigger**: "Add Chore" button or "Quick Add" button in parent panel
+- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Adjust if needed → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency, inactive chores (outside date range) are clearly marked, templates provide instant setup with sensible defaults
 
 ### Child Assignment (Parent)
 - **Functionality**: Create child profiles and assign specific chores to each child
@@ -71,8 +71,9 @@ This app manages chores, points, and user roles but doesn't require complex mult
 ## Edge Case Handling
 
 - **No Children Added**: Display friendly empty state with "Add your first child" prompt
-- **No Chores Created**: Show onboarding message encouraging parents to create chores
+- **No Chores Created**: Show onboarding message encouraging parents to create chores or use templates
 - **No Rewards Available**: Show empty state in rewards shop prompting parents to add rewards
+- **Template Search with No Results**: Show message suggesting different search terms or category
 - **All Chores Complete**: Celebratory message for child, summary view for parents
 - **Insufficient Points**: Disable purchase button and show how many more points are needed
 - **Point Adjustment**: Parents can manually adjust points (add/subtract) for corrections
@@ -84,6 +85,7 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Inactive Chores**: Chores outside their date range are hidden from child view but visible in parent view with "Inactive" badge
 - **Future Start Date**: Chores with future start dates show start date in parent view
 - **Expired Chores**: Chores past their end date show end date in parent view and are filtered from child assignments
+- **Duplicate Template Addition**: Users can add the same template multiple times if they want (e.g., multiple "Make Your Bed" chores for different children)
 
 ## Design Direction
 
@@ -131,15 +133,17 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Card for chore items and child profiles with hover states
   - Dialog for adding/editing chores and children
   - Button with multiple variants (primary for completion, secondary for management)
-  - Badge for point displays, frequency labels, and pending purchase counts
+  - Badge for point displays, frequency labels, pending purchase counts, and category filters
   - Avatar for child profiles
   - Switch for parent/child mode toggle
   - Form components (Input, Label, Textarea, Select) for chore management
   - Progress bar for daily/weekly completion percentage
-  - Tabs for organizing parent panel sections (Chores, Children, Rewards, Purchase History)
+  - Tabs for organizing parent panel sections (Chores, Children, Rewards, Purchase History) and template dialog (Templates, Custom Chore)
   - Alert Dialog for deletion confirmations
   - Large reward cards with emojis for visual appeal in shop view
   - Purchase history cards showing child name, reward, timestamp, and fulfillment status
+  - Popover for quick-add template menu with popular templates
+  - ScrollArea for browsing long lists of templates
   
 - **Customizations**: 
   - Extra-large touch-friendly buttons for child interface (min 80px height)
@@ -148,6 +152,9 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Point badge with glow effect and animation capabilities
   - Reward cards with large emoji displays and clear affordability indicators
   - Shop button prominently displayed in child chore view
+  - Template cards with emoji icons, category badges, and point displays
+  - Searchable and filterable template browser with category tags
+  - Quick-add popover showing top 6 popular templates for instant access
   
 - **States**: 
   - Chore cards: default (pending), checked (completed), disabled (not available today)
@@ -173,6 +180,7 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Check (Phosphor) for fulfillment actions
   - Clock (Phosphor) for pending status
   - X (Phosphor) for unfulfill action
+  - Sparkle (Phosphor) for templates and quick-add features
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container
