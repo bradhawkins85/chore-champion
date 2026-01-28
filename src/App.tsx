@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
@@ -22,8 +22,9 @@ import {
   CelebrationSettings,
   CelebrationAnimation,
   GoalTracker,
+  Category,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -53,13 +54,25 @@ function App() {
     },
   })
   const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
+  const [categories, setCategories] = useKV<Category[]>('categories', [])
+
+  useEffect(() => {
+    if (categories && categories.length === 0) {
+      const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+        ...cat,
+        id: `category_${Date.now()}_${index}`,
+        createdAt: Date.now(),
+      }))
+      setCategories(defaultCategories)
+    }
+  }, [categories, setCategories])
 
   const migratedChores = useMemo(() => {
     if (!chores || chores.length === 0) return chores || []
     
     let needsAnyMigration = false
     for (const chore of chores) {
-      if (!chore.timeOfDay || !chore.completionType) {
+      if (!chore.timeOfDay || !chore.completionType || !chore.categoryIds) {
         needsAnyMigration = true
         break
       }
@@ -69,14 +82,17 @@ function App() {
       return chores
     }
     
+    const firstCategoryId = (categories || [])[0]?.id
+    
     return chores.map((chore) => {
-      const needsMigration = !chore.timeOfDay || !chore.completionType
+      const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds
       
       if (needsMigration) {
         return {
           ...chore,
           timeOfDay: chore.timeOfDay || 'anytime',
           completionType: chore.completionType || 'individual',
+          categoryIds: chore.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
           daysOfWeek: chore.daysOfWeek || undefined,
           repeatPattern: chore.repeatPattern || undefined,
         }
@@ -84,7 +100,7 @@ function App() {
       
       return chore
     })
-  }, [chores])
+  }, [chores, categories])
 
   const choresMap = useMemo(() => {
     return new Map((migratedChores || []).map((c) => [c.id, c]))
@@ -414,6 +430,59 @@ function App() {
     })
   }
 
+  const handleAddCategory = (categoryData: Omit<Category, 'id' | 'createdAt'>) => {
+    const newCategory: Category = {
+      ...categoryData,
+      id: `category_${Date.now()}_${Math.random()}`,
+      createdAt: Date.now(),
+    }
+    setCategories((current) => [...(current || []), newCategory])
+    toast.success(`Category "${newCategory.name}" created!`)
+  }
+
+  const handleEditCategory = (
+    id: string,
+    categoryData: Omit<Category, 'id' | 'createdAt'>
+  ) => {
+    setCategories((current) =>
+      (current || []).map((c) =>
+        c.id === id ? { ...c, ...categoryData } : c
+      )
+    )
+    toast.success('Category updated!')
+  }
+
+  const handleDeleteCategory = (id: string) => {
+    setChores((current) =>
+      (current || []).map((chore) => ({
+        ...chore,
+        categoryIds: chore.categoryIds.filter((cid) => cid !== id),
+      }))
+    )
+    setRewards((current) =>
+      (current || []).map((reward) => ({
+        ...reward,
+        categoryIds: reward.categoryIds.filter((cid) => cid !== id),
+      }))
+    )
+    setCategories((current) => (current || []).filter((c) => c.id !== id))
+    toast.success('Category deleted')
+  }
+
+  const migratedRewards = useMemo(() => {
+    if (!rewards || rewards.length === 0) return rewards || []
+    
+    const needsMigration = rewards.some(r => !r.categoryIds)
+    if (!needsMigration) return rewards
+    
+    const firstCategoryId = (categories || [])[0]?.id
+    
+    return rewards.map((reward) => ({
+      ...reward,
+      categoryIds: reward.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
+    }))
+  }, [rewards, categories])
+
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
@@ -427,12 +496,13 @@ function App() {
           assignments={assignments || []}
           completions={completions || []}
           childPoints={childPoints}
-          rewards={rewards || []}
+          rewards={migratedRewards || []}
           purchases={purchases || []}
           history={history || []}
           dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
+          categories={categories || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -451,6 +521,9 @@ function App() {
           onCelebrationSettingsChange={(settings) => setCelebrationSettings(settings)}
           onOverrideComplete={handleOverrideComplete}
           onDismissMissed={handleDismissMissed}
+          onAddCategory={handleAddCategory}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)
@@ -461,7 +534,7 @@ function App() {
         showRewardShop ? (
           <RewardShop
             child={selectedChild}
-            rewards={rewards || []}
+            rewards={migratedRewards || []}
             chores={migratedChores || []}
             completions={completions || []}
             purchases={purchases || []}
@@ -472,13 +545,13 @@ function App() {
               (purchases || [])
                 .filter((p) => p.childId === selectedChild.id)
                 .map((p) => {
-                  const reward = (rewards || []).find((r) => r.id === p.rewardId)
+                  const reward = (migratedRewards || []).find((r) => r.id === p.rewardId)
                   const override = reward?.costOverrides?.find(o => o.childId === selectedChild.id)
                   return { cost: override ? override.cost : (reward?.cost || 0) }
                 })
             )}
             onPurchase={(rewardId) => {
-              const reward = (rewards || []).find((r) => r.id === rewardId)
+              const reward = (migratedRewards || []).find((r) => r.id === rewardId)
               if (reward) {
                 const override = reward.costOverrides?.find(o => o.childId === selectedChild.id)
                 const cost = override ? override.cost : reward.cost

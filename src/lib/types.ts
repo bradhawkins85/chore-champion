@@ -3,6 +3,14 @@ export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
 export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
+export interface Category {
+  id: string
+  name: string
+  color: string
+  description?: string
+  createdAt: number
+}
+
 export interface RepeatPattern {
   interval: number
   unit: 'weeks'
@@ -29,6 +37,7 @@ export interface Chore {
   timeOfDay: ChoreTimeOfDay
   completionType: ChoreCompletionType
   createdAt: number
+  categoryIds: string[]
   startDate?: number
   endDate?: number
   daysOfWeek?: DayOfWeek[]
@@ -107,6 +116,7 @@ export interface Reward {
   cost: number
   imageEmoji: string
   createdAt: number
+  categoryIds: string[]
   costOverrides?: RewardCostOverride[]
   requirements?: RewardRequirement[]
   purchaseLimit?: PurchaseLimit

@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Trash, Star, Timer, EyeSlash, Eye } from '@phosphor-icons/react'
-import { Reward, Child, Chore } from '@/lib/types'
+import { Reward, Child, Chore, Category } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
 
 interface RewardCardProps {
@@ -13,9 +13,10 @@ interface RewardCardProps {
   purchaseCount?: number
   childrenList?: Child[]
   chores?: Chore[]
+  categories: Category[]
 }
 
-export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchaseCount = 0, childrenList = [], chores = [] }: RewardCardProps) {
+export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchaseCount = 0, childrenList = [], chores = [], categories }: RewardCardProps) {
   const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0) || 
                              (reward.requirements && reward.requirements.length > 0)
   
@@ -85,6 +86,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
               onSave={(data) => onEdit(reward.id, data)}
               childrenList={childrenList}
               chores={chores}
+              categories={categories}
               trigger={
                 <Button variant="outline" size="sm">
                   <Pencil className="h-4 w-4" />

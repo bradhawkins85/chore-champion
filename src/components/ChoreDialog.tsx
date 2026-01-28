@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Star } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern, ChorePointOverride } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern, ChorePointOverride, Category } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -39,6 +39,7 @@ interface ChoreDialogProps {
   assignments?: ChoreAssignment[]
   onAssignChild?: (childId: string, choreId: string) => void
   onUnassignChild?: (assignmentId: string) => void
+  categories: Category[]
 }
 
 export function ChoreDialog({ 
@@ -50,6 +51,7 @@ export function ChoreDialog({
   assignments = [],
   onAssignChild,
   onUnassignChild,
+  categories,
 }: ChoreDialogProps) {
   const [name, setName] = useState(editChore?.name || '')
   const [description, setDescription] = useState(editChore?.description || '')
@@ -57,6 +59,7 @@ export function ChoreDialog({
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
   const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
   const [completionType, setCompletionType] = useState<ChoreCompletionType>(editChore?.completionType || 'individual')
+  const [categoryIds, setCategoryIds] = useState<string[]>(editChore?.categoryIds || [])
   const [startDate, setStartDate] = useState(
     editChore?.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : ''
   )
@@ -98,6 +101,7 @@ export function ChoreDialog({
       setFrequency(editChore.frequency)
       setTimeOfDay(editChore.timeOfDay)
       setCompletionType(editChore.completionType)
+      setCategoryIds(editChore.categoryIds || [])
       setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
       setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
       setDaysOfWeek(editChore.daysOfWeek || [])
@@ -130,6 +134,16 @@ export function ChoreDialog({
     setFrequency(template.frequency)
     setTimeOfDay(template.timeOfDay || 'anytime')
     setDaysOfWeek([])
+  }
+
+  const toggleCategoryId = (id: string) => {
+    setCategoryIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((cid) => cid !== id)
+      } else {
+        return [...current, id]
+      }
+    })
   }
 
   const toggleDayOfWeek = (day: DayOfWeek) => {
@@ -179,6 +193,7 @@ export function ChoreDialog({
       frequency,
       timeOfDay,
       completionType,
+      categoryIds,
     }
 
     if (daysOfWeek.length > 0 && !useRepeatPattern) {
@@ -240,6 +255,7 @@ export function ChoreDialog({
       setFrequency('daily')
       setTimeOfDay('anytime')
       setCompletionType('individual')
+      setCategoryIds([])
       setStartDate('')
       setEndDate('')
       setDaysOfWeek([])
@@ -394,6 +410,37 @@ export function ChoreDialog({
                     min="1"
                   />
                 </div>
+                
+                <div className="grid gap-2">
+                  <Label>Categories</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No categories available. Create categories first.
+                      </p>
+                    ) : (
+                      categories.map((category) => (
+                        <Badge
+                          key={category.id}
+                          variant={categoryIds.includes(category.id) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          style={{
+                            backgroundColor: categoryIds.includes(category.id) ? category.color : 'transparent',
+                            borderColor: category.color,
+                            color: categoryIds.includes(category.id) ? 'white' : category.color,
+                          }}
+                          onClick={() => toggleCategoryId(category.id)}
+                        >
+                          {category.name}
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Select one or more categories. Chores can belong to multiple point systems.
+                  </p>
+                </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="frequency">Frequency</Label>
                   <Select value={frequency} onValueChange={(v) => setFrequency(v as ChoreFrequency)}>

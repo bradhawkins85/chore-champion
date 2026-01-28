@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -34,6 +34,7 @@ import { ChangePinDialog } from './ChangePinDialog'
 import { UndoHistory } from './UndoHistory'
 import { MissedChoresManager } from './MissedChoresManager'
 import { CelebrationSettingsComponent } from './CelebrationSettings'
+import { CategoryManager } from './CategoryManager'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -47,6 +48,7 @@ interface ParentPanelProps {
   dismissedMissedChores: MissedChore[]
   parentPin: string | null
   celebrationSettings: CelebrationSettings
+  categories: Category[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -65,6 +67,9 @@ interface ParentPanelProps {
   onCelebrationSettingsChange: (settings: CelebrationSettings) => void
   onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
+  onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void
+  onEditCategory: (id: string, category: Omit<Category, 'id' | 'createdAt'>) => void
+  onDeleteCategory: (id: string) => void
   onExitParentMode: () => void
 }
 
@@ -80,6 +85,7 @@ export function ParentPanel({
   dismissedMissedChores,
   parentPin,
   celebrationSettings,
+  categories,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -98,6 +104,9 @@ export function ParentPanel({
   onCelebrationSettingsChange,
   onOverrideComplete,
   onDismissMissed,
+  onAddCategory,
+  onEditCategory,
+  onDeleteCategory,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -169,6 +178,7 @@ export function ParentPanel({
   }, [childrenList, chores, assignments, completions, dismissedMissedChores])
 
   const handleQuickAddTemplate = (template: ChoreTemplate) => {
+    const firstCategoryId = categories[0]?.id
     const choreData: Omit<Chore, 'id' | 'createdAt'> = {
       name: template.name,
       description: template.description,
@@ -176,6 +186,7 @@ export function ParentPanel({
       frequency: template.frequency,
       timeOfDay: template.timeOfDay,
       completionType: 'individual',
+      categoryIds: firstCategoryId ? [firstCategoryId] : [],
     }
     onAddChore(choreData)
   }
@@ -266,6 +277,10 @@ export function ParentPanel({
           <TabsTrigger value="chores">
             <ListChecks className="h-4 w-4 mr-2" />
             Chores
+          </TabsTrigger>
+          <TabsTrigger value="categories">
+            <Sparkle className="h-4 w-4 mr-2" />
+            Categories
           </TabsTrigger>
           <TabsTrigger value="rewards">
             <Gift className="h-4 w-4 mr-2" />
@@ -464,10 +479,19 @@ export function ParentPanel({
           )}
         </TabsContent>
 
+        <TabsContent value="categories" className="space-y-4">
+          <CategoryManager
+            categories={categories}
+            onAddCategory={onAddCategory}
+            onEditCategory={onEditCategory}
+            onDeleteCategory={onDeleteCategory}
+          />
+        </TabsContent>
+
         <TabsContent value="rewards" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
-            <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} />
+            <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
           </div>
 
           {rewards.length === 0 ? (
@@ -476,7 +500,7 @@ export function ParentPanel({
                 <p className="text-lg text-muted-foreground mb-4">
                   No rewards created yet. Add rewards for children to redeem with their points!
                 </p>
-                <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} />
+                <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
               </CardContent>
             </Card>
           ) : (
@@ -491,6 +515,7 @@ export function ParentPanel({
                     reward={reward}
                     childrenList={childrenList}
                     chores={chores}
+                    categories={categories}
                     onEdit={onEditReward}
                     onDelete={setDeleteRewardId}
                     onToggleDisabled={onToggleRewardDisabled}
@@ -636,6 +661,7 @@ export function ParentPanel({
         assignments={assignments}
         onAssignChild={onAssignChore}
         onUnassignChild={onUnassignChore}
+        categories={categories}
       />
 
       <ChildDialog

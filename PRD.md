@@ -12,6 +12,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Category System
+- **Functionality**: Create and manage categories (e.g., "Regular", "Extra") that organize chores and rewards into separate point systems. Each chore and reward can belong to multiple categories.
+- **Purpose**: Allow parents to create distinct point economies - for example, regular daily chores earn "Regular" points for everyday rewards, while special extra chores earn "Extra" points for premium rewards. This prevents children from using easy-to-earn points on expensive rewards meant for harder tasks.
+- **Trigger**: Parent Mode → Categories tab → Add/Edit/Delete categories → Assign categories when creating/editing chores and rewards
+- **Progression**: Create categories with names, colors, and descriptions → Assign categories to chores → Assign categories to rewards → Points earned from chores in a category can only be spent on rewards in that same category → Track points separately per category
+- **Success criteria**: Categories display with distinct colors, chores and rewards can have multiple category tags, points are tracked independently per category, rewards only purchaseable if child has enough points in matching categories.
+
 ### Custom Points Per Child (Chores)
 - **Functionality**: Override the default point value of any chore for specific children. Set custom point amounts that better reflect the difficulty or effort required for that child.
 - **Purpose**: Allow parents to reward children fairly based on individual ability - some chores may be harder for younger children or those with specific challenges, while being easier for older siblings.

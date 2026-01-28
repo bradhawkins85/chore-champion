@@ -13,13 +13,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Star, LockKey, Timer } from '@phosphor-icons/react'
-import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope } from '@/lib/types'
+import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 
 interface RewardDialogProps {
   reward?: Reward
@@ -27,14 +28,16 @@ interface RewardDialogProps {
   trigger?: React.ReactNode
   childrenList?: Child[]
   chores?: Chore[]
+  categories: Category[]
 }
 
-export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [] }: RewardDialogProps) {
+export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [], categories }: RewardDialogProps) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(reward?.name || '')
   const [description, setDescription] = useState(reward?.description || '')
   const [cost, setCost] = useState(reward?.cost?.toString() || '')
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
+  const [categoryIds, setCategoryIds] = useState<string[]>(reward?.categoryIds || [])
   const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
   const [requirements, setRequirements] = useState<RewardRequirement[]>(reward?.requirements || [])
   const [hasLimit, setHasLimit] = useState(!!reward?.purchaseLimit)
@@ -48,6 +51,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setDescription(reward.description)
       setCost(reward.cost.toString())
       setImageEmoji(reward.imageEmoji)
+      setCategoryIds(reward.categoryIds || [])
       setCostOverrides(reward.costOverrides || [])
       setRequirements(reward.requirements || [])
       setHasLimit(!!reward.purchaseLimit)
@@ -56,6 +60,16 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setLimitScope(reward.purchaseLimit?.scope || 'per-child')
     }
   }, [reward])
+
+  const toggleCategoryId = (id: string) => {
+    setCategoryIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((cid) => cid !== id)
+      } else {
+        return [...current, id]
+      }
+    })
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +88,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       description: description.trim(),
       cost: parseInt(cost, 10),
       imageEmoji,
+      categoryIds,
       costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
       purchaseLimit,
@@ -84,6 +99,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setDescription('')
       setCost('')
       setImageEmoji('🎁')
+      setCategoryIds([])
       setCostOverrides([])
       setRequirements([])
       setHasLimit(false)
@@ -182,6 +198,36 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               placeholder="e.g., 50"
               required
             />
+          </div>
+          
+          <div>
+            <Label>Categories</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {categories.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No categories available. Create categories first.
+                </p>
+              ) : (
+                categories.map((category) => (
+                  <Badge
+                    key={category.id}
+                    variant={categoryIds.includes(category.id) ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    style={{
+                      backgroundColor: categoryIds.includes(category.id) ? category.color : 'transparent',
+                      borderColor: category.color,
+                      color: categoryIds.includes(category.id) ? 'white' : category.color,
+                    }}
+                    onClick={() => toggleCategoryId(category.id)}
+                  >
+                    {category.name}
+                  </Badge>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Select one or more categories. Rewards can use points from multiple categories.
+            </p>
           </div>
 
           <Separator />

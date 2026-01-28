@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category } from './types'
 
 export function getRandomCelebrationAnimation(settings: CelebrationSettings): CelebrationAnimation {
   const enabledAnimations = (Object.keys(settings.animations) as CelebrationAnimation[])
@@ -556,3 +556,69 @@ export function formatTime12Hour(time24: string): string {
   const hours12 = hours % 12 || 12
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
 }
+
+export function getChildPointsByCategory(
+  completions: ChoreCompletion[],
+  choresMap: Map<string, { points: number; completionType?: string; pointOverrides?: { childId: string; points: number }[]; categoryIds: string[] }>,
+  childId: string,
+  categoryId: string,
+  assignments?: ChoreAssignment[]
+): number {
+  return completions
+    .filter((c) => c.childId === childId)
+    .reduce((sum, c) => {
+      const chore = choresMap.get(c.choreId)
+      if (!chore || !chore.categoryIds.includes(categoryId)) return sum
+      
+      const chorePoints = getChorePointsForChild(chore, childId)
+      
+      if (chore.completionType === 'shareable' && assignments) {
+        const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
+        if (assignedChildren > 1) {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const completionsToday = completions.filter(comp => 
+            comp.choreId === c.choreId && 
+            comp.completedAt >= today.getTime() &&
+            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay)
+          )
+          
+          const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
+          if (childrenWhoCompleted > 0) {
+            return sum + (chorePoints / childrenWhoCompleted)
+          }
+        }
+      }
+      
+      return sum + chorePoints
+    }, 0)
+}
+
+export function getChildAvailablePointsByCategory(
+  totalPoints: number,
+  purchases: { rewardId: string; cost: number }[],
+  rewardsMap: Map<string, { categoryIds: string[] }>,
+  categoryId: string
+): number {
+  const spent = purchases.reduce((sum, p) => {
+    const reward = rewardsMap.get(p.rewardId)
+    if (reward && reward.categoryIds.includes(categoryId)) {
+      return sum + p.cost
+    }
+    return sum
+  }, 0)
+  return totalPoints - spent
+}
+
+export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
+  {
+    name: 'Regular',
+    color: 'oklch(0.6 0.22 290)',
+    description: 'Daily activities and routine chores',
+  },
+  {
+    name: 'Extra',
+    color: 'oklch(0.72 0.18 45)',
+    description: 'Special chores for extra rewards',
+  },
+]
