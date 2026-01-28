@@ -69,6 +69,13 @@ export function ChoreDialog({
   const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>([])
+  const [useRepeatPattern, setUseRepeatPattern] = useState(false)
+  const [repeatInterval, setRepeatInterval] = useState('1')
+  const [repeatSpecificDays, setRepeatSpecificDays] = useState<DayOfWeek[]>([])
+  const [repeatAnchorDate, setRepeatAnchorDate] = useState('')
 
   const weekDays: { value: DayOfWeek; label: string }[] = [
     { value: 'monday', label: 'Mon' },
@@ -79,6 +86,44 @@ export function ChoreDialog({
     { value: 'saturday', label: 'Sat' },
     { value: 'sunday', label: 'Sun' },
   ]
+
+  const toggleDayOfWeek = (day: DayOfWeek) => {
+    setDaysOfWeek((current) => {
+      if (current.includes(day)) {
+        return current.filter((d) => d !== day)
+      } else {
+        return [...current, day]
+      }
+    })
+  }
+
+  const toggleRepeatDay = (day: DayOfWeek) => {
+    setRepeatSpecificDays((current) => {
+      if (current.includes(day)) {
+        return current.filter((d) => d !== day)
+      } else {
+        return [...current, day]
+      }
+    })
+  }
+
+  const getRepeatPatternDescription = () => {
+    if (!repeatInterval || repeatInterval === '0') return ''
+    
+    const interval = parseInt(repeatInterval)
+    const intervalText = interval === 1 ? 'every week' : interval === 2 ? 'every other week' : `every ${interval} weeks`
+    
+    if (repeatSpecificDays.length === 0) {
+      return `Repeats ${intervalText}`
+    }
+    
+    const dayLabels = repeatSpecificDays
+      .map(d => weekDays.find(wd => wd.value === d)?.label)
+      .filter(Boolean)
+      .join(', ')
+    
+    return `Repeats ${intervalText} on ${dayLabels}`
+  }
 
   useEffect(() => {
     if (editChore) {
@@ -96,6 +141,21 @@ export function ChoreDialog({
       setUseTimeWindow(!!editChore.timeWindow)
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
+      setStartDate('')
+      setEndDate('')
+      setDaysOfWeek([])
+      setUseRepeatPattern(false)
+      setRepeatInterval('1')
+      setRepeatSpecificDays([])
+      setRepeatAnchorDate('')
+    } else {
+      setStartDate('')
+      setEndDate('')
+      setDaysOfWeek([])
+      setUseRepeatPattern(false)
+      setRepeatInterval('1')
+      setRepeatSpecificDays([])
+      setRepeatAnchorDate('')
     }
   }, [editChore])
 
@@ -176,6 +236,13 @@ export function ChoreDialog({
       setUseTimeWindow(false)
       setTimeWindowStart('')
       setTimeWindowEnd('')
+      setStartDate('')
+      setEndDate('')
+      setDaysOfWeek([])
+      setUseRepeatPattern(false)
+      setRepeatInterval('1')
+      setRepeatSpecificDays([])
+      setRepeatAnchorDate('')
     }
     onOpenChange(false)
   }
