@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
-import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker } from '@/lib/types'
+import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward } from '@/lib/helpers'
 import { useMemo } from 'react'
@@ -18,6 +18,7 @@ interface RewardShopProps {
   purchases?: RewardPurchase[]
   trackedGoal?: GoalTracker | null
   onToggleGoalTracking?: (rewardId: string) => void
+  categories?: Category[]
 }
 
 export function RewardShop({
@@ -31,10 +32,15 @@ export function RewardShop({
   purchases = [],
   trackedGoal,
   onToggleGoalTracking,
+  categories = [],
 }: RewardShopProps) {
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
   }, [chores])
+
+  const categoriesMap = useMemo(() => {
+    return new Map(categories.map(c => [c.id, c]))
+  }, [categories])
 
   return (
     <div className="min-h-screen p-8">
@@ -128,6 +134,28 @@ export function RewardShop({
                           <p className="text-muted-foreground">
                             {reward.description}
                           </p>
+                        )}
+                        {reward.categoryIds && reward.categoryIds.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1 justify-center">
+                            {reward.categoryIds.map((catId) => {
+                              const category = categoriesMap.get(catId)
+                              if (!category) return null
+                              return (
+                                <Badge
+                                  key={catId}
+                                  variant="outline"
+                                  style={{
+                                    backgroundColor: `${category.color}15`,
+                                    borderColor: category.color,
+                                    color: category.color,
+                                  }}
+                                  className="text-xs font-medium"
+                                >
+                                  {category.name}
+                                </Badge>
+                              )
+                            })}
+                          </div>
                         )}
                         <div className="mt-3 space-y-2">
                           {requirement && requirement.requiredChoreIds.length > 0 && (

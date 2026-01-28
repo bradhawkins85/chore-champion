@@ -601,6 +601,7 @@ function App() {
             purchases={purchases || []}
             trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
+            categories={categories || []}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
               (purchases || [])
