@@ -27,11 +27,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Chores persist, can be edited/deleted, display correct frequency and time of day, inactive chores (outside date range) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon
 
 ### Child Assignment (Parent)
-- **Functionality**: Create child profiles and assign specific chores to each child
-- **Purpose**: Personalize task lists for different children with different responsibilities
-- **Trigger**: Add child profile, then assign chores from master list
-- **Progression**: Create child → View child's chore list → Select from available chores → Assign with schedule
-- **Success criteria**: Each child sees only their assigned chores, assignments persist
+- **Functionality**: Create child profiles and assign specific chores to each child. Click on a child's card in the Children tab to view and manage their assigned chores.
+- **Purpose**: Personalize task lists for different children with different responsibilities. Only assigned chores appear in child mode, making it age-appropriate.
+- **Trigger**: Navigate to Children tab → Click "Manage Chores" button on child card → Assign chores from master list
+- **Progression**: Create child → Click "Manage Chores" on child card → View assigned chores list → Click "Assign Chore" → Select from available chores → Confirm assignment → Chore appears in child's assigned list
+- **Success criteria**: Each child sees only their assigned chores in child mode, assignments persist, clear indication of how many chores are assigned per child, ability to unassign chores
 
 ### Chore Completion (Child)
 - **Functionality**: View assigned chores filtered by time of day, mark as complete, see points awarded, see missed AM chores

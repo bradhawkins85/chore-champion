@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle } from '@phosphor-icons/react'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -158,9 +158,18 @@ export function ParentPanel({
             <ChartBar className="h-4 w-4 mr-2" />
             Weekly Summary
           </TabsTrigger>
-          <TabsTrigger value="children">Children</TabsTrigger>
-          <TabsTrigger value="chores">Chores</TabsTrigger>
-          <TabsTrigger value="rewards">Rewards</TabsTrigger>
+          <TabsTrigger value="children">
+            <Users className="h-4 w-4 mr-2" />
+            Children
+          </TabsTrigger>
+          <TabsTrigger value="chores">
+            <ListChecks className="h-4 w-4 mr-2" />
+            Chores
+          </TabsTrigger>
+          <TabsTrigger value="rewards">
+            <Gift className="h-4 w-4 mr-2" />
+            Rewards
+          </TabsTrigger>
           <TabsTrigger value="purchases">
             <Package className="h-4 w-4 mr-2" />
             Purchase History
@@ -193,7 +202,12 @@ export function ParentPanel({
 
         <TabsContent value="children" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-fredoka font-bold">Children</h2>
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Children</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Click "Manage Chores" on any child to assign chores
+              </p>
+            </div>
             <Button onClick={() => setChildDialogOpen(true)}>
               <Plus className="h-5 w-5 mr-2" />
               Add Child

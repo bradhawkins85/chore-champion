@@ -67,26 +67,33 @@ export function AssignChoresView({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Button variant="outline" onClick={onBack}>
-            ← Back to Children
+    <div className="container mx-auto p-6 max-w-6xl">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Button variant="outline" onClick={onBack} className="mb-4">
+              ← Back to Children
+            </Button>
+            <h2 className="text-3xl font-fredoka font-bold">
+              {child.name}'s Assigned Chores
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              {assignedChores.length} {assignedChores.length === 1 ? 'chore' : 'chores'} assigned · Only assigned chores will appear in child mode
+            </p>
+          </div>
+          <Button onClick={() => setAssignDialogOpen(true)} size="lg">
+            Assign Chore
           </Button>
-          <h2 className="text-2xl font-fredoka font-bold mt-4">
-            {child.name}'s Chores
-          </h2>
         </div>
-        <Button onClick={() => setAssignDialogOpen(true)}>
-          Assign Chore
-        </Button>
-      </div>
 
-      {assignedChores.length === 0 ? (
+        {assignedChores.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No chores assigned yet. Click "Assign Chore" to get started.
+            <p className="text-lg text-muted-foreground mb-2">
+              No chores assigned to {child.name} yet
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Assign chores to make them visible in {child.name}'s child mode view. Only assigned chores will appear when {child.name} logs in.
             </p>
           </CardContent>
         </Card>
@@ -201,6 +208,7 @@ export function AssignChoresView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }

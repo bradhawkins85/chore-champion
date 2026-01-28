@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Star } from '@phosphor-icons/react'
+import { Pencil, Trash, Star, ListChecks } from '@phosphor-icons/react'
 import { Child } from '@/lib/types'
 
 interface ChildCardProps {
@@ -22,10 +22,10 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick }: Chi
     .slice(0, 2)
 
   return (
-    <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => onClick(child)}>
+    <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 flex-1" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 flex-1">
             <Avatar className="h-12 w-12" style={{ backgroundColor: child.avatarColor }}>
               <AvatarFallback className="text-white font-fredoka text-lg bg-transparent">
                 {initials}
@@ -53,7 +53,7 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick }: Chi
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-3">
         <div className="flex items-center gap-2">
           <Star weight="fill" className="h-5 w-5 text-accent" />
           <Badge variant="secondary" className="font-fredoka text-base">
@@ -61,6 +61,16 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick }: Chi
           </Badge>
         </div>
       </CardContent>
+      <CardFooter className="pt-0">
+        <Button 
+          variant="outline" 
+          className="w-full font-fredoka"
+          onClick={() => onClick(child)}
+        >
+          <ListChecks className="h-4 w-4 mr-2" />
+          Manage Chores
+        </Button>
+      </CardFooter>
     </Card>
   )
 }
