@@ -129,7 +129,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-fredoka text-2xl">
             {reward ? 'Edit Reward' : 'Add Reward'}
@@ -138,7 +138,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
             {reward ? 'Update reward details and customize per child' : 'Create a new reward with optional per-child customization'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           <div>
             <Label htmlFor="reward-emoji">Emoji</Label>
             <Input
@@ -372,8 +373,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               )}
             </>
           )}
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
