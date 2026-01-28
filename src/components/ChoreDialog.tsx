@@ -22,18 +22,33 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay } from '@/lib/types'
+import { Sparkle, User } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, Child, ChoreAssignment } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 
 interface ChoreDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   editChore?: Chore
+  childrenList?: Child[]
+  assignments?: ChoreAssignment[]
+  onAssignChild?: (childId: string, choreId: string) => void
+  onUnassignChild?: (assignmentId: string) => void
 }
 
-export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDialogProps) {
+export function ChoreDialog({ 
+  open, 
+  onOpenChange, 
+  onSave, 
+  editChore,
+  childrenList = [],
+  assignments = [],
+  onAssignChild,
+  onUnassignChild,
+}: ChoreDialogProps) {
   const [name, setName] = useState(editChore?.name || '')
   const [description, setDescription] = useState(editChore?.description || '')
   const [points, setPoints] = useState(editChore?.points.toString() || '10')
@@ -410,6 +425,54 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
               )}
             </div>
           </div>
+        )}
+
+        {editChore && childrenList.length > 0 && onAssignChild && onUnassignChild && (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <Label className="text-base font-fredoka font-semibold">Assign to Children</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Select which children should see this chore
+              </p>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {childrenList.map((child) => {
+                  const assignment = assignments.find(
+                    (a) => a.childId === child.id && a.choreId === editChore.id
+                  )
+                  const isAssigned = !!assignment
+
+                  return (
+                    <Card
+                      key={child.id}
+                      className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => {
+                        if (isAssigned && assignment) {
+                          onUnassignChild(assignment.id)
+                        } else {
+                          onAssignChild(child.id, editChore.id)
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={isAssigned} />
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold"
+                          style={{ backgroundColor: child.avatarColor }}
+                        >
+                          {child.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium">{child.name}</span>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         <DialogFooter>

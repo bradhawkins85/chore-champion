@@ -430,6 +430,10 @@ export function ParentPanel({
         }}
         onSave={handleSaveChore}
         editChore={editingChore}
+        childrenList={childrenList}
+        assignments={assignments}
+        onAssignChild={onAssignChore}
+        onUnassignChild={onUnassignChore}
       />
 
       <ChildDialog
