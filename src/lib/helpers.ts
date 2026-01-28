@@ -1,12 +1,77 @@
-import { ChoreCompletion, ChoreFrequency } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay } from './types'
 
-export function isChoreCompletedToday(
+export function getCurrentTimeOfDay(): 'am' | 'pm' {
+  const hour = new Date().getHours()
+  return hour < 12 ? 'am' : 'pm'
+}
+
+export function isChoreAvailableNow(timeOfDay: ChoreTimeOfDay): boolean {
+  if (timeOfDay === 'anytime' || timeOfDay === 'both') {
+    return true
+  }
+  return getCurrentTimeOfDay() === timeOfDay
+}
+
+export function isChoreMissed(
+  timeOfDay: ChoreTimeOfDay,
   completions: ChoreCompletion[],
   choreId: string,
   childId: string
 ): boolean {
+  const currentTimeOfDay = getCurrentTimeOfDay()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  
+  if (timeOfDay === 'am' && currentTimeOfDay === 'pm') {
+    const completedToday = completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= today.getTime() &&
+        c.timeOfDay === 'am'
+    )
+    return !completedToday
+  }
+  
+  return false
+}
+
+export function isChoreCompletedForTimeOfDay(
+  completions: ChoreCompletion[],
+  choreId: string,
+  childId: string,
+  timeOfDay: 'am' | 'pm'
+): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  return completions.some(
+    (c) =>
+      c.choreId === choreId &&
+      c.childId === childId &&
+      c.completedAt >= today.getTime() &&
+      c.timeOfDay === timeOfDay
+  )
+}
+
+export function isChoreCompletedToday(
+  completions: ChoreCompletion[],
+  choreId: string,
+  childId: string,
+  choreTimeOfDay: ChoreTimeOfDay
+): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  if (choreTimeOfDay === 'both') {
+    const amCompleted = isChoreCompletedForTimeOfDay(completions, choreId, childId, 'am')
+    const pmCompleted = isChoreCompletedForTimeOfDay(completions, choreId, childId, 'pm')
+    return amCompleted && pmCompleted
+  }
+  
+  if (choreTimeOfDay === 'am' || choreTimeOfDay === 'pm') {
+    return isChoreCompletedForTimeOfDay(completions, choreId, childId, choreTimeOfDay)
+  }
   
   return completions.some(
     (c) =>
@@ -19,12 +84,41 @@ export function isChoreCompletedToday(
 export function isChoreCompletedThisWeek(
   completions: ChoreCompletion[],
   choreId: string,
-  childId: string
+  childId: string,
+  choreTimeOfDay: ChoreTimeOfDay
 ): boolean {
   const now = new Date()
   const startOfWeek = new Date(now)
   startOfWeek.setDate(now.getDate() - now.getDay())
   startOfWeek.setHours(0, 0, 0, 0)
+  
+  if (choreTimeOfDay === 'both') {
+    const amCompleted = completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfWeek.getTime() &&
+        c.timeOfDay === 'am'
+    )
+    const pmCompleted = completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfWeek.getTime() &&
+        c.timeOfDay === 'pm'
+    )
+    return amCompleted && pmCompleted
+  }
+  
+  if (choreTimeOfDay === 'am' || choreTimeOfDay === 'pm') {
+    return completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfWeek.getTime() &&
+        c.timeOfDay === choreTimeOfDay
+    )
+  }
   
   return completions.some(
     (c) =>
@@ -37,7 +131,8 @@ export function isChoreCompletedThisWeek(
 export function isChoreCompletedThisBiWeek(
   completions: ChoreCompletion[],
   choreId: string,
-  childId: string
+  childId: string,
+  choreTimeOfDay: ChoreTimeOfDay
 ): boolean {
   const now = new Date()
   const startOfWeek = new Date(now)
@@ -49,6 +144,34 @@ export function isChoreCompletedThisBiWeek(
   
   if (weekNumber % 2 === 1) {
     startOfBiWeek.setDate(startOfBiWeek.getDate() - 7)
+  }
+  
+  if (choreTimeOfDay === 'both') {
+    const amCompleted = completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfBiWeek.getTime() &&
+        c.timeOfDay === 'am'
+    )
+    const pmCompleted = completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfBiWeek.getTime() &&
+        c.timeOfDay === 'pm'
+    )
+    return amCompleted && pmCompleted
+  }
+  
+  if (choreTimeOfDay === 'am' || choreTimeOfDay === 'pm') {
+    return completions.some(
+      (c) =>
+        c.choreId === choreId &&
+        c.childId === childId &&
+        c.completedAt >= startOfBiWeek.getTime() &&
+        c.timeOfDay === choreTimeOfDay
+    )
   }
   
   return completions.some(
@@ -63,14 +186,15 @@ export function isChoreCompleted(
   completions: ChoreCompletion[],
   choreId: string,
   childId: string,
-  frequency: ChoreFrequency
+  frequency: ChoreFrequency,
+  choreTimeOfDay: ChoreTimeOfDay
 ): boolean {
   if (frequency === 'daily') {
-    return isChoreCompletedToday(completions, choreId, childId)
+    return isChoreCompletedToday(completions, choreId, childId, choreTimeOfDay)
   } else if (frequency === 'weekly') {
-    return isChoreCompletedThisWeek(completions, choreId, childId)
+    return isChoreCompletedThisWeek(completions, choreId, childId, choreTimeOfDay)
   } else {
-    return isChoreCompletedThisBiWeek(completions, choreId, childId)
+    return isChoreCompletedThisBiWeek(completions, choreId, childId, choreTimeOfDay)
   }
 }
 

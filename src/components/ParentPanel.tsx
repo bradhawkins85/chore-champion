@@ -93,6 +93,7 @@ export function ParentPanel({
       description: template.description,
       points: template.points,
       frequency: template.frequency,
+      timeOfDay: template.timeOfDay,
     }
     onAddChore(choreData)
   }

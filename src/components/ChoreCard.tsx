@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise } from '@phosphor-icons/react'
 import { Chore } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
 
@@ -19,6 +19,34 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
       day: 'numeric',
       year: 'numeric',
     })
+  }
+
+  const getTimeOfDayBadge = () => {
+    switch (chore.timeOfDay) {
+      case 'am':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <SunHorizon className="h-3 w-3" />
+            AM Only
+          </Badge>
+        )
+      case 'pm':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <MoonStars className="h-3 w-3" />
+            PM Only
+          </Badge>
+        )
+      case 'both':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <ClockCounterClockwise className="h-3 w-3" />
+            AM & PM
+          </Badge>
+        )
+      default:
+        return null
+    }
   }
 
   return (
@@ -67,6 +95,7 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
             <Calendar className="h-4 w-4" />
             <span className="capitalize">{chore.frequency}</span>
           </div>
+          {getTimeOfDayBadge()}
           {chore.startDate && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <CalendarBlank className="h-4 w-4" />

@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 
 interface ChoreDialogProps {
@@ -38,6 +38,7 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
   const [description, setDescription] = useState(editChore?.description || '')
   const [points, setPoints] = useState(editChore?.points.toString() || '10')
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
+  const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
   const [startDate, setStartDate] = useState(
     editChore?.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : ''
   )
@@ -53,6 +54,7 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
       setDescription(editChore.description)
       setPoints(editChore.points.toString())
       setFrequency(editChore.frequency)
+      setTimeOfDay(editChore.timeOfDay)
       setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
       setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
     }
@@ -69,6 +71,7 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
     setDescription(template.description)
     setPoints(template.points.toString())
     setFrequency(template.frequency)
+    setTimeOfDay(template.timeOfDay || 'anytime')
   }
 
   const handleSave = () => {
@@ -79,6 +82,7 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
       description: description.trim(),
       points: parseInt(points) || 10,
       frequency,
+      timeOfDay,
     }
 
     if (startDate) {
@@ -100,6 +104,7 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
       setDescription('')
       setPoints('10')
       setFrequency('daily')
+      setTimeOfDay('anytime')
       setStartDate('')
       setEndDate('')
     }
@@ -258,6 +263,26 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
                   </Select>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="time-of-day">Time of Day</Label>
+                  <Select value={timeOfDay} onValueChange={(v) => setTimeOfDay(v as ChoreTimeOfDay)}>
+                    <SelectTrigger id="time-of-day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anytime">Anytime</SelectItem>
+                      <SelectItem value="am">AM Only (before noon)</SelectItem>
+                      <SelectItem value="pm">PM Only (after noon)</SelectItem>
+                      <SelectItem value="both">Both AM & PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {timeOfDay === 'am' && 'Must be completed before noon or will be marked missed'}
+                    {timeOfDay === 'pm' && 'Only shows after noon'}
+                    {timeOfDay === 'both' && 'Requires completion in morning and evening'}
+                    {timeOfDay === 'anytime' && 'Can be completed at any time of day'}
+                  </p>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="start-date">Start Date (optional)</Label>
                   <Input
                     id="start-date"
@@ -334,6 +359,26 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
                   <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="time-of-day">Time of Day</Label>
+              <Select value={timeOfDay} onValueChange={(v) => setTimeOfDay(v as ChoreTimeOfDay)}>
+                <SelectTrigger id="time-of-day">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="anytime">Anytime</SelectItem>
+                  <SelectItem value="am">AM Only (before noon)</SelectItem>
+                  <SelectItem value="pm">PM Only (after noon)</SelectItem>
+                  <SelectItem value="both">Both AM & PM</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {timeOfDay === 'am' && 'Must be completed before noon or will be marked missed'}
+                {timeOfDay === 'pm' && 'Only shows after noon'}
+                {timeOfDay === 'both' && 'Requires completion in morning and evening'}
+                {timeOfDay === 'anytime' && 'Can be completed at any time of day'}
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="start-date">Start Date (optional)</Label>

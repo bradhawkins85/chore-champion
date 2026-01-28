@@ -33,9 +33,16 @@ function App() {
   const [rewards, setRewards] = useKV<Reward[]>('rewards', [])
   const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
 
-  const choresMap = useMemo(() => {
-    return new Map((chores || []).map((c) => [c.id, c]))
+  const migratedChores = useMemo(() => {
+    return (chores || []).map((chore) => ({
+      ...chore,
+      timeOfDay: chore.timeOfDay || 'anytime',
+    }))
   }, [chores])
+
+  const choresMap = useMemo(() => {
+    return new Map((migratedChores || []).map((c) => [c.id, c]))
+  }, [migratedChores])
 
   const childPoints = useMemo(() => {
     const points = new Map<string, number>()
@@ -121,12 +128,13 @@ function App() {
     toast.success('Chore unassigned')
   }
 
-  const handleCompleteChore = (childId: string, choreId: string) => {
+  const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
     const newCompletion: ChoreCompletion = {
       id: `completion_${Date.now()}_${Math.random()}`,
       childId,
       choreId,
       completedAt: Date.now(),
+      timeOfDay,
     }
     setCompletions((current) => [...(current || []), newCompletion])
   }
@@ -231,7 +239,7 @@ function App() {
 
       {mode === 'parent' ? (
         <ParentPanel
-          chores={chores || []}
+          chores={migratedChores || []}
           childrenList={childrenList || []}
           assignments={assignments || []}
           completions={completions || []}
@@ -277,11 +285,11 @@ function App() {
         ) : (
           <ChildChoreView
             child={selectedChild}
-            chores={chores || []}
+            chores={migratedChores || []}
             assignments={assignments || []}
             completions={completions || []}
             totalPoints={childPoints.get(selectedChild.id) || 0}
-            onComplete={(choreId) => handleCompleteChore(selectedChild.id, choreId)}
+            onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}
             onShopClick={() => setShowRewardShop(true)}
           />

@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
-import { isChoreCompleted, isChoreActive } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 
 interface ChildChoreViewProps {
@@ -15,7 +15,7 @@ interface ChildChoreViewProps {
   assignments: ChoreAssignment[]
   completions: ChoreCompletion[]
   totalPoints: number
-  onComplete: (choreId: string) => void
+  onComplete: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onBack: () => void
   onShopClick: () => void
 }
@@ -35,14 +35,60 @@ export function ChildChoreView({
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
   )
+  
   const childChores = chores.filter((c) => assignedChoreIds.has(c.id) && isChoreActive(c))
 
-  const pendingChores = childChores.filter(
-    (c) => !isChoreCompleted(completions, c.id, child.id, c.frequency)
-  )
-  const completedChores = childChores.filter((c) =>
-    isChoreCompleted(completions, c.id, child.id, c.frequency)
-  )
+  const currentTimeOfDay = getCurrentTimeOfDay()
+
+  const { pendingChores, completedChores, missedChores } = useMemo(() => {
+    const pending: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
+    const completed: Chore[] = []
+    const missed: Chore[] = []
+
+    childChores.forEach((chore) => {
+      if (chore.timeOfDay === 'both') {
+        const amCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, child.id, 'am')
+        const pmCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, child.id, 'pm')
+        
+        if (currentTimeOfDay === 'am') {
+          if (!amCompleted) {
+            pending.push({ chore, timeOfDay: 'am' })
+          } else {
+            completed.push(chore)
+          }
+        } else {
+          if (!amCompleted) {
+            missed.push(chore)
+          } else if (!pmCompleted) {
+            pending.push({ chore, timeOfDay: 'pm' })
+          } else {
+            completed.push(chore)
+          }
+        }
+      } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
+        const isCompleted = isChoreCompleted(completions, chore.id, child.id, chore.frequency, chore.timeOfDay)
+        const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
+        const isAvailable = isChoreAvailableNow(chore.timeOfDay)
+        
+        if (isMissedChore) {
+          missed.push(chore)
+        } else if (!isCompleted && isAvailable) {
+          pending.push({ chore, timeOfDay: chore.timeOfDay })
+        } else if (isCompleted) {
+          completed.push(chore)
+        }
+      } else {
+        const isCompleted = isChoreCompleted(completions, chore.id, child.id, chore.frequency, chore.timeOfDay)
+        if (isCompleted) {
+          completed.push(chore)
+        } else {
+          pending.push({ chore })
+        }
+      }
+    })
+
+    return { pendingChores: pending, completedChores: completed, missedChores: missed }
+  }, [childChores, completions, child.id, currentTimeOfDay])
 
   const initials = child.name
     .split(' ')
@@ -51,9 +97,24 @@ export function ChildChoreView({
     .toUpperCase()
     .slice(0, 2)
 
-  const handleComplete = (chore: Chore) => {
+  const handleComplete = (chore: Chore, timeOfDay?: 'am' | 'pm') => {
     setCelebrating(chore.points)
-    onComplete(chore.id)
+    onComplete(chore.id, timeOfDay)
+  }
+
+  const getTimeOfDayLabel = (timeOfDay?: 'am' | 'pm') => {
+    if (!timeOfDay) return null
+    return timeOfDay === 'am' ? (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <SunHorizon className="h-3 w-3" />
+        Morning
+      </Badge>
+    ) : (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <MoonStars className="h-3 w-3" />
+        Evening
+      </Badge>
+    )
   }
 
   return (
@@ -102,20 +163,51 @@ export function ChildChoreView({
           </Card>
         ) : (
           <div className="space-y-8">
+            {missedChores.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-fredoka font-bold mb-4 text-destructive flex items-center gap-2">
+                  <Warning className="h-6 w-6" />
+                  Missed Chores
+                </h2>
+                <div className="grid gap-4">
+                  {missedChores.map((chore) => (
+                    <Card key={chore.id} className="border-destructive/50 bg-destructive/5">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <Warning className="h-12 w-12 text-destructive flex-shrink-0" />
+                          <div className="flex-1">
+                            <h3 className="text-2xl font-fredoka font-bold">
+                              {chore.name}
+                            </h3>
+                            <p className="text-sm text-destructive mt-1">
+                              This AM chore wasn't completed before noon
+                            </p>
+                            <Badge variant="destructive" className="font-fredoka text-base px-3 py-1 mt-2">
+                              0 pts (missed)
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {pendingChores.length > 0 && (
               <div>
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid gap-4">
-                  {pendingChores.map((chore, index) => (
+                  {pendingChores.map(({ chore, timeOfDay }, index) => (
                     <motion.div
-                      key={chore.id}
+                      key={`${chore.id}-${timeOfDay || 'anytime'}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
                       <Card
                         className="cursor-pointer hover:scale-102 transition-all hover:shadow-xl"
-                        onClick={() => handleComplete(chore)}
+                        onClick={() => handleComplete(chore, timeOfDay)}
                       >
                         <CardContent className="p-6">
                           <div className="flex items-center gap-4">
@@ -123,9 +215,12 @@ export function ChildChoreView({
                               <Circle className="h-12 w-12 text-muted-foreground flex-shrink-0" />
                             </motion.div>
                             <div className="flex-1">
-                              <h3 className="text-2xl font-fredoka font-bold">
-                                {chore.name}
-                              </h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-2xl font-fredoka font-bold">
+                                  {chore.name}
+                                </h3>
+                                {getTimeOfDayLabel(timeOfDay)}
+                              </div>
                               {chore.description && (
                                 <p className="text-lg text-muted-foreground mt-1">
                                   {chore.description}

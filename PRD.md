@@ -20,11 +20,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Clean transition between modes, appropriate features visible for each role
 
 ### Chore Management (Parent)
-- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
-- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores. Templates accelerate setup and provide realistic point values and descriptions.
+- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), time of day scheduling (AM/PM/Both/Anytime), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
+- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores, with time-specific scheduling for morning/evening routines. Templates accelerate setup and provide realistic point values and descriptions.
 - **Trigger**: "Add Chore" button or "Quick Add" button in parent panel
-- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Adjust if needed → Save → Chore appears in list
-- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency, inactive chores (outside date range) are clearly marked, templates provide instant setup with sensible defaults
+- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Set time of day (AM only shows before noon, PM only shows after noon, Both requires completion twice, Anytime is always available) → Adjust if needed → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency and time of day, inactive chores (outside date range) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon
 
 ### Child Assignment (Parent)
 - **Functionality**: Create child profiles and assign specific chores to each child
@@ -34,11 +34,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Each child sees only their assigned chores, assignments persist
 
 ### Chore Completion (Child)
-- **Functionality**: View assigned chores, mark as complete, see points awarded
-- **Purpose**: Simple, rewarding interface for children to track and complete tasks
+- **Functionality**: View assigned chores filtered by time of day, mark as complete, see points awarded, see missed AM chores
+- **Purpose**: Simple, rewarding interface for children to track and complete tasks at the appropriate time of day
 - **Trigger**: Child opens app in child mode, selects their profile
-- **Progression**: Select profile → View today's chores → Tap chore → Confirm completion → Points animate and add to total
-- **Success criteria**: Completed chores are marked, points increment, visual celebration on completion
+- **Progression**: Select profile → View current time period's chores (AM chores before noon, PM chores after noon, Anytime chores always visible) → Tap chore → Confirm completion → Points animate and add to total → See missed AM chores section if applicable
+- **Success criteria**: Completed chores are marked with time of day, points increment, visual celebration on completion, AM chores marked as missed if not completed before noon, Both AM/PM chores appear separately in morning and evening
 
 ### Points Tracking
 - **Functionality**: Track cumulative points per child, display prominently
@@ -86,6 +86,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Future Start Date**: Chores with future start dates show start date in parent view
 - **Expired Chores**: Chores past their end date show end date in parent view and are filtered from child assignments
 - **Duplicate Template Addition**: Users can add the same template multiple times if they want (e.g., multiple "Make Your Bed" chores for different children)
+- **Missed AM Chores**: AM-only chores not completed before noon are marked as missed and shown in a separate section with 0 points awarded
+- **PM Chores in Morning**: PM-only chores are hidden in the morning and only appear after noon
+- **Both AM/PM Chores**: Chores requiring both morning and evening completion appear twice - once in AM (before noon) and once in PM (after noon), must be completed separately for each time period
+- **Time Zone Transitions**: All time-based logic uses local device time to determine AM/PM periods
+- **Missed Chore No Points**: Missed AM chores award 0 points and display with warning indicator to teach time management
 
 ## Design Direction
 
