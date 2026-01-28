@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
@@ -57,6 +57,8 @@ function App() {
   })
   const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
   const [categories, setCategories] = useKV<Category[]>('categories', [])
+  
+  const hasMigratedRewards = useRef(false)
 
   useEffect(() => {
     if (categories && categories.length === 0) {
@@ -542,6 +544,23 @@ function App() {
       categoryIds: reward.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
     }))
   }, [rewards, categories])
+
+  useEffect(() => {
+    if (hasMigratedRewards.current) return
+    
+    if (rewards && rewards.length > 0 && categories && categories.length > 0) {
+      const needsMigration = rewards.some(r => !r.categoryIds)
+      if (needsMigration) {
+        const firstCategoryId = categories[0]?.id
+        const migrated = rewards.map((reward) => ({
+          ...reward,
+          categoryIds: reward.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
+        }))
+        setRewards(migrated)
+        hasMigratedRewards.current = true
+      }
+    }
+  }, [rewards, categories, setRewards])
 
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
