@@ -46,7 +46,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [limitScope, setLimitScope] = useState<PurchaseLimitScope>(reward?.purchaseLimit?.scope || 'per-child')
 
   useEffect(() => {
-    if (reward) {
+    if (open && reward) {
       setName(reward.name)
       setDescription(reward.description)
       setCost(reward.cost.toString())
@@ -58,8 +58,20 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
       setLimitInterval(reward.purchaseLimit?.interval || 'day')
       setLimitScope(reward.purchaseLimit?.scope || 'per-child')
+    } else if (open && !reward) {
+      setName('')
+      setDescription('')
+      setCost('')
+      setImageEmoji('🎁')
+      setCategoryIds([])
+      setCostOverrides([])
+      setRequirements([])
+      setHasLimit(false)
+      setLimitMax('1')
+      setLimitInterval('day')
+      setLimitScope('per-child')
     }
-  }, [reward])
+  }, [open, reward])
 
   const toggleCategoryId = (id: string) => {
     setCategoryIds((current) => {
