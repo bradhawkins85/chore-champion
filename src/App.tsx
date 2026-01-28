@@ -9,23 +9,29 @@ import { toast } from 'sonner'
 import { ParentPanel } from '@/components/ParentPanel'
 import { ChildSelector } from '@/components/ChildSelector'
 import { ChildChoreView } from '@/components/ChildChoreView'
+import { RewardShop } from '@/components/RewardShop'
 import {
   AppMode,
   Child,
   Chore,
   ChoreAssignment,
   ChoreCompletion,
+  Reward,
+  RewardPurchase,
 } from '@/lib/types'
-import { getChildTotalPoints } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
+  const [showRewardShop, setShowRewardShop] = useState(false)
 
   const [chores, setChores] = useKV<Chore[]>('chores', [])
   const [childrenList, setChildrenList] = useKV<Child[]>('children', [])
   const [assignments, setAssignments] = useKV<ChoreAssignment[]>('assignments', [])
   const [completions, setCompletions] = useKV<ChoreCompletion[]>('completions', [])
+  const [rewards, setRewards] = useKV<Reward[]>('rewards', [])
+  const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
 
   const choresMap = useMemo(() => {
     return new Map((chores || []).map((c) => [c.id, c]))
@@ -125,9 +131,55 @@ function App() {
     setCompletions((current) => [...(current || []), newCompletion])
   }
 
+  const handleAddReward = (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
+    const newReward: Reward = {
+      ...rewardData,
+      id: `reward_${Date.now()}_${Math.random()}`,
+      createdAt: Date.now(),
+    }
+    setRewards((current) => [...(current || []), newReward])
+    toast.success(`Reward "${newReward.name}" created!`)
+  }
+
+  const handleEditReward = (
+    id: string,
+    rewardData: Omit<Reward, 'id' | 'createdAt'>
+  ) => {
+    setRewards((current) =>
+      (current || []).map((r) =>
+        r.id === id ? { ...r, ...rewardData } : r
+      )
+    )
+    toast.success('Reward updated!')
+  }
+
+  const handleDeleteReward = (id: string) => {
+    setRewards((current) => (current || []).filter((r) => r.id !== id))
+    toast.success('Reward deleted')
+  }
+
+  const handlePurchaseReward = (childId: string, rewardId: string, cost: number) => {
+    const newPurchase: RewardPurchase = {
+      id: `purchase_${Date.now()}_${Math.random()}`,
+      childId,
+      rewardId,
+      purchasedAt: Date.now(),
+      fulfilled: false,
+    }
+    setPurchases((current) => [...(current || []), newPurchase])
+    
+    const reward = (rewards || []).find((r) => r.id === rewardId)
+    if (reward) {
+      toast.success(`🎉 You got ${reward.name}!`, {
+        description: `${cost} points spent. Ask your parents for your reward!`,
+      })
+    }
+  }
+
   const handleModeToggle = (checked: boolean) => {
     setMode(checked ? 'parent' : 'child')
     setSelectedChild(null)
+    setShowRewardShop(false)
   }
 
   return (
@@ -151,9 +203,11 @@ function App() {
       {mode === 'parent' ? (
         <ParentPanel
           chores={chores || []}
-          children={childrenList || []}
+          childrenList={childrenList || []}
           assignments={assignments || []}
           childPoints={childPoints}
+          rewards={rewards || []}
+          purchases={purchases || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -162,17 +216,44 @@ function App() {
           onDeleteChild={handleDeleteChild}
           onAssignChore={handleAssignChore}
           onUnassignChore={handleUnassignChore}
+          onAddReward={handleAddReward}
+          onEditReward={handleEditReward}
+          onDeleteReward={handleDeleteReward}
         />
       ) : selectedChild ? (
-        <ChildChoreView
-          child={selectedChild}
-          chores={chores || []}
-          assignments={assignments || []}
-          completions={completions || []}
-          totalPoints={childPoints.get(selectedChild.id) || 0}
-          onComplete={(choreId) => handleCompleteChore(selectedChild.id, choreId)}
-          onBack={() => setSelectedChild(null)}
-        />
+        showRewardShop ? (
+          <RewardShop
+            child={selectedChild}
+            rewards={rewards || []}
+            availablePoints={getChildAvailablePoints(
+              childPoints.get(selectedChild.id) || 0,
+              (purchases || [])
+                .filter((p) => p.childId === selectedChild.id)
+                .map((p) => {
+                  const reward = (rewards || []).find((r) => r.id === p.rewardId)
+                  return { cost: reward?.cost || 0 }
+                })
+            )}
+            onPurchase={(rewardId) => {
+              const reward = (rewards || []).find((r) => r.id === rewardId)
+              if (reward) {
+                handlePurchaseReward(selectedChild.id, rewardId, reward.cost)
+              }
+            }}
+            onBack={() => setShowRewardShop(false)}
+          />
+        ) : (
+          <ChildChoreView
+            child={selectedChild}
+            chores={chores || []}
+            assignments={assignments || []}
+            completions={completions || []}
+            totalPoints={childPoints.get(selectedChild.id) || 0}
+            onComplete={(choreId) => handleCompleteChore(selectedChild.id, choreId)}
+            onBack={() => setSelectedChild(null)}
+            onShopClick={() => setShowRewardShop(true)}
+          />
+        )
       ) : (
         <>
           {(childrenList || []).length === 0 ? (
@@ -196,7 +277,7 @@ function App() {
             </div>
           ) : (
             <ChildSelector
-              children={childrenList || []}
+              childrenList={childrenList || []}
               childPoints={childPoints}
               onSelect={setSelectedChild}
             />

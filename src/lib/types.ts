@@ -31,4 +31,21 @@ export interface ChoreCompletion {
   completedAt: number
 }
 
+export interface Reward {
+  id: string
+  name: string
+  description: string
+  cost: number
+  imageEmoji: string
+  createdAt: number
+}
+
+export interface RewardPurchase {
+  id: string
+  childId: string
+  rewardId: string
+  purchasedAt: number
+  fulfilled: boolean
+}
+
 export type AppMode = 'parent' | 'child'

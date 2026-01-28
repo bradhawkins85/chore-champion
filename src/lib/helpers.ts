@@ -60,6 +60,14 @@ export function getChildTotalPoints(
     }, 0)
 }
 
+export function getChildAvailablePoints(
+  totalPoints: number,
+  purchases: { cost: number }[]
+): number {
+  const spent = purchases.reduce((sum, p) => sum + p.cost, 0)
+  return totalPoints - spent
+}
+
 export const AVATAR_COLORS = [
   'oklch(0.6 0.22 290)',
   'oklch(0.72 0.18 45)',

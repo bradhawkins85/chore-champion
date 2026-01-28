@@ -54,14 +54,24 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Progression**: App checks last completion → If interval passed → Chore becomes available again
 - **Success criteria**: Chores reset at appropriate intervals, completion history maintained
 
+### Rewards Shop
+- **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points
+- **Purpose**: Give children tangible goals to work toward and motivation to complete chores
+- **Trigger**: Child clicks "Shop" button from their chore view
+- **Progression**: View rewards → Select desired reward → Confirm purchase → Points deducted → Parent notified
+- **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators
+
 ## Edge Case Handling
 
 - **No Children Added**: Display friendly empty state with "Add your first child" prompt
 - **No Chores Created**: Show onboarding message encouraging parents to create chores
+- **No Rewards Available**: Show empty state in rewards shop prompting parents to add rewards
 - **All Chores Complete**: Celebratory message for child, summary view for parents
+- **Insufficient Points**: Disable purchase button and show how many more points are needed
 - **Point Adjustment**: Parents can manually adjust points (add/subtract) for corrections
 - **Accidental Completion**: Parents can uncheck completed chores in parent mode
 - **Multiple Children Using Simultaneously**: Each child has separate profile selection to prevent conflicts
+- **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled
 
 ## Design Direction
 
@@ -114,30 +124,36 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Switch for parent/child mode toggle
   - Form components (Input, Label, Textarea, Select) for chore management
   - Progress bar for daily/weekly completion percentage
-  - Tabs for organizing parent panel sections (Chores, Children, Overview)
+  - Tabs for organizing parent panel sections (Chores, Children, Rewards)
   - Alert Dialog for deletion confirmations
+  - Large reward cards with emojis for visual appeal in shop view
   
 - **Customizations**: 
   - Extra-large touch-friendly buttons for child interface (min 80px height)
   - Custom confetti animation component using framer-motion for celebrations
   - Large card components with prominent checkboxes for child chore list
   - Point badge with glow effect and animation capabilities
+  - Reward cards with large emoji displays and clear affordability indicators
+  - Shop button prominently displayed in child chore view
   
 - **States**: 
   - Chore cards: default (pending), checked (completed), disabled (not available today)
-  - Buttons: default, hover (lift), active (press down), disabled (for completed)
+  - Reward cards: affordable (full color, interactive), unaffordable (muted, disabled)
+  - Buttons: default, hover (lift), active (press down), disabled (for completed or unaffordable)
   - Profile avatars: unselected, selected (border + glow), hover
   - Mode toggle: clear visual distinction between parent (organized, blue tones) and child (playful, purple tones)
   
 - **Icon Selection**: 
   - CheckCircle (Phosphor) for completed chores
   - Star (Phosphor) for points and rewards
+  - ShoppingCart (Phosphor) for rewards shop access
   - Calendar (Phosphor) for frequency indicators
-  - Plus (Phosphor) for adding chores/children
+  - Plus (Phosphor) for adding chores/children/rewards
   - Gear (Phosphor) for parent mode/settings
   - User (Phosphor) for child profiles
   - Trash (Phosphor) for deletions
   - Pencil (Phosphor) for editing
+  - ArrowLeft (Phosphor) for back navigation
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container

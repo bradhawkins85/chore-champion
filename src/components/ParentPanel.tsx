@@ -13,18 +13,22 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Plus } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase } from '@/lib/types'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
 import { ChoreDialog } from './ChoreDialog'
 import { ChildDialog } from './ChildDialog'
 import { AssignChoresView } from './AssignChoresView'
+import { RewardDialog } from './RewardDialog'
+import { RewardCard } from './RewardCard'
 
 interface ParentPanelProps {
   chores: Chore[]
-  children: Child[]
+  childrenList: Child[]
   assignments: ChoreAssignment[]
   childPoints: Map<string, number>
+  rewards: Reward[]
+  purchases: RewardPurchase[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -33,13 +37,18 @@ interface ParentPanelProps {
   onDeleteChild: (id: string) => void
   onAssignChore: (childId: string, choreId: string) => void
   onUnassignChore: (assignmentId: string) => void
+  onAddReward: (reward: Omit<Reward, 'id' | 'createdAt'>) => void
+  onEditReward: (id: string, reward: Omit<Reward, 'id' | 'createdAt'>) => void
+  onDeleteReward: (id: string) => void
 }
 
 export function ParentPanel({
   chores,
-  children,
+  childrenList,
   assignments,
   childPoints,
+  rewards,
+  purchases,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -48,6 +57,9 @@ export function ParentPanel({
   onDeleteChild,
   onAssignChore,
   onUnassignChore,
+  onAddReward,
+  onEditReward,
+  onDeleteReward,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
   const [childDialogOpen, setChildDialogOpen] = useState(false)
@@ -55,6 +67,7 @@ export function ParentPanel({
   const [editingChild, setEditingChild] = useState<Child | undefined>()
   const [deleteChoreId, setDeleteChoreId] = useState<string | null>(null)
   const [deleteChildId, setDeleteChildId] = useState<string | null>(null)
+  const [deleteRewardId, setDeleteRewardId] = useState<string | null>(null)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
 
   const handleEditChore = (chore: Chore) => {
@@ -115,6 +128,7 @@ export function ParentPanel({
         <TabsList>
           <TabsTrigger value="children">Children</TabsTrigger>
           <TabsTrigger value="chores">Chores</TabsTrigger>
+          <TabsTrigger value="rewards">Rewards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="children" className="space-y-4">
@@ -126,7 +140,7 @@ export function ParentPanel({
             </Button>
           </div>
 
-          {children.length === 0 ? (
+          {childrenList.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-lg text-muted-foreground mb-4">
@@ -140,7 +154,7 @@ export function ParentPanel({
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {children.map((child) => (
+              {childrenList.map((child) => (
                 <ChildCard
                   key={child.id}
                   child={child}
@@ -188,7 +202,44 @@ export function ParentPanel({
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="rewards" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
+            <RewardDialog onSave={onAddReward} />
+          </div>
+
+          {rewards.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-lg text-muted-foreground mb-4">
+                  No rewards created yet. Add rewards for children to redeem with their points!
+                </p>
+                <RewardDialog onSave={onAddReward} />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {rewards.map((reward) => {
+                const purchaseCount = purchases.filter(
+                  (p) => p.rewardId === reward.id
+                ).length
+                return (
+                  <RewardCard
+                    key={reward.id}
+                    reward={reward}
+                    onEdit={onEditReward}
+                    onDelete={setDeleteRewardId}
+                    purchaseCount={purchaseCount}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
+
+      <RewardDialog onSave={onAddReward} />
 
       <ChoreDialog
         open={choreDialogOpen}
@@ -247,6 +298,28 @@ export function ParentPanel({
               onClick={() => {
                 if (deleteChildId) onDeleteChild(deleteChildId)
                 setDeleteChildId(null)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteRewardId !== null} onOpenChange={() => setDeleteRewardId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reward</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this reward? Past purchases will remain in history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteRewardId) onDeleteReward(deleteRewardId)
+                setDeleteRewardId(null)
               }}
             >
               Delete

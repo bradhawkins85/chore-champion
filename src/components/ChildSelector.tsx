@@ -4,12 +4,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Child } from '@/lib/types'
 
 interface ChildSelectorProps {
-  children: Child[]
+  childrenList: Child[]
   childPoints: Map<string, number>
   onSelect: (child: Child) => void
 }
 
-export function ChildSelector({ children, childPoints, onSelect }: ChildSelectorProps) {
+export function ChildSelector({ childrenList, childPoints, onSelect }: ChildSelectorProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -22,7 +22,7 @@ export function ChildSelector({ children, childPoints, onSelect }: ChildSelector
         </motion.h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {children.map((child, index) => {
+          {childrenList.map((child, index) => {
             const initials = child.name
               .split(' ')
               .map((n) => n[0])

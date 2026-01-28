@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
 import { isChoreCompleted } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
@@ -17,6 +17,7 @@ interface ChildChoreViewProps {
   totalPoints: number
   onComplete: (choreId: string) => void
   onBack: () => void
+  onShopClick: () => void
 }
 
 export function ChildChoreView({
@@ -27,6 +28,7 @@ export function ChildChoreView({
   totalPoints,
   onComplete,
   onBack,
+  onShopClick,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<number | null>(null)
 
@@ -72,9 +74,19 @@ export function ChildChoreView({
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={onBack} className="text-lg px-6 py-6">
-            Back
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              size="lg"
+              onClick={onShopClick} 
+              className="text-lg px-6 py-6 font-fredoka"
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              Shop
+            </Button>
+            <Button variant="outline" onClick={onBack} className="text-lg px-6 py-6">
+              Back
+            </Button>
+          </div>
         </div>
 
         {childChores.length === 0 ? (
