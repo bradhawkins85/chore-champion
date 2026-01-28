@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -31,6 +31,7 @@ import { RewardCard } from './RewardCard'
 import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 import { WeeklySummary } from './WeeklySummary'
 import { ChangePinDialog } from './ChangePinDialog'
+import { UndoHistory } from './UndoHistory'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -40,6 +41,7 @@ interface ParentPanelProps {
   childPoints: Map<string, number>
   rewards: Reward[]
   purchases: RewardPurchase[]
+  history: ChoreHistoryEvent[]
   parentPin: string | null
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
@@ -66,6 +68,7 @@ export function ParentPanel({
   childPoints,
   rewards,
   purchases,
+  history,
   parentPin,
   onAddChore,
   onEditChore,
@@ -197,6 +200,10 @@ export function ParentPanel({
                 {purchases.filter((p) => !p.fulfilled).length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <ClockCounterClockwise className="h-4 w-4 mr-2" />
+            History
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Gear className="h-4 w-4 mr-2" />
@@ -440,6 +447,23 @@ export function ParentPanel({
                 })}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Activity History</h2>
+              <p className="text-sm text-muted-foreground">
+                View all chore completions and undo actions
+              </p>
+            </div>
+          </div>
+
+          <UndoHistory
+            history={history}
+            childrenList={childrenList}
+            chores={chores}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">

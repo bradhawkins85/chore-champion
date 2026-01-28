@@ -46,6 +46,17 @@ export interface ChoreCompletion {
   choreId: string
   completedAt: number
   timeOfDay?: 'am' | 'pm'
+  undoneAt?: number
+}
+
+export interface ChoreHistoryEvent {
+  id: string
+  type: 'complete' | 'undo'
+  childId: string
+  choreId: string
+  timestamp: number
+  timeOfDay?: 'am' | 'pm'
+  completionId?: string
 }
 
 export interface Reward {

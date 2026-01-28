@@ -15,6 +15,7 @@ import {
   Chore,
   ChoreAssignment,
   ChoreCompletion,
+  ChoreHistoryEvent,
   Reward,
   RewardPurchase,
 } from '@/lib/types'
@@ -34,6 +35,7 @@ function App() {
   const [completions, setCompletions] = useKV<ChoreCompletion[]>('completions', [])
   const [rewards, setRewards] = useKV<Reward[]>('rewards', [])
   const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
+  const [history, setHistory] = useKV<ChoreHistoryEvent[]>('chore-history', [])
 
   const migratedChores = useMemo(() => {
     return (chores || []).map((chore) => ({
@@ -134,14 +136,26 @@ function App() {
   }
 
   const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const completionId = `completion_${Date.now()}_${Math.random()}`
     const newCompletion: ChoreCompletion = {
-      id: `completion_${Date.now()}_${Math.random()}`,
+      id: completionId,
       childId,
       choreId,
       completedAt: Date.now(),
       timeOfDay,
     }
     setCompletions((current) => [...(current || []), newCompletion])
+    
+    const historyEvent: ChoreHistoryEvent = {
+      id: `history_${Date.now()}_${Math.random()}`,
+      type: 'complete',
+      childId,
+      choreId,
+      timestamp: Date.now(),
+      timeOfDay,
+      completionId,
+    }
+    setHistory((current) => [...(current || []), historyEvent])
   }
 
   const handleUndoChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
@@ -158,6 +172,18 @@ function App() {
       
       if (completionToRemove) {
         toast.info('Chore completion undone')
+        
+        const historyEvent: ChoreHistoryEvent = {
+          id: `history_${Date.now()}_${Math.random()}`,
+          type: 'undo',
+          childId,
+          choreId,
+          timestamp: Date.now(),
+          timeOfDay,
+          completionId: completionToRemove.id,
+        }
+        setHistory((currentHistory) => [...(currentHistory || []), historyEvent])
+        
         return currentCompletions.filter((c) => c.id !== completionToRemove.id)
       }
       
@@ -262,6 +288,7 @@ function App() {
           childPoints={childPoints}
           rewards={rewards || []}
           purchases={purchases || []}
+          history={history || []}
           parentPin={parentPin ?? null}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
