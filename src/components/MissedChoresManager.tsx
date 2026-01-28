@@ -58,7 +58,7 @@ export function MissedChoresManager({
 
       childAssignments.forEach((assignment) => {
         const chore = chores.find((c) => c.id === assignment.choreId)
-        if (!chore || !isChoreActive(chore) || !isChoreActiveToday(chore)) {
+        if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
           return
         }
 

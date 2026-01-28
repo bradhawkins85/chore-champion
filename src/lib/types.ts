@@ -50,10 +50,6 @@ export interface Chore {
   createdAt: number
   categoryIds: string[]
   categoryPoints?: CategoryPoints[]
-  startDate?: number
-  endDate?: number
-  daysOfWeek?: DayOfWeek[]
-  repeatPattern?: RepeatPattern
   pointOverrides?: ChorePointOverride[]
   categoryPointOverrides?: CategoryPointOverride[]
   desiredTime?: string
@@ -73,6 +69,10 @@ export interface ChoreAssignment {
   childId: string
   choreId: string
   assignedAt: number
+  startDate?: number
+  endDate?: number
+  daysOfWeek?: DayOfWeek[]
+  repeatPattern?: RepeatPattern
 }
 
 export interface ChoreCompletion {

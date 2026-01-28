@@ -88,13 +88,11 @@ function App() {
       const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints
       
       if (needsMigration) {
-        const migratedChore = {
+        const migratedChore: Chore = {
           ...chore,
           timeOfDay: chore.timeOfDay || 'anytime',
           completionType: chore.completionType || 'individual',
           categoryIds: chore.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
-          daysOfWeek: chore.daysOfWeek || undefined,
-          repeatPattern: chore.repeatPattern || undefined,
         }
         
         if (!chore.categoryPoints && migratedChore.categoryIds.length > 0) {
@@ -110,6 +108,36 @@ function App() {
       return chore
     })
   }, [chores, categories])
+
+  useEffect(() => {
+    if (assignments && assignments.length > 0) {
+      const oldChores = chores || []
+      const needsMigration = oldChores.some((c: any) => c.daysOfWeek || c.repeatPattern || c.startDate || c.endDate)
+      
+      if (needsMigration) {
+        const updatedAssignments = (assignments || []).map(assignment => {
+          const oldChore: any = oldChores.find((c: any) => c.id === assignment.choreId)
+          if (oldChore && !assignment.daysOfWeek && !assignment.repeatPattern && !assignment.startDate && !assignment.endDate) {
+            return {
+              ...assignment,
+              daysOfWeek: oldChore.daysOfWeek,
+              repeatPattern: oldChore.repeatPattern,
+              startDate: oldChore.startDate,
+              endDate: oldChore.endDate,
+            }
+          }
+          return assignment
+        })
+        setAssignments(updatedAssignments)
+        
+        const cleanedChores = oldChores.map((chore: any) => {
+          const { daysOfWeek, repeatPattern, startDate, endDate, ...rest } = chore
+          return rest
+        })
+        setChores(cleanedChores)
+      }
+    }
+  }, [])
 
   const choresMap = useMemo(() => {
     return new Map((migratedChores || []).map((c) => [c.id, c]))

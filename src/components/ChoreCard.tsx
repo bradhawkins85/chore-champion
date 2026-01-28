@@ -13,7 +13,6 @@ interface ChoreCardProps {
 }
 
 export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCardProps) {
-  const active = isChoreActive(chore)
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
       month: 'short',
@@ -71,62 +70,6 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
     }
   }
 
-  const getDaysOfWeekDisplay = () => {
-    if (chore.repeatPattern) {
-      return null
-    }
-    if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
-      return null
-    }
-    const dayLabels: Record<DayOfWeek, string> = {
-      monday: 'Mon',
-      tuesday: 'Tue',
-      wednesday: 'Wed',
-      thursday: 'Thu',
-      friday: 'Fri',
-      saturday: 'Sat',
-      sunday: 'Sun',
-    }
-    return (
-      <Badge variant="outline" className="flex items-center gap-1">
-        <Calendar className="h-3 w-3" />
-        {chore.daysOfWeek.map(d => dayLabels[d]).join(', ')}
-      </Badge>
-    )
-  }
-
-  const getRepeatPatternDisplay = () => {
-    if (!chore.repeatPattern) {
-      return null
-    }
-
-    const pattern = chore.repeatPattern
-    const dayLabels: Record<DayOfWeek, string> = {
-      monday: 'Mon',
-      tuesday: 'Tue',
-      wednesday: 'Wed',
-      thursday: 'Thu',
-      friday: 'Fri',
-      saturday: 'Sat',
-      sunday: 'Sun',
-    }
-
-    const intervalText = pattern.interval === 2 ? 'Every other' : `Every ${pattern.interval}`
-    
-    let displayText = `${intervalText} week`
-    if (pattern.specificDays && pattern.specificDays.length > 0) {
-      const days = pattern.specificDays.map(d => dayLabels[d]).join(', ')
-      displayText = `${intervalText} ${pattern.specificDays.length === 1 ? days : `week: ${days}`}`
-    }
-
-    return (
-      <Badge variant="outline" className="flex items-center gap-1">
-        <Repeat className="h-3 w-3" />
-        {displayText}
-      </Badge>
-    )
-  }
-
   const getTimeWindowBadge = () => {
     if (!chore.timeWindow) {
       return null
@@ -140,17 +83,12 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
   }
 
   return (
-    <Card className={!active ? 'opacity-60' : ''}>
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg font-fredoka">{chore.name}</CardTitle>
-              {!active && (
-                <Badge variant="outline" className="text-xs">
-                  Inactive
-                </Badge>
-              )}
             </div>
             {chore.description && (
               <p className="text-sm text-muted-foreground mt-1">{chore.description}</p>
@@ -218,23 +156,9 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
             <Calendar className="h-4 w-4" />
             <span className="capitalize">{chore.frequency}</span>
           </div>
-          {getRepeatPatternDisplay()}
-          {getDaysOfWeekDisplay()}
           {getTimeOfDayBadge()}
           {getTimeWindowBadge()}
           {getCompletionTypeBadge()}
-          {chore.startDate && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <CalendarBlank className="h-4 w-4" />
-              <span>Starts {formatDate(chore.startDate)}</span>
-            </div>
-          )}
-          {chore.endDate && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <CalendarCheck className="h-4 w-4" />
-              <span>Ends {formatDate(chore.endDate)}</span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

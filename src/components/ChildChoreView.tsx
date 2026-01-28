@@ -48,7 +48,8 @@ export function ChildChoreView({
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
   )
   
-  const childChores = chores.filter((c) => assignedChoreIds.has(c.id) && isChoreActive(c) && isChoreActiveToday(c))
+  const childAssignments = assignments.filter((a) => a.childId === child.id && isChoreActive(a) && isChoreActiveToday(a))
+  const childChores = chores.filter((c) => childAssignments.some((a) => a.choreId === c.id))
 
   const currentTimeOfDay = getCurrentTimeOfDay()
 

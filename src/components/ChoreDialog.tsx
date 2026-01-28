@@ -60,23 +60,8 @@ export function ChoreDialog({
   const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
   const [completionType, setCompletionType] = useState<ChoreCompletionType>(editChore?.completionType || 'individual')
   const [categoryIds, setCategoryIds] = useState<string[]>(editChore?.categoryIds || [])
-  const [startDate, setStartDate] = useState(
-    editChore?.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : ''
-  )
-  const [endDate, setEndDate] = useState(
-    editChore?.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : ''
-  )
-  const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(editChore?.daysOfWeek || [])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [useRepeatPattern, setUseRepeatPattern] = useState(!!editChore?.repeatPattern)
-  const [repeatInterval, setRepeatInterval] = useState(editChore?.repeatPattern?.interval?.toString() || '2')
-  const [repeatSpecificDays, setRepeatSpecificDays] = useState<DayOfWeek[]>(editChore?.repeatPattern?.specificDays || [])
-  const [repeatAnchorDate, setRepeatAnchorDate] = useState(
-    editChore?.repeatPattern?.anchorDate 
-      ? new Date(editChore.repeatPattern.anchorDate).toISOString().split('T')[0]
-      : ''
-  )
   const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
   const [categoryPoints, setCategoryPoints] = useState<CategoryPoints[]>(editChore?.categoryPoints || [])
   const [categoryPointOverrides, setCategoryPointOverrides] = useState<CategoryPointOverride[]>(editChore?.categoryPointOverrides || [])
@@ -104,17 +89,6 @@ export function ChoreDialog({
       setTimeOfDay(editChore.timeOfDay)
       setCompletionType(editChore.completionType)
       setCategoryIds(editChore.categoryIds || [])
-      setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
-      setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
-      setDaysOfWeek(editChore.daysOfWeek || [])
-      setUseRepeatPattern(!!editChore.repeatPattern)
-      setRepeatInterval(editChore.repeatPattern?.interval?.toString() || '2')
-      setRepeatSpecificDays(editChore.repeatPattern?.specificDays || [])
-      setRepeatAnchorDate(
-        editChore.repeatPattern?.anchorDate 
-          ? new Date(editChore.repeatPattern.anchorDate).toISOString().split('T')[0]
-          : ''
-      )
       setPointOverrides(editChore.pointOverrides || [])
       setCategoryPoints(editChore.categoryPoints || [])
       setCategoryPointOverrides(editChore.categoryPointOverrides || [])
@@ -137,7 +111,6 @@ export function ChoreDialog({
     setPoints(template.points.toString())
     setFrequency(template.frequency)
     setTimeOfDay(template.timeOfDay || 'anytime')
-    setDaysOfWeek([])
   }
 
   const toggleCategoryId = (id: string) => {
@@ -153,43 +126,6 @@ export function ChoreDialog({
     })
   }
 
-  const toggleDayOfWeek = (day: DayOfWeek) => {
-    setDaysOfWeek((current) => {
-      if (current.includes(day)) {
-        return current.filter((d) => d !== day)
-      } else {
-        return [...current, day]
-      }
-    })
-  }
-
-  const toggleRepeatDay = (day: DayOfWeek) => {
-    setRepeatSpecificDays((current) => {
-      if (current.includes(day)) {
-        return current.filter((d) => d !== day)
-      } else {
-        return [...current, day]
-      }
-    })
-  }
-
-  const getRepeatPatternDescription = (): string => {
-    if (!useRepeatPattern) return ''
-    
-    const interval = parseInt(repeatInterval) || 2
-    const intervalText = interval === 2 ? 'every other' : `every ${interval}`
-    
-    if (repeatSpecificDays.length === 0) {
-      return `Repeats ${intervalText} week`
-    }
-    
-    const dayLabels = repeatSpecificDays.map(d => 
-      weekDays.find(wd => wd.value === d)?.label
-    ).join(', ')
-    
-    return `Repeats ${intervalText} ${repeatSpecificDays.length === 1 ? dayLabels : `week on ${dayLabels}`}`
-  }
-
   const handleSave = () => {
     if (!name.trim()) return
 
@@ -202,41 +138,6 @@ export function ChoreDialog({
       completionType,
       categoryIds,
       categoryPoints: categoryPoints.length > 0 ? categoryPoints : undefined,
-    }
-
-    if (daysOfWeek.length > 0 && !useRepeatPattern) {
-      choreData.daysOfWeek = daysOfWeek
-    }
-
-    if (useRepeatPattern) {
-      const pattern: RepeatPattern = {
-        interval: parseInt(repeatInterval) || 2,
-        unit: 'weeks',
-      }
-      
-      if (repeatSpecificDays.length > 0) {
-        pattern.specificDays = repeatSpecificDays
-      }
-      
-      if (repeatAnchorDate) {
-        const anchorDateTime = new Date(repeatAnchorDate)
-        anchorDateTime.setHours(0, 0, 0, 0)
-        pattern.anchorDate = anchorDateTime.getTime()
-      }
-      
-      choreData.repeatPattern = pattern
-    }
-
-    if (startDate) {
-      const startDateTime = new Date(startDate)
-      startDateTime.setHours(0, 0, 0, 0)
-      choreData.startDate = startDateTime.getTime()
-    }
-
-    if (endDate) {
-      const endDateTime = new Date(endDate)
-      endDateTime.setHours(23, 59, 59, 999)
-      choreData.endDate = endDateTime.getTime()
     }
 
     if (pointOverrides.length > 0) {
@@ -270,13 +171,6 @@ export function ChoreDialog({
       setCategoryIds([])
       setCategoryPoints([])
       setCategoryPointOverrides([])
-      setStartDate('')
-      setEndDate('')
-      setDaysOfWeek([])
-      setUseRepeatPattern(false)
-      setRepeatInterval('2')
-      setRepeatSpecificDays([])
-      setRepeatAnchorDate('')
       setPointOverrides([])
       setDesiredTime('')
       setUseTimeWindow(false)

@@ -24,20 +24,20 @@ export function getWeekNumber(date: Date): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
-export function isRepeatPatternActiveToday(chore: Chore): boolean {
-  if (!chore.repeatPattern) {
+export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean {
+  if (!assignment.repeatPattern) {
     return true
   }
 
-  const pattern = chore.repeatPattern
+  const pattern = assignment.repeatPattern
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const anchorDate = pattern.anchorDate 
     ? new Date(pattern.anchorDate)
-    : chore.startDate 
-    ? new Date(chore.startDate)
-    : new Date(chore.createdAt)
+    : assignment.startDate 
+    ? new Date(assignment.startDate)
+    : new Date(assignment.assignedAt)
   
   anchorDate.setHours(0, 0, 0, 0)
 
@@ -59,16 +59,16 @@ export function isRepeatPatternActiveToday(chore: Chore): boolean {
   return true
 }
 
-export function isChoreActiveToday(chore: Chore): boolean {
-  if (!isRepeatPatternActiveToday(chore)) {
+export function isChoreActiveToday(assignment: ChoreAssignment): boolean {
+  if (!isRepeatPatternActiveToday(assignment)) {
     return false
   }
 
-  if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
+  if (!assignment.daysOfWeek || assignment.daysOfWeek.length === 0) {
     return true
   }
   const today = getCurrentDayOfWeek()
-  return chore.daysOfWeek.includes(today)
+  return assignment.daysOfWeek.includes(today)
 }
 
 export function getCurrentTimeOfDay(): 'am' | 'pm' {
@@ -285,14 +285,14 @@ export function isChoreCompleted(
   }
 }
 
-export function isChoreActive(chore: { startDate?: number; endDate?: number }): boolean {
+export function isChoreActive(assignment: ChoreAssignment): boolean {
   const now = Date.now()
   
-  if (chore.startDate && now < chore.startDate) {
+  if (assignment.startDate && now < assignment.startDate) {
     return false
   }
   
-  if (chore.endDate && now > chore.endDate) {
+  if (assignment.endDate && now > assignment.endDate) {
     return false
   }
   

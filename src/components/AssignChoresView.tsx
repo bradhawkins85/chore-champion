@@ -103,7 +103,7 @@ export function AssignChoresView({
             const assignment = assignments.find(
               (a) => a.childId === child.id && a.choreId === chore.id
             )
-            const active = isChoreActive(chore)
+            const active = assignment ? isChoreActive(assignment) : false
             return (
               <Card key={chore.id} className={!active ? 'opacity-60' : ''}>
                 <CardHeader>
@@ -149,16 +149,16 @@ export function AssignChoresView({
                       <Calendar className="h-4 w-4" />
                       <span className="capitalize">{chore.frequency}</span>
                     </div>
-                    {chore.startDate && (
+                    {assignment?.startDate && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <CalendarBlank className="h-4 w-4" />
-                        <span>Starts {formatDate(chore.startDate)}</span>
+                        <span>Starts {formatDate(assignment.startDate)}</span>
                       </div>
                     )}
-                    {chore.endDate && (
+                    {assignment?.endDate && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <CalendarCheck className="h-4 w-4" />
-                        <span>Ends {formatDate(chore.endDate)}</span>
+                        <span>Ends {formatDate(assignment.endDate)}</span>
                       </div>
                     )}
                   </div>
