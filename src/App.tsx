@@ -40,13 +40,35 @@ function App() {
   const [dismissedMissedChores, setDismissedMissedChores] = useKV<MissedChore[]>('dismissed-missed-chores', [])
 
   const migratedChores = useMemo(() => {
-    return (chores || []).map((chore) => ({
-      ...chore,
-      timeOfDay: chore.timeOfDay || 'anytime',
-      completionType: chore.completionType || 'individual',
-      daysOfWeek: chore.daysOfWeek || undefined,
-      repeatPattern: chore.repeatPattern || undefined,
-    }))
+    if (!chores || chores.length === 0) return chores || []
+    
+    let needsAnyMigration = false
+    for (const chore of chores) {
+      if (!chore.timeOfDay || !chore.completionType) {
+        needsAnyMigration = true
+        break
+      }
+    }
+    
+    if (!needsAnyMigration) {
+      return chores
+    }
+    
+    return chores.map((chore) => {
+      const needsMigration = !chore.timeOfDay || !chore.completionType
+      
+      if (needsMigration) {
+        return {
+          ...chore,
+          timeOfDay: chore.timeOfDay || 'anytime',
+          completionType: chore.completionType || 'individual',
+          daysOfWeek: chore.daysOfWeek || undefined,
+          repeatPattern: chore.repeatPattern || undefined,
+        }
+      }
+      
+      return chore
+    })
   }, [chores])
 
   const choresMap = useMemo(() => {
