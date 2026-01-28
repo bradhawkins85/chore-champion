@@ -5,7 +5,54 @@ export function getCurrentDayOfWeek(): DayOfWeek {
   return days[new Date().getDay()]
 }
 
+export function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
+export function isRepeatPatternActiveToday(chore: Chore): boolean {
+  if (!chore.repeatPattern) {
+    return true
+  }
+
+  const pattern = chore.repeatPattern
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const anchorDate = pattern.anchorDate 
+    ? new Date(pattern.anchorDate)
+    : chore.startDate 
+    ? new Date(chore.startDate)
+    : new Date(chore.createdAt)
+  
+  anchorDate.setHours(0, 0, 0, 0)
+
+  if (pattern.unit === 'weeks') {
+    const todayDayOfWeek = getCurrentDayOfWeek()
+    
+    if (pattern.specificDays && pattern.specificDays.length > 0) {
+      if (!pattern.specificDays.includes(todayDayOfWeek)) {
+        return false
+      }
+    }
+
+    const daysSinceAnchor = Math.floor((today.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24))
+    const weeksSinceAnchor = Math.floor(daysSinceAnchor / 7)
+    
+    return weeksSinceAnchor % pattern.interval === 0
+  }
+
+  return true
+}
+
 export function isChoreActiveToday(chore: Chore): boolean {
+  if (!isRepeatPatternActiveToday(chore)) {
+    return false
+  }
+
   if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
     return true
   }

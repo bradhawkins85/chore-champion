@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat } from '@phosphor-icons/react'
 import { Chore, DayOfWeek } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
 
@@ -71,6 +71,9 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
   }
 
   const getDaysOfWeekDisplay = () => {
+    if (chore.repeatPattern) {
+      return null
+    }
     if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) {
       return null
     }
@@ -87,6 +90,38 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
       <Badge variant="outline" className="flex items-center gap-1">
         <Calendar className="h-3 w-3" />
         {chore.daysOfWeek.map(d => dayLabels[d]).join(', ')}
+      </Badge>
+    )
+  }
+
+  const getRepeatPatternDisplay = () => {
+    if (!chore.repeatPattern) {
+      return null
+    }
+
+    const pattern = chore.repeatPattern
+    const dayLabels: Record<DayOfWeek, string> = {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu',
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun',
+    }
+
+    const intervalText = pattern.interval === 2 ? 'Every other' : `Every ${pattern.interval}`
+    
+    let displayText = `${intervalText} week`
+    if (pattern.specificDays && pattern.specificDays.length > 0) {
+      const days = pattern.specificDays.map(d => dayLabels[d]).join(', ')
+      displayText = `${intervalText} ${pattern.specificDays.length === 1 ? days : `week: ${days}`}`
+    }
+
+    return (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <Repeat className="h-3 w-3" />
+        {displayText}
       </Badge>
     )
   }
@@ -137,6 +172,7 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
             <Calendar className="h-4 w-4" />
             <span className="capitalize">{chore.frequency}</span>
           </div>
+          {getRepeatPatternDisplay()}
           {getDaysOfWeekDisplay()}
           {getTimeOfDayBadge()}
           {getCompletionTypeBadge()}

@@ -22,11 +22,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek } from '@/lib/types'
+import { Sparkle, User, Info } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ChoreDialogProps {
   open: boolean
@@ -64,6 +66,14 @@ export function ChoreDialog({
   const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(editChore?.daysOfWeek || [])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [useRepeatPattern, setUseRepeatPattern] = useState(!!editChore?.repeatPattern)
+  const [repeatInterval, setRepeatInterval] = useState(editChore?.repeatPattern?.interval?.toString() || '2')
+  const [repeatSpecificDays, setRepeatSpecificDays] = useState<DayOfWeek[]>(editChore?.repeatPattern?.specificDays || [])
+  const [repeatAnchorDate, setRepeatAnchorDate] = useState(
+    editChore?.repeatPattern?.anchorDate 
+      ? new Date(editChore.repeatPattern.anchorDate).toISOString().split('T')[0]
+      : ''
+  )
 
   const weekDays: { value: DayOfWeek; label: string }[] = [
     { value: 'monday', label: 'Mon' },
@@ -86,6 +96,14 @@ export function ChoreDialog({
       setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
       setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
       setDaysOfWeek(editChore.daysOfWeek || [])
+      setUseRepeatPattern(!!editChore.repeatPattern)
+      setRepeatInterval(editChore.repeatPattern?.interval?.toString() || '2')
+      setRepeatSpecificDays(editChore.repeatPattern?.specificDays || [])
+      setRepeatAnchorDate(
+        editChore.repeatPattern?.anchorDate 
+          ? new Date(editChore.repeatPattern.anchorDate).toISOString().split('T')[0]
+          : ''
+      )
     }
   }, [editChore])
 
@@ -114,6 +132,33 @@ export function ChoreDialog({
     })
   }
 
+  const toggleRepeatDay = (day: DayOfWeek) => {
+    setRepeatSpecificDays((current) => {
+      if (current.includes(day)) {
+        return current.filter((d) => d !== day)
+      } else {
+        return [...current, day]
+      }
+    })
+  }
+
+  const getRepeatPatternDescription = (): string => {
+    if (!useRepeatPattern) return ''
+    
+    const interval = parseInt(repeatInterval) || 2
+    const intervalText = interval === 2 ? 'every other' : `every ${interval}`
+    
+    if (repeatSpecificDays.length === 0) {
+      return `Repeats ${intervalText} week`
+    }
+    
+    const dayLabels = repeatSpecificDays.map(d => 
+      weekDays.find(wd => wd.value === d)?.label
+    ).join(', ')
+    
+    return `Repeats ${intervalText} ${repeatSpecificDays.length === 1 ? dayLabels : `week on ${dayLabels}`}`
+  }
+
   const handleSave = () => {
     if (!name.trim()) return
 
@@ -126,8 +171,27 @@ export function ChoreDialog({
       completionType,
     }
 
-    if (daysOfWeek.length > 0) {
+    if (daysOfWeek.length > 0 && !useRepeatPattern) {
       choreData.daysOfWeek = daysOfWeek
+    }
+
+    if (useRepeatPattern) {
+      const pattern: RepeatPattern = {
+        interval: parseInt(repeatInterval) || 2,
+        unit: 'weeks',
+      }
+      
+      if (repeatSpecificDays.length > 0) {
+        pattern.specificDays = repeatSpecificDays
+      }
+      
+      if (repeatAnchorDate) {
+        const anchorDateTime = new Date(repeatAnchorDate)
+        anchorDateTime.setHours(0, 0, 0, 0)
+        pattern.anchorDate = anchorDateTime.getTime()
+      }
+      
+      choreData.repeatPattern = pattern
     }
 
     if (startDate) {
@@ -154,6 +218,10 @@ export function ChoreDialog({
       setStartDate('')
       setEndDate('')
       setDaysOfWeek([])
+      setUseRepeatPattern(false)
+      setRepeatInterval('2')
+      setRepeatSpecificDays([])
+      setRepeatAnchorDate('')
     }
     onOpenChange(false)
   }
@@ -320,6 +388,7 @@ export function ChoreDialog({
                         size="sm"
                         onClick={() => toggleDayOfWeek(day.value)}
                         className="font-fredoka"
+                        disabled={useRepeatPattern}
                       >
                         {day.label}
                       </Button>
@@ -331,6 +400,98 @@ export function ChoreDialog({
                       : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
                     }
                   </p>
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="use-repeat-pattern" className="text-base font-fredoka font-semibold">
+                        Advanced Repeat Pattern
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Create patterns like "every other Monday" or "every 3 weeks"
+                      </p>
+                    </div>
+                    <Switch
+                      id="use-repeat-pattern"
+                      checked={useRepeatPattern}
+                      onCheckedChange={(checked) => {
+                        setUseRepeatPattern(checked)
+                        if (!checked) {
+                          setRepeatSpecificDays([])
+                          setRepeatAnchorDate('')
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  {useRepeatPattern && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary">
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          {getRepeatPatternDescription() || 'Configure the repeat pattern below'}
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="repeat-interval">Repeat Every (weeks)</Label>
+                        <Input
+                          id="repeat-interval"
+                          type="number"
+                          value={repeatInterval}
+                          onChange={(e) => setRepeatInterval(e.target.value)}
+                          min="1"
+                          max="52"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {repeatInterval === '1' ? 'Every week (same as weekly frequency)' 
+                            : repeatInterval === '2' ? 'Every other week' 
+                            : `Every ${repeatInterval} weeks`}
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label>On These Days (optional)</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {weekDays.map((day) => (
+                            <Button
+                              key={day.value}
+                              type="button"
+                              variant={repeatSpecificDays.includes(day.value) ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => toggleRepeatDay(day.value)}
+                              className="font-fredoka"
+                            >
+                              {day.label}
+                            </Button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {repeatSpecificDays.length === 0 
+                            ? 'Leave empty to repeat every day during active weeks' 
+                            : `Will repeat on: ${repeatSpecificDays.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
+                          }
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="anchor-date">Starting From (optional)</Label>
+                        <Input
+                          id="anchor-date"
+                          type="date"
+                          value={repeatAnchorDate}
+                          onChange={(e) => setRepeatAnchorDate(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {repeatAnchorDate 
+                            ? `Pattern starts counting from ${new Date(repeatAnchorDate).toLocaleDateString()}`
+                            : 'Leave empty to use the chore creation date or start date as the anchor'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="time-of-day">Time of Day</Label>
@@ -459,6 +620,7 @@ export function ChoreDialog({
                     size="sm"
                     onClick={() => toggleDayOfWeek(day.value)}
                     className="font-fredoka"
+                    disabled={useRepeatPattern}
                   >
                     {day.label}
                   </Button>
@@ -470,6 +632,98 @@ export function ChoreDialog({
                   : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
                 }
               </p>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="use-repeat-pattern-edit" className="text-base font-fredoka font-semibold">
+                    Advanced Repeat Pattern
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Create patterns like "every other Monday" or "every 3 weeks"
+                  </p>
+                </div>
+                <Switch
+                  id="use-repeat-pattern-edit"
+                  checked={useRepeatPattern}
+                  onCheckedChange={(checked) => {
+                    setUseRepeatPattern(checked)
+                    if (!checked) {
+                      setRepeatSpecificDays([])
+                      setRepeatAnchorDate('')
+                    }
+                  }}
+                />
+              </div>
+              
+              {useRepeatPattern && (
+                <div className="space-y-4 pl-4 border-l-2 border-primary">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      {getRepeatPatternDescription() || 'Configure the repeat pattern below'}
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="repeat-interval-edit">Repeat Every (weeks)</Label>
+                    <Input
+                      id="repeat-interval-edit"
+                      type="number"
+                      value={repeatInterval}
+                      onChange={(e) => setRepeatInterval(e.target.value)}
+                      min="1"
+                      max="52"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {repeatInterval === '1' ? 'Every week (same as weekly frequency)' 
+                        : repeatInterval === '2' ? 'Every other week' 
+                        : `Every ${repeatInterval} weeks`}
+                    </p>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label>On These Days (optional)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {weekDays.map((day) => (
+                        <Button
+                          key={day.value}
+                          type="button"
+                          variant={repeatSpecificDays.includes(day.value) ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => toggleRepeatDay(day.value)}
+                          className="font-fredoka"
+                        >
+                          {day.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {repeatSpecificDays.length === 0 
+                        ? 'Leave empty to repeat every day during active weeks' 
+                        : `Will repeat on: ${repeatSpecificDays.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="anchor-date-edit">Starting From (optional)</Label>
+                    <Input
+                      id="anchor-date-edit"
+                      type="date"
+                      value={repeatAnchorDate}
+                      onChange={(e) => setRepeatAnchorDate(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {repeatAnchorDate 
+                        ? `Pattern starts counting from ${new Date(repeatAnchorDate).toLocaleDateString()}`
+                        : 'Leave empty to use the chore creation date or start date as the anchor'
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="time-of-day">Time of Day</Label>

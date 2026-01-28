@@ -27,11 +27,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Clean transition between modes, appropriate features visible for each role, PIN protection active
 
 ### Chore Management (Parent)
-- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), day-of-week selection, time of day scheduling (AM/PM/Both/Anytime), completion type (Individual/Shareable/Once Per Day), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
-- **Purpose**: Give parents full control over what tasks children need to complete, including scheduling chores for specific days (e.g., Monday/Wednesday/Friday only), temporary or seasonal chores, with time-specific scheduling for morning/evening routines and flexible completion modes for different chore types. Templates accelerate setup and provide realistic point values and descriptions.
+- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), day-of-week selection, advanced repeat patterns (every N weeks on specific days), time of day scheduling (AM/PM/Both/Anytime), completion type (Individual/Shareable/Once Per Day), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
+- **Purpose**: Give parents full control over what tasks children need to complete, including basic day-of-week scheduling or advanced repeating patterns like "every other Monday" or "every 3 weeks on Tuesday and Thursday", temporary or seasonal chores, with time-specific scheduling for morning/evening routines and flexible completion modes for different chore types. Templates accelerate setup and provide realistic point values and descriptions.
 - **Trigger**: "Add Chore" button or "Quick Add" button in parent panel
-- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Set frequency → Optionally select specific days of week (leave empty for every day) → Set time of day (AM only shows before noon, PM only shows after noon, Both requires completion twice, Anytime is always available) → Set completion type (Individual: each child completes independently for full points, Shareable: children can work together and share points equally, Once Per Day: only first child to complete gets points) → Adjust if needed → Save → Chore appears in list
-- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency and selected days, chores only appear on their assigned days, inactive chores (outside date range or wrong day) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon, shareable chores split points among children who complete them, once-per-day chores disappear from other children after first completion
+- **Progression**: Click add → Choose template or custom → Browse by category (Bedroom, Kitchen, Bathroom, Pet Care, etc.) or search → Select template to auto-fill form → Set frequency → Choose simple day-of-week selection OR enable Advanced Repeat Pattern toggle → For advanced patterns: set interval (e.g., every 2 weeks), optionally select specific days (e.g., Monday, Wednesday), optionally set anchor date for pattern counting → Set time of day (AM only shows before noon, PM only shows after noon, Both requires completion twice, Anytime is always available) → Set completion type (Individual: each child completes independently for full points, Shareable: children can work together and share points equally, Once Per Day: only first child to complete gets points) → Adjust if needed → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency and selected days, chores only appear on their assigned days, repeat patterns calculate correctly (e.g., "every other Monday" only shows every 2 weeks on Monday), inactive chores (outside date range or wrong day) are clearly marked, templates provide instant setup with sensible defaults, AM-only chores marked as missed if not completed before noon, shareable chores split points among children who complete them, once-per-day chores disappear from other children after first completion
 
 ### Child Assignment (Parent)
 - **Functionality**: Create child profiles and assign specific chores to each child. Click on a child's card in the Children tab to view and manage their assigned chores.
@@ -96,7 +96,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Future Start Date**: Chores with future start dates show start date in parent view
 - **Expired Chores**: Chores past their end date show end date in parent view and are filtered from child assignments
 - **Day-of-Week Filtering**: Chores with specific days assigned only appear on those days (e.g., Monday/Wednesday/Friday chores won't show on Tuesday)
-- **Empty Day Selection**: If no days are selected, the chore appears every day
+- **Advanced Repeat Patterns**: Chores can use complex repeating schedules like "every other Monday" or "every 3 weeks on Tuesday and Thursday"
+- **Repeat Pattern Calculation**: Patterns use an anchor date (chore creation date, start date, or custom anchor) to calculate which weeks are active. Example: "every 2 weeks on Monday" starting from 2024-01-01 will only show on Mondays in week 1, 3, 5, etc.
+- **Repeat Pattern vs Day Selection**: When repeat pattern is enabled, the simple day-of-week selection is disabled (pattern handles day specification)
+- **Pattern Display**: Chore cards clearly show the repeat pattern (e.g., "Every other week: Mon, Wed") alongside other chore metadata
+- **Empty Day Selection**: If no days are selected (in both simple and pattern modes), the chore appears every day
 - **Duplicate Template Addition**: Users can add the same template multiple times if they want (e.g., multiple "Make Your Bed" chores for different children)
 - **Missed AM Chores**: AM-only chores not completed before noon are marked as missed and shown in a separate section with 0 points awarded
 - **PM Chores in Morning**: PM-only chores are hidden in the morning and only appear after noon
@@ -189,7 +193,8 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - CheckCircle (Phosphor) for completed chores
   - Star (Phosphor) for points and rewards
   - ShoppingCart (Phosphor) for rewards shop access
-  - Calendar (Phosphor) for frequency indicators
+  - Repeat (Phosphor) for advanced repeat patterns
+  - Calendar (Phosphor) for day-of-week indicators and frequency
   - CalendarBlank (Phosphor) for start date indicators
   - CalendarCheck (Phosphor) for end date indicators
   - Plus (Phosphor) for adding chores/children/rewards

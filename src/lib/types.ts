@@ -3,6 +3,13 @@ export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
 export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
+export interface RepeatPattern {
+  interval: number
+  unit: 'weeks'
+  specificDays?: DayOfWeek[]
+  anchorDate?: number
+}
+
 export interface Chore {
   id: string
   name: string
@@ -15,6 +22,7 @@ export interface Chore {
   startDate?: number
   endDate?: number
   daysOfWeek?: DayOfWeek[]
+  repeatPattern?: RepeatPattern
 }
 
 export interface Child {

@@ -41,6 +41,7 @@ function App() {
       timeOfDay: chore.timeOfDay || 'anytime',
       completionType: chore.completionType || 'individual',
       daysOfWeek: chore.daysOfWeek || undefined,
+      repeatPattern: chore.repeatPattern || undefined,
     }))
   }, [chores])
 
