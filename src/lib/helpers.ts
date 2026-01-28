@@ -34,6 +34,31 @@ export function isChoreCompletedThisWeek(
   )
 }
 
+export function isChoreCompletedThisBiWeek(
+  completions: ChoreCompletion[],
+  choreId: string,
+  childId: string
+): boolean {
+  const now = new Date()
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay())
+  startOfWeek.setHours(0, 0, 0, 0)
+  
+  const startOfBiWeek = new Date(startOfWeek)
+  const weekNumber = Math.floor((startOfWeek.getTime() - new Date(startOfWeek.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))
+  
+  if (weekNumber % 2 === 1) {
+    startOfBiWeek.setDate(startOfBiWeek.getDate() - 7)
+  }
+  
+  return completions.some(
+    (c) =>
+      c.choreId === choreId &&
+      c.childId === childId &&
+      c.completedAt >= startOfBiWeek.getTime()
+  )
+}
+
 export function isChoreCompleted(
   completions: ChoreCompletion[],
   choreId: string,
@@ -42,9 +67,25 @@ export function isChoreCompleted(
 ): boolean {
   if (frequency === 'daily') {
     return isChoreCompletedToday(completions, choreId, childId)
-  } else {
+  } else if (frequency === 'weekly') {
     return isChoreCompletedThisWeek(completions, choreId, childId)
+  } else {
+    return isChoreCompletedThisBiWeek(completions, choreId, childId)
   }
+}
+
+export function isChoreActive(chore: { startDate?: number; endDate?: number }): boolean {
+  const now = Date.now()
+  
+  if (chore.startDate && now < chore.startDate) {
+    return false
+  }
+  
+  if (chore.endDate && now > chore.endDate) {
+    return false
+  }
+  
+  return true
 }
 
 export function getChildTotalPoints(

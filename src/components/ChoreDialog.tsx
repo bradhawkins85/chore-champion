@@ -32,29 +32,51 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
   const [description, setDescription] = useState(editChore?.description || '')
   const [points, setPoints] = useState(editChore?.points.toString() || '10')
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
+  const [startDate, setStartDate] = useState(
+    editChore?.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : ''
+  )
+  const [endDate, setEndDate] = useState(
+    editChore?.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : ''
+  )
 
   const handleSave = () => {
     if (!name.trim()) return
 
-    onSave({
+    const choreData: Omit<Chore, 'id' | 'createdAt'> = {
       name: name.trim(),
       description: description.trim(),
       points: parseInt(points) || 10,
       frequency,
-    })
+    }
+
+    if (startDate) {
+      const startDateTime = new Date(startDate)
+      startDateTime.setHours(0, 0, 0, 0)
+      choreData.startDate = startDateTime.getTime()
+    }
+
+    if (endDate) {
+      const endDateTime = new Date(endDate)
+      endDateTime.setHours(23, 59, 59, 999)
+      choreData.endDate = endDateTime.getTime()
+    }
+
+    onSave(choreData)
 
     if (!editChore) {
       setName('')
       setDescription('')
       setPoints('10')
       setFrequency('daily')
+      setStartDate('')
+      setEndDate('')
     }
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editChore ? 'Edit Chore' : 'Add New Chore'}</DialogTitle>
           <DialogDescription>
@@ -100,8 +122,38 @@ export function ChoreDialog({ open, onOpenChange, onSave, editChore }: ChoreDial
               <SelectContent>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="start-date">Start Date (optional)</Label>
+            <Input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            {startDate && (
+              <p className="text-xs text-muted-foreground">
+                Chore will become available on this date
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="end-date">End Date (optional)</Label>
+            <Input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate || undefined}
+            />
+            {endDate && (
+              <p className="text-xs text-muted-foreground">
+                Chore will no longer be available after this date
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>

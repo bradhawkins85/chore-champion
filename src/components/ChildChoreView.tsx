@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
-import { isChoreCompleted } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 
 interface ChildChoreViewProps {
@@ -35,7 +35,7 @@ export function ChildChoreView({
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
   )
-  const childChores = chores.filter((c) => assignedChoreIds.has(c.id))
+  const childChores = chores.filter((c) => assignedChoreIds.has(c.id) && isChoreActive(c))
 
   const pendingChores = childChores.filter(
     (c) => !isChoreCompleted(completions, c.id, child.id, c.frequency)

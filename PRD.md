@@ -20,11 +20,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Clean transition between modes, appropriate features visible for each role
 
 ### Chore Management (Parent)
-- **Functionality**: Create, edit, delete chores with name, description, point value, and frequency (daily/weekly)
-- **Purpose**: Give parents full control over what tasks children need to complete
+- **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), and optional start/end dates
+- **Purpose**: Give parents full control over what tasks children need to complete, including temporary or seasonal chores
 - **Trigger**: "Add Chore" button in parent panel
-- **Progression**: Click add → Fill form (name, points, frequency) → Save → Chore appears in list
-- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency
+- **Progression**: Click add → Fill form (name, points, frequency, optional dates) → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency, inactive chores (outside date range) are clearly marked
 
 ### Child Assignment (Parent)
 - **Functionality**: Create child profiles and assign specific chores to each child
@@ -48,11 +48,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Accurate point totals, persistent across sessions, visible in both modes
 
 ### Chore Reset System
-- **Functionality**: Daily chores reset each day, weekly chores reset each week
-- **Purpose**: Ensure chores reappear on schedule without manual intervention
-- **Trigger**: Automatic based on timestamp comparison
-- **Progression**: App checks last completion → If interval passed → Chore becomes available again
-- **Success criteria**: Chores reset at appropriate intervals, completion history maintained
+- **Functionality**: Daily chores reset each day, weekly chores reset each week, bi-weekly chores reset every two weeks. Chores with start dates only appear after that date, chores with end dates disappear after that date.
+- **Purpose**: Ensure chores reappear on schedule without manual intervention, and allow temporary/seasonal chores to automatically activate and deactivate
+- **Trigger**: Automatic based on timestamp comparison and date range validation
+- **Progression**: App checks last completion and current date → If interval passed and chore is within active date range → Chore becomes available again
+- **Success criteria**: Chores reset at appropriate intervals, completion history maintained, inactive chores are hidden from child view but visible (marked as inactive) in parent view
 
 ### Rewards Shop
 - **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points
@@ -81,6 +81,9 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled or unfulfilled
 - **Multiple Pending Purchases**: Bulk fulfill option to mark all pending purchases as complete at once
 - **Deleted Rewards with Purchase History**: Past purchases remain visible even if reward is deleted
+- **Inactive Chores**: Chores outside their date range are hidden from child view but visible in parent view with "Inactive" badge
+- **Future Start Date**: Chores with future start dates show start date in parent view
+- **Expired Chores**: Chores past their end date show end date in parent view and are filtered from child assignments
 
 ## Design Direction
 
@@ -158,6 +161,8 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Star (Phosphor) for points and rewards
   - ShoppingCart (Phosphor) for rewards shop access
   - Calendar (Phosphor) for frequency indicators
+  - CalendarBlank (Phosphor) for start date indicators
+  - CalendarCheck (Phosphor) for end date indicators
   - Plus (Phosphor) for adding chores/children/rewards
   - Gear (Phosphor) for parent mode/settings
   - User (Phosphor) for child profiles

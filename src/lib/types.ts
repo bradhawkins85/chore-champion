@@ -1,4 +1,4 @@
-export type ChoreFrequency = 'daily' | 'weekly'
+export type ChoreFrequency = 'daily' | 'weekly' | 'bi-weekly'
 
 export interface Chore {
   id: string
@@ -7,6 +7,8 @@ export interface Chore {
   points: number
   frequency: ChoreFrequency
   createdAt: number
+  startDate?: number
+  endDate?: number
 }
 
 export interface Child {
