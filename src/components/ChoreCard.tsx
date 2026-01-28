@@ -115,40 +115,64 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                {chore.categoryPoints.map((cp) => {
-                  const category = categories.find(c => c.id === cp.categoryId)
-                  if (!category) return null
-                  return (
-                    <Badge 
-                      key={cp.categoryId}
-                      className="font-fredoka"
-                      style={{
-                        backgroundColor: category.color,
-                        color: 'white',
-                      }}
-                    >
-                      {cp.points} {category.name} pts
-                    </Badge>
-                  )
-                })}
-              </div>
-            ) : (
-              <Badge variant="secondary" className="font-fredoka text-base">
-                {chore.points} pts
-              </Badge>
-            )}
+        <div className="space-y-3">
+          {chore.categoryIds && chore.categoryIds.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {chore.categoryIds.map((categoryId) => {
+                const category = categories.find(c => c.id === categoryId)
+                if (!category) return null
+                return (
+                  <Badge
+                    key={categoryId}
+                    variant="outline"
+                    className="font-fredoka font-semibold px-3 py-1 border-2"
+                    style={{
+                      backgroundColor: `${category.color}20`,
+                      borderColor: category.color,
+                      color: category.color,
+                    }}
+                  >
+                    {category.name}
+                  </Badge>
+                )
+              })}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {chore.categoryPoints.map((cp) => {
+                    const category = categories.find(c => c.id === cp.categoryId)
+                    if (!category) return null
+                    return (
+                      <Badge 
+                        key={cp.categoryId}
+                        className="font-fredoka"
+                        style={{
+                          backgroundColor: category.color,
+                          color: 'white',
+                        }}
+                      >
+                        {cp.points} {category.name} pts
+                      </Badge>
+                    )
+                  })}
+                </div>
+              ) : (
+                <Badge variant="secondary" className="font-fredoka text-base">
+                  {chore.points} pts
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span className="capitalize">{chore.frequency}</span>
+            </div>
+            {getTimeOfDayBadge()}
+            {getTimeWindowBadge()}
+            {getCompletionTypeBadge()}
           </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span className="capitalize">{chore.frequency}</span>
-          </div>
-          {getTimeOfDayBadge()}
-          {getTimeWindowBadge()}
-          {getCompletionTypeBadge()}
         </div>
       </CardContent>
     </Card>

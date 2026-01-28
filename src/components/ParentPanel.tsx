@@ -590,6 +590,7 @@ export function ParentPanel({
                       purchase={purchase}
                       reward={reward}
                       child={child}
+                      categories={categories}
                       onFulfill={onFulfillPurchase}
                       onUnfulfill={onUnfulfillPurchase}
                     />

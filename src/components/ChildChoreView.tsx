@@ -323,7 +323,7 @@ export function ChildChoreView({
                               <Circle className="h-12 w-12 text-muted-foreground flex-shrink-0" />
                             </motion.div>
                             <div className="flex-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <h3 className="text-2xl font-fredoka font-bold">
                                   {chore.name}
                                 </h3>
@@ -341,6 +341,28 @@ export function ChildChoreView({
                                   </Badge>
                                 )}
                               </div>
+                              {chore.categoryIds && chore.categoryIds.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {chore.categoryIds.map((categoryId) => {
+                                    const category = categories.find(c => c.id === categoryId)
+                                    if (!category) return null
+                                    return (
+                                      <Badge
+                                        key={categoryId}
+                                        variant="outline"
+                                        className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                        style={{
+                                          backgroundColor: `${category.color}20`,
+                                          borderColor: category.color,
+                                          color: category.color,
+                                        }}
+                                      >
+                                        {category.name}
+                                      </Badge>
+                                    )
+                                  })}
+                                </div>
+                              )}
                               {chore.description && (
                                 <p className="text-lg text-muted-foreground mt-1">
                                   {chore.description}
@@ -409,12 +431,34 @@ export function ChildChoreView({
                             className="h-12 w-12 text-primary flex-shrink-0"
                           />
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-2xl font-fredoka font-bold line-through">
                                 {chore.name}
                               </h3>
                               {getTimeOfDayLabel(timeOfDay)}
                             </div>
+                            {chore.categoryIds && chore.categoryIds.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {chore.categoryIds.map((categoryId) => {
+                                  const category = categories.find(c => c.id === categoryId)
+                                  if (!category) return null
+                                  return (
+                                    <Badge
+                                      key={categoryId}
+                                      variant="outline"
+                                      className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                      style={{
+                                        backgroundColor: `${category.color}20`,
+                                        borderColor: category.color,
+                                        color: category.color,
+                                      }}
+                                    >
+                                      {category.name}
+                                    </Badge>
+                                  )
+                                })}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap mt-2">
                               {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
                                 chore.categoryPoints.map((cp) => {

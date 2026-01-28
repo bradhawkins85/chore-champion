@@ -136,7 +136,7 @@ export function RewardShop({
                           </p>
                         )}
                         {Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1 justify-center">
+                          <div className="mt-3 flex flex-wrap gap-2 justify-center">
                             {reward.categoryIds.map((catId) => {
                               const category = categoriesMap.get(catId)
                               if (!category) return null
@@ -144,12 +144,12 @@ export function RewardShop({
                                 <Badge
                                   key={catId}
                                   variant="outline"
+                                  className="font-fredoka font-semibold px-3 py-1.5 text-sm border-2"
                                   style={{
-                                    backgroundColor: `${category.color}15`,
+                                    backgroundColor: `${category.color}20`,
                                     borderColor: category.color,
                                     color: category.color,
                                   }}
-                                  className="text-xs font-medium"
                                 >
                                   {category.name}
                                 </Badge>

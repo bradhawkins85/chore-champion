@@ -45,7 +45,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                 <p className="text-sm text-muted-foreground">{reward.description}</p>
               )}
               {Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {reward.categoryIds.map((catId) => {
                     const category = categories.find(c => c.id === catId)
                     if (!category) return null
@@ -53,12 +53,12 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                       <Badge
                         key={catId}
                         variant="outline"
+                        className="font-fredoka font-semibold px-3 py-1 border-2"
                         style={{
-                          backgroundColor: `${category.color}15`,
+                          backgroundColor: `${category.color}20`,
                           borderColor: category.color,
                           color: category.color,
                         }}
-                        className="text-xs"
                       >
                         {category.name}
                       </Badge>

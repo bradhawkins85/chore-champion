@@ -156,7 +156,7 @@ export function AssignChoresView({
                     <div className="flex items-center gap-3">
                       <Checkbox checked disabled />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <CardTitle className="text-lg font-fredoka">
                             {chore.name}
                           </CardTitle>
@@ -166,6 +166,28 @@ export function AssignChoresView({
                             </Badge>
                           )}
                         </div>
+                        {chore.categoryIds && chore.categoryIds.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {chore.categoryIds.map((categoryId) => {
+                              const category = categories.find(c => c.id === categoryId)
+                              if (!category) return null
+                              return (
+                                <Badge
+                                  key={categoryId}
+                                  variant="outline"
+                                  className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                  style={{
+                                    backgroundColor: `${category.color}20`,
+                                    borderColor: category.color,
+                                    color: category.color,
+                                  }}
+                                >
+                                  {category.name}
+                                </Badge>
+                              )
+                            })}
+                          </div>
+                        )}
                         {chore.description && (
                           <p className="text-sm text-muted-foreground mt-1">
                             {chore.description}
