@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 
 interface ChildChoreViewProps {
@@ -132,7 +132,7 @@ export function ChildChoreView({
     .slice(0, 2)
 
   const handleComplete = (chore: Chore, timeOfDay?: 'am' | 'pm') => {
-    setCelebrating(chore.points)
+    setCelebrating(getChorePointsForChild(chore, child.id))
     onComplete(chore.id, timeOfDay)
   }
 
@@ -273,8 +273,8 @@ export function ChildChoreView({
                                 >
                                   <Star weight="fill" className="h-4 w-4 mr-1" />
                                   {chore.completionType === 'shareable' 
-                                    ? `Up to ${chore.points} pts (shared)`
-                                    : `${chore.points} pts`}
+                                    ? `Up to ${getChorePointsForChild(chore, child.id)} pts (shared)`
+                                    : `${getChorePointsForChild(chore, child.id)} pts`}
                                 </Badge>
                                 <div className="flex items-center gap-1 text-muted-foreground">
                                   <Calendar className="h-5 w-5" />
@@ -317,7 +317,7 @@ export function ChildChoreView({
                               className="font-fredoka text-lg px-3 py-1 mt-2"
                             >
                               <Star weight="fill" className="h-4 w-4 mr-1" />
-                              {chore.points} pts
+                              {getChorePointsForChild(chore, child.id)} pts
                             </Badge>
                           </div>
                           <Button

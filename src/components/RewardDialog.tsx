@@ -1,30 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus } from '@phosphor-icons/react'
-import { Reward } from '@/lib/types'
+import { Plus, Star, LockKey } from '@phosphor-icons/react'
+import { Reward, Child, Chore, RewardCostOverride, RewardRequirement } from '@/lib/types'
+import { Card } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface RewardDialogProps {
   reward?: Reward
   onSave: (rewardData: Omit<Reward, 'id' | 'createdAt'>) => void
   trigger?: React.ReactNode
+  childrenList?: Child[]
+  chores?: Chore[]
 }
 
-export function RewardDialog({ reward, onSave, trigger }: RewardDialogProps) {
+export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [] }: RewardDialogProps) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(reward?.name || '')
   const [description, setDescription] = useState(reward?.description || '')
   const [cost, setCost] = useState(reward?.cost?.toString() || '')
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
+  const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
+  const [requirements, setRequirements] = useState<RewardRequirement[]>(reward?.requirements || [])
+
+  useEffect(() => {
+    if (reward) {
+      setName(reward.name)
+      setDescription(reward.description)
+      setCost(reward.cost.toString())
+      setImageEmoji(reward.imageEmoji)
+      setCostOverrides(reward.costOverrides || [])
+      setRequirements(reward.requirements || [])
+    }
+  }, [reward])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +56,8 @@ export function RewardDialog({ reward, onSave, trigger }: RewardDialogProps) {
       description: description.trim(),
       cost: parseInt(cost, 10),
       imageEmoji,
+      costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
+      requirements: requirements.length > 0 ? requirements : undefined,
     })
 
     if (!reward) {
@@ -42,8 +65,35 @@ export function RewardDialog({ reward, onSave, trigger }: RewardDialogProps) {
       setDescription('')
       setCost('')
       setImageEmoji('🎁')
+      setCostOverrides([])
+      setRequirements([])
     }
     setOpen(false)
+  }
+
+  const toggleChoreRequirement = (childId: string, choreId: string) => {
+    setRequirements(current => {
+      const childReq = current.find(r => r.childId === childId)
+      if (!childReq) {
+        return [...current, { childId, requiredChoreIds: [choreId] }]
+      }
+      
+      if (childReq.requiredChoreIds.includes(choreId)) {
+        const updated = childReq.requiredChoreIds.filter(id => id !== choreId)
+        if (updated.length === 0) {
+          return current.filter(r => r.childId !== childId)
+        }
+        return current.map(r => 
+          r.childId === childId ? { ...r, requiredChoreIds: updated } : r
+        )
+      } else {
+        return current.map(r => 
+          r.childId === childId 
+            ? { ...r, requiredChoreIds: [...r.requiredChoreIds, choreId] } 
+            : r
+        )
+      }
+    })
   }
 
   return (
@@ -56,11 +106,14 @@ export function RewardDialog({ reward, onSave, trigger }: RewardDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-fredoka text-2xl">
             {reward ? 'Edit Reward' : 'Add Reward'}
           </DialogTitle>
+          <DialogDescription>
+            {reward ? 'Update reward details and customize per child' : 'Create a new reward with optional per-child customization'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -106,9 +159,137 @@ export function RewardDialog({ reward, onSave, trigger }: RewardDialogProps) {
               required
             />
           </div>
-          <Button type="submit" className="w-full font-fredoka">
-            {reward ? 'Update Reward' : 'Create Reward'}
-          </Button>
+
+          {childrenList.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-muted-foreground" />
+                  <Label className="text-base font-fredoka font-semibold">Custom Cost Per Child</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Override the default {cost || '0'} points cost for specific children (optional)
+                </p>
+                <div className="space-y-2">
+                  {childrenList.map((child) => {
+                    const override = costOverrides.find(o => o.childId === child.id)
+
+                    return (
+                      <Card key={child.id} className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold flex-shrink-0"
+                            style={{ backgroundColor: child.avatarColor }}
+                          >
+                            {child.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium flex-1">{child.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder={cost}
+                              value={override?.cost ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                setCostOverrides(current => {
+                                  const filtered = current.filter(o => o.childId !== child.id)
+                                  if (value === '') {
+                                    return filtered
+                                  }
+                                  return [...filtered, { childId: child.id, cost: parseInt(value) || 0 }]
+                                })
+                              }}
+                              className="w-20"
+                              min="0"
+                            />
+                            <span className="text-sm text-muted-foreground">pts</span>
+                          </div>
+                        </div>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              {chores.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <LockKey className="h-5 w-5 text-muted-foreground" />
+                      <Label className="text-base font-fredoka font-semibold">Chore Requirements Per Child</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Require specific children to complete certain chores before they can purchase this reward (optional)
+                    </p>
+                    <ScrollArea className="max-h-[300px]">
+                      <div className="space-y-4">
+                        {childrenList.map((child) => {
+                          const childReq = requirements.find(r => r.childId === child.id)
+                          const hasRequirements = childReq && childReq.requiredChoreIds.length > 0
+
+                          return (
+                            <Card key={child.id} className="p-3">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold flex-shrink-0"
+                                    style={{ backgroundColor: child.avatarColor }}
+                                  >
+                                    {child.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">{child.name}</span>
+                                    {hasRequirements && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {childReq.requiredChoreIds.length} chore(s) required
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                {chores.length > 0 && (
+                                  <div className="pl-11 space-y-1">
+                                    {chores.slice(0, 5).map((chore) => (
+                                      <div
+                                        key={chore.id}
+                                        className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded"
+                                        onClick={() => toggleChoreRequirement(child.id, chore.id)}
+                                      >
+                                        <Checkbox 
+                                          checked={childReq?.requiredChoreIds.includes(chore.id) || false}
+                                          className="pointer-events-none"
+                                        />
+                                        <span className="text-sm">{chore.name}</span>
+                                      </div>
+                                    ))}
+                                    {chores.length > 5 && (
+                                      <p className="text-xs text-muted-foreground pl-6">
+                                        +{chores.length - 5} more chores available
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </Card>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="font-fredoka">
+              {reward ? 'Update Reward' : 'Create Reward'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

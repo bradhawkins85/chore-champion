@@ -288,9 +288,43 @@ export function isChoreActive(chore: { startDate?: number; endDate?: number }): 
   return true
 }
 
+export function getChorePointsForChild(
+  chore: { points: number; pointOverrides?: { childId: string; points: number }[] },
+  childId: string
+): number {
+  const override = chore.pointOverrides?.find(o => o.childId === childId)
+  return override ? override.points : chore.points
+}
+
+export function getRewardCostForChild(
+  reward: { cost: number; costOverrides?: { childId: string; cost: number }[] },
+  childId: string
+): number {
+  const override = reward.costOverrides?.find(o => o.childId === childId)
+  return override ? override.cost : reward.cost
+}
+
+export function isRewardAvailableForChild(
+  reward: { requirements?: { childId: string; requiredChoreIds: string[] }[] },
+  childId: string,
+  completions: ChoreCompletion[],
+  choresMap: Map<string, { frequency: ChoreFrequency; timeOfDay: ChoreTimeOfDay }>
+): boolean {
+  const requirement = reward.requirements?.find(r => r.childId === childId)
+  if (!requirement || requirement.requiredChoreIds.length === 0) {
+    return true
+  }
+
+  return requirement.requiredChoreIds.every(choreId => {
+    const chore = choresMap.get(choreId)
+    if (!chore) return false
+    return isChoreCompleted(completions, choreId, childId, chore.frequency, chore.timeOfDay)
+  })
+}
+
 export function getChildTotalPoints(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number; completionType?: string }>,
+  choresMap: Map<string, { points: number; completionType?: string; pointOverrides?: { childId: string; points: number }[] }>,
   childId: string,
   assignments?: ChoreAssignment[]
 ): number {
@@ -299,6 +333,8 @@ export function getChildTotalPoints(
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
       if (!chore) return sum
+      
+      const chorePoints = getChorePointsForChild(chore, childId)
       
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
@@ -313,12 +349,12 @@ export function getChildTotalPoints(
           
           const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
           if (childrenWhoCompleted > 0) {
-            return sum + (chore.points / childrenWhoCompleted)
+            return sum + (chorePoints / childrenWhoCompleted)
           }
         }
       }
       
-      return sum + chore.points
+      return sum + chorePoints
     }, 0)
 }
 

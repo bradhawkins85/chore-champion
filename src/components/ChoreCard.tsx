@@ -165,9 +165,16 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4">
-          <Badge variant="secondary" className="font-fredoka text-base">
-            {chore.points} pts
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="font-fredoka text-base">
+              {chore.points} pts
+            </Badge>
+            {chore.pointOverrides && chore.pointOverrides.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                Custom for {chore.pointOverrides.length}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span className="capitalize">{chore.frequency}</span>

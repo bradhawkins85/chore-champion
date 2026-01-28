@@ -10,6 +10,11 @@ export interface RepeatPattern {
   anchorDate?: number
 }
 
+export interface ChorePointOverride {
+  childId: string
+  points: number
+}
+
 export interface Chore {
   id: string
   name: string
@@ -23,6 +28,7 @@ export interface Chore {
   endDate?: number
   daysOfWeek?: DayOfWeek[]
   repeatPattern?: RepeatPattern
+  pointOverrides?: ChorePointOverride[]
 }
 
 export interface Child {
@@ -68,6 +74,16 @@ export interface ChoreHistoryEvent {
   completionId?: string
 }
 
+export interface RewardCostOverride {
+  childId: string
+  cost: number
+}
+
+export interface RewardRequirement {
+  childId: string
+  requiredChoreIds: string[]
+}
+
 export interface Reward {
   id: string
   name: string
@@ -75,6 +91,8 @@ export interface Reward {
   cost: number
   imageEmoji: string
   createdAt: number
+  costOverrides?: RewardCostOverride[]
+  requirements?: RewardRequirement[]
 }
 
 export interface RewardPurchase {

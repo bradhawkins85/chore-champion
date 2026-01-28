@@ -460,7 +460,7 @@ export function ParentPanel({
         <TabsContent value="rewards" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
-            <RewardDialog onSave={onAddReward} />
+            <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} />
           </div>
 
           {rewards.length === 0 ? (
@@ -469,7 +469,7 @@ export function ParentPanel({
                 <p className="text-lg text-muted-foreground mb-4">
                   No rewards created yet. Add rewards for children to redeem with their points!
                 </p>
-                <RewardDialog onSave={onAddReward} />
+                <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} />
               </CardContent>
             </Card>
           ) : (
@@ -482,6 +482,8 @@ export function ParentPanel({
                   <RewardCard
                     key={reward.id}
                     reward={reward}
+                    childrenList={childrenList}
+                    chores={chores}
                     onEdit={onEditReward}
                     onDelete={setDeleteRewardId}
                     purchaseCount={purchaseCount}

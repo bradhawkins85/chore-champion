@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Trash, Star } from '@phosphor-icons/react'
-import { Reward } from '@/lib/types'
+import { Reward, Child, Chore } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
 
 interface RewardCardProps {
@@ -10,9 +10,14 @@ interface RewardCardProps {
   onEdit: (id: string, rewardData: Omit<Reward, 'id' | 'createdAt'>) => void
   onDelete: (id: string) => void
   purchaseCount?: number
+  childrenList?: Child[]
+  chores?: Chore[]
 }
 
-export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0 }: RewardCardProps) {
+export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0, childrenList = [], chores = [] }: RewardCardProps) {
+  const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0) || 
+                             (reward.requirements && reward.requirements.length > 0)
+
   return (
     <Card className="p-4 hover:shadow-lg transition-shadow">
       <div className="flex gap-4">
@@ -24,6 +29,20 @@ export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0 }: Rewa
               {reward.description && (
                 <p className="text-sm text-muted-foreground">{reward.description}</p>
               )}
+              {hasCustomizations && (
+                <div className="flex gap-1 mt-1">
+                  {reward.costOverrides && reward.costOverrides.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      Custom cost for {reward.costOverrides.length} {reward.costOverrides.length === 1 ? 'child' : 'children'}
+                    </Badge>
+                  )}
+                  {reward.requirements && reward.requirements.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      Requirements for {reward.requirements.length} {reward.requirements.length === 1 ? 'child' : 'children'}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <Badge variant="secondary" className="flex items-center gap-1 font-fredoka">
               <Star weight="fill" className="h-3 w-3" />
@@ -34,6 +53,8 @@ export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0 }: Rewa
             <RewardDialog
               reward={reward}
               onSave={(data) => onEdit(reward.id, data)}
+              childrenList={childrenList}
+              chores={chores}
               trigger={
                 <Button variant="outline" size="sm">
                   <Pencil className="h-4 w-4" />

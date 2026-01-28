@@ -1,9 +1,11 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Star, ShoppingCart, ArrowLeft } from '@phosphor-icons/react'
-import { Child, Reward } from '@/lib/types'
+import { Star, ShoppingCart, ArrowLeft, LockKey } from '@phosphor-icons/react'
+import { Child, Reward, Chore, ChoreCompletion } from '@/lib/types'
 import { motion } from 'framer-motion'
+import { getRewardCostForChild, isRewardAvailableForChild } from '@/lib/helpers'
+import { useMemo } from 'react'
 
 interface RewardShopProps {
   child: Child
@@ -11,6 +13,8 @@ interface RewardShopProps {
   availablePoints: number
   onPurchase: (rewardId: string) => void
   onBack: () => void
+  chores?: Chore[]
+  completions?: ChoreCompletion[]
 }
 
 export function RewardShop({
@@ -19,7 +23,13 @@ export function RewardShop({
   availablePoints,
   onPurchase,
   onBack,
+  chores = [],
+  completions = [],
 }: RewardShopProps) {
+  const choresMap = useMemo(() => {
+    return new Map(chores.map(c => [c.id, c]))
+  }, [chores])
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-5xl mx-auto">
@@ -66,16 +76,21 @@ export function RewardShop({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {rewards.map((reward) => {
-              const canAfford = availablePoints >= reward.cost
+              const customCost = getRewardCostForChild(reward, child.id)
+              const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
+              const canAfford = availablePoints >= customCost
+              const canPurchase = canAfford && requirementsMet
+              const requirement = reward.requirements?.find(r => r.childId === child.id)
+              
               return (
                 <motion.div
                   key={reward.id}
-                  whileHover={canAfford ? { scale: 1.02 } : {}}
-                  whileTap={canAfford ? { scale: 0.98 } : {}}
+                  whileHover={canPurchase ? { scale: 1.02 } : {}}
+                  whileTap={canPurchase ? { scale: 0.98 } : {}}
                 >
                   <Card
                     className={`p-6 h-full transition-all ${
-                      canAfford
+                      canPurchase
                         ? 'hover:shadow-xl cursor-pointer'
                         : 'opacity-60'
                     }`}
@@ -91,29 +106,42 @@ export function RewardShop({
                             {reward.description}
                           </p>
                         )}
+                        {requirement && requirement.requiredChoreIds.length > 0 && (
+                          <div className="mt-3">
+                            <Badge variant={requirementsMet ? "default" : "destructive"} className="flex items-center gap-1 w-fit mx-auto">
+                              <LockKey className="h-3 w-3" />
+                              {requirementsMet ? "Requirements met" : `Complete ${requirement.requiredChoreIds.length} chore(s) first`}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-auto">
                         <div className="flex items-center justify-between mb-3">
                           <Badge
-                            variant={canAfford ? 'default' : 'secondary'}
+                            variant={canPurchase ? 'default' : 'secondary'}
                             className="flex items-center gap-1 font-fredoka text-base px-4 py-1"
                           >
                             <Star weight="fill" />
-                            {reward.cost} points
+                            {customCost} points
                           </Badge>
                         </div>
                         <Button
                           className="w-full font-fredoka text-lg h-14"
-                          disabled={!canAfford}
+                          disabled={!canPurchase}
                           onClick={() => onPurchase(reward.id)}
                         >
-                          {canAfford ? (
+                          {!requirementsMet ? (
+                            <>
+                              <LockKey className="mr-2" />
+                              Complete Chores First
+                            </>
+                          ) : canAfford ? (
                             <>
                               <ShoppingCart className="mr-2" />
                               Get This Reward!
                             </>
                           ) : (
-                            `Need ${reward.cost - availablePoints} more points`
+                            `Need ${customCost - availablePoints} more points`
                           )}
                         </Button>
                       </div>

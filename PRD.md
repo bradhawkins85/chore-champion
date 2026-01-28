@@ -12,6 +12,27 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Custom Points Per Child (Chores)
+- **Functionality**: Override the default point value of any chore for specific children. Set custom point amounts that better reflect the difficulty or effort required for that child.
+- **Purpose**: Allow parents to reward children fairly based on individual ability - some chores may be harder for younger children or those with specific challenges, while being easier for older siblings.
+- **Trigger**: Edit chore → Navigate to "Custom Points Per Child" section → Enter custom point values for assigned children
+- **Progression**: Open chore editor → View assigned children list → For each child, optionally enter a custom point value → Leave blank to use default → Save chore → Child receives custom points when completing
+- **Success criteria**: Custom points override default values in child view, completion tracking, and point calculations. Display indicators show which chores have custom points. Points display correctly in celebrations and totals.
+
+### Custom Cost Per Child (Rewards)
+- **Functionality**: Override the default cost of any reward for specific children. Set different point costs that reflect individual circumstances or milestones.
+- **Purpose**: Create fair reward pricing - younger children may need lower costs to stay motivated, while older children might have higher thresholds. Allows personalized incentive structures.
+- **Trigger**: Edit reward → Navigate to "Custom Cost Per Child" section → Enter custom costs for specific children
+- **Progression**: Open reward editor → View children list → For each child, optionally enter custom cost → Leave blank to use default → Save reward → Reward shop displays custom cost for that child
+- **Success criteria**: Custom costs override defaults in reward shop, affordability calculations, and purchase tracking. Children see their specific cost. Purchase history records actual cost paid.
+
+### Chore Requirements Per Child (Rewards)
+- **Functionality**: Require specific children to complete designated chores before they can purchase certain rewards. Different children can have different requirements for the same reward.
+- **Purpose**: Encourage completion of important tasks before earning privileges. Ensure children demonstrate responsibility (e.g., complete homework chore before buying video game time reward).
+- **Trigger**: Edit reward → Navigate to "Chore Requirements Per Child" section → Select children and assign required chores
+- **Progression**: Open reward editor → View children list → For each child, select which chores must be completed → Save requirements → Reward appears locked in shop until requirements met → Unlocks automatically when chores completed
+- **Success criteria**: Locked rewards show requirements in shop. Requirement status updates in real-time. Completed requirements unlock rewards immediately. Different children see different requirement states for same reward.
+
 ### Parent Mode PIN Protection
 - **Functionality**: Optional PIN/password protection to prevent children from accessing Parent Mode and modifying settings
 - **Purpose**: Ensure only parents can manage chores, assignments, rewards, and view purchase history
@@ -113,6 +134,15 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Once Per Day Already Completed**: If a once-per-day chore is completed by a sibling, it disappears from the child's view (not shown as missed, simply unavailable)
 - **Once Per Day Same Time**: If multiple children try to complete simultaneously, first completion timestamp wins
 - **Completion Type Change**: Parents can change completion type at any time; existing completions remain as recorded, future completions follow new rules
+- **Custom Points with Shareable Chores**: When a shareable chore has custom points per child, each child's custom amount is divided among completers (e.g., Child A has 10pt override, Child B has 15pt override, both complete together = A gets 5pts, B gets 7.5pts)
+- **Custom Points Display**: Child view always shows the correct custom point amount. Parent view shows default with indicator if overrides exist.
+- **Reward Cost Override Zero**: Parents can set a reward to cost 0 points for a specific child (effectively making it free)
+- **Reward Requirements Empty**: If no chores are selected as requirements for a child, that child has no restrictions on that reward
+- **Requirements with Recurring Chores**: Daily/weekly chores must be completed in the current period to count toward requirements (yesterday's completion doesn't count)
+- **Requirements Update Real-Time**: Locked rewards unlock immediately upon completing required chores without needing to refresh
+- **Multiple Requirements**: A reward can require multiple chores - all must be completed to unlock
+- **Requirements and Custom Cost Together**: A reward can have both custom costs and custom requirements per child simultaneously
+- **Deleted Chore in Requirements**: If a required chore is deleted, the requirement is automatically removed (reward becomes available)
 
 ## Design Direction
 

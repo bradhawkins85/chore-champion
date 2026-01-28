@@ -376,19 +376,24 @@ function App() {
           <RewardShop
             child={selectedChild}
             rewards={rewards || []}
+            chores={migratedChores || []}
+            completions={completions || []}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
               (purchases || [])
                 .filter((p) => p.childId === selectedChild.id)
                 .map((p) => {
                   const reward = (rewards || []).find((r) => r.id === p.rewardId)
-                  return { cost: reward?.cost || 0 }
+                  const override = reward?.costOverrides?.find(o => o.childId === selectedChild.id)
+                  return { cost: override ? override.cost : (reward?.cost || 0) }
                 })
             )}
             onPurchase={(rewardId) => {
               const reward = (rewards || []).find((r) => r.id === rewardId)
               if (reward) {
-                handlePurchaseReward(selectedChild.id, rewardId, reward.cost)
+                const override = reward.costOverrides?.find(o => o.childId === selectedChild.id)
+                const cost = override ? override.cost : reward.cost
+                handlePurchaseReward(selectedChild.id, rewardId, cost)
               }
             }}
             onBack={() => setShowRewardShop(false)}
