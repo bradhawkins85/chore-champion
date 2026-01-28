@@ -41,11 +41,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Each child sees only their assigned chores in child mode, assignments persist, clear indication of how many chores are assigned per child, ability to unassign chores
 
 ### Chore Completion (Child)
-- **Functionality**: View assigned chores filtered by time of day and completion availability, mark as complete, see points awarded (full or shared), see missed AM chores, observe when once-per-day chores are claimed by siblings
-- **Purpose**: Simple, rewarding interface for children to track and complete tasks at the appropriate time of day with clear understanding of individual vs. collaborative chores
+- **Functionality**: View assigned chores filtered by time of day and completion availability, mark as complete, see points awarded (full or shared), see missed AM chores, observe when once-per-day chores are claimed by siblings. AM and PM chores for "Both" time-of-day chores are treated as completely independent tasks.
+- **Purpose**: Simple, rewarding interface for children to track and complete tasks at the appropriate time of day with clear understanding of individual vs. collaborative chores. Children can still complete PM chores even if they missed the AM chore.
 - **Trigger**: Child opens app in child mode, selects their profile
-- **Progression**: Select profile → View current time period's chores (AM chores before noon, PM chores after noon, Anytime chores always visible, Shareable chores show "Up to X points (shared)" label, Once Per Day chores show "First Only" badge) → Tap chore → Confirm completion → Points animate and add to total (shared points split equally among all children who complete) → See missed AM chores section if applicable → Once-per-day chores disappear from view after any child completes them
-- **Success criteria**: Completed chores are marked with time of day, points increment correctly (full for individual, shared for shareable), visual celebration on completion, AM chores marked as missed if not completed before noon, Both AM/PM chores appear separately in morning and evening, shareable chores clearly indicate point sharing, once-per-day chores disappear from other children's lists after first completion
+- **Progression**: Select profile → View current time period's chores (AM chores before noon, PM chores after noon, Anytime chores always visible, Shareable chores show "Up to X points (shared)" label, Once Per Day chores show "First Only" badge) → Tap chore → Confirm completion → Points animate and add to total (shared points split equally among all children who complete) → See missed AM chores section if applicable (missed AM chores don't block PM completion) → Once-per-day chores disappear from view after any child completes them
+- **Success criteria**: Completed chores are marked with time of day, points increment correctly (full for individual, shared for shareable), visual celebration on completion, AM chores marked as missed if not completed before noon, Both AM/PM chores appear separately in morning and evening as independent tasks, missed AM chores don't prevent PM completion, shareable chores clearly indicate point sharing, once-per-day chores disappear from other children's lists after first completion
 
 ### Points Tracking
 - **Functionality**: Track cumulative points per child, display prominently, calculate shared points for shareable chores
@@ -104,7 +104,8 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Duplicate Template Addition**: Users can add the same template multiple times if they want (e.g., multiple "Make Your Bed" chores for different children)
 - **Missed AM Chores**: AM-only chores not completed before noon are marked as missed and shown in a separate section with 0 points awarded
 - **PM Chores in Morning**: PM-only chores are hidden in the morning and only appear after noon
-- **Both AM/PM Chores**: Chores requiring both morning and evening completion appear twice - once in AM (before noon) and once in PM (after noon), must be completed separately for each time period
+- **Both AM/PM Chores**: Chores requiring both morning and evening completion appear twice - once in AM (before noon) and once in PM (after noon), must be completed separately for each time period. AM and PM completions are completely independent - missing the AM chore does NOT prevent completing the PM chore.
+- **Missed AM with Available PM**: When a "Both" chore's AM instance is missed, it appears in the missed section while the PM instance remains available for completion in the pending section. Both can be visible simultaneously in the afternoon.
 - **Time Zone Transitions**: All time-based logic uses local device time to determine AM/PM periods
 - **Missed Chore No Points**: Missed AM chores award 0 points and display with warning indicator to teach time management
 - **Shareable Chore with One Child**: If only one child completes a shareable chore, they receive full points

@@ -42,8 +42,8 @@ export function ChildChoreView({
 
   const { pendingChores, completedChores, missedChores } = useMemo(() => {
     const pending: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
-    const completed: Chore[] = []
-    const missed: Chore[] = []
+    const completed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
+    const missed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
 
     childChores.forEach((chore) => {
       if (chore.completionType === 'once-per-day') {
@@ -68,7 +68,7 @@ export function ChildChoreView({
             )
           })
           if (completedByMe) {
-            completed.push(chore)
+            completed.push({ chore })
           }
           return
         }
@@ -82,15 +82,19 @@ export function ChildChoreView({
           if (!amCompleted) {
             pending.push({ chore, timeOfDay: 'am' })
           } else {
-            completed.push(chore)
+            completed.push({ chore, timeOfDay: 'am' })
           }
         } else {
           if (!amCompleted) {
-            missed.push(chore)
-          } else if (!pmCompleted) {
+            missed.push({ chore, timeOfDay: 'am' })
+          } else {
+            completed.push({ chore, timeOfDay: 'am' })
+          }
+          
+          if (!pmCompleted) {
             pending.push({ chore, timeOfDay: 'pm' })
           } else {
-            completed.push(chore)
+            completed.push({ chore, timeOfDay: 'pm' })
           }
         }
       } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
@@ -99,16 +103,16 @@ export function ChildChoreView({
         const isAvailable = isChoreAvailableNow(chore.timeOfDay)
         
         if (isMissedChore) {
-          missed.push(chore)
+          missed.push({ chore, timeOfDay: chore.timeOfDay })
         } else if (!isCompleted && isAvailable) {
           pending.push({ chore, timeOfDay: chore.timeOfDay })
         } else if (isCompleted) {
-          completed.push(chore)
+          completed.push({ chore, timeOfDay: chore.timeOfDay })
         }
       } else {
         const isCompleted = isChoreCompleted(completions, chore.id, child.id, chore.frequency, chore.timeOfDay)
         if (isCompleted) {
-          completed.push(chore)
+          completed.push({ chore })
         } else {
           pending.push({ chore })
         }
@@ -198,17 +202,20 @@ export function ChildChoreView({
                   Missed Chores
                 </h2>
                 <div className="grid gap-4">
-                  {missedChores.map((chore) => (
-                    <Card key={chore.id} className="border-destructive/50 bg-destructive/5">
+                  {missedChores.map(({ chore, timeOfDay }) => (
+                    <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive/50 bg-destructive/5">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-4">
                           <Warning className="h-12 w-12 text-destructive flex-shrink-0" />
                           <div className="flex-1">
-                            <h3 className="text-2xl font-fredoka font-bold">
-                              {chore.name}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-2xl font-fredoka font-bold">
+                                {chore.name}
+                              </h3>
+                              {getTimeOfDayLabel(timeOfDay)}
+                            </div>
                             <p className="text-sm text-destructive mt-1">
-                              This AM chore wasn't completed before noon
+                              This {timeOfDay === 'am' ? 'morning' : 'evening'} chore wasn't completed on time
                             </p>
                             <Badge variant="destructive" className="font-fredoka text-base px-3 py-1 mt-2">
                               0 pts (missed)
@@ -297,8 +304,8 @@ export function ChildChoreView({
                   Completed ✓
                 </h2>
                 <div className="grid gap-4">
-                  {completedChores.map((chore) => (
-                    <Card key={chore.id} className="opacity-60">
+                  {completedChores.map(({ chore, timeOfDay }) => (
+                    <Card key={`${chore.id}-${timeOfDay || 'completed'}`} className="opacity-60">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-4">
                           <CheckCircle
@@ -306,9 +313,12 @@ export function ChildChoreView({
                             className="h-12 w-12 text-primary flex-shrink-0"
                           />
                           <div className="flex-1">
-                            <h3 className="text-2xl font-fredoka font-bold line-through">
-                              {chore.name}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-2xl font-fredoka font-bold line-through">
+                                {chore.name}
+                              </h3>
+                              {getTimeOfDayLabel(timeOfDay)}
+                            </div>
                             <Badge
                               variant="secondary"
                               className="font-fredoka text-lg px-3 py-1 mt-2"
