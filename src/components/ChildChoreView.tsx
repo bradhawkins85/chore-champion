@@ -201,25 +201,16 @@ export function ChildChoreView({
                   <Warning className="h-6 w-6" />
                   Missed Chores
                 </h2>
-                <div className="grid gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {missedChores.map(({ chore, timeOfDay }) => (
-                    <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive/50 bg-destructive/5">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4">
-                          <Warning className="h-12 w-12 text-destructive flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-2xl font-fredoka font-bold">
-                                {chore.name}
-                              </h3>
-                              {getTimeOfDayLabel(timeOfDay)}
-                            </div>
-                            <p className="text-sm text-destructive mt-1">
-                              This {timeOfDay === 'am' ? 'morning' : 'evening'} chore wasn't completed on time
-                            </p>
-                            <Badge variant="destructive" className="font-fredoka text-base px-3 py-1 mt-2">
-                              0 pts (missed)
-                            </Badge>
+                    <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive bg-destructive/10">
+                      <CardContent className="p-3">
+                        <div className="text-center space-y-1">
+                          <h3 className="text-sm font-fredoka font-semibold text-foreground leading-tight">
+                            {chore.name}
+                          </h3>
+                          <div className="text-xs font-medium text-destructive">
+                            {timeOfDay === 'am' ? 'Morning' : 'Evening'}
                           </div>
                         </div>
                       </CardContent>
