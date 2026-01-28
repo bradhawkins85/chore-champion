@@ -12,12 +12,19 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Parent Mode PIN Protection
+- **Functionality**: Optional PIN/password protection to prevent children from accessing Parent Mode and modifying settings
+- **Purpose**: Ensure only parents can manage chores, assignments, rewards, and view purchase history
+- **Trigger**: Click "Parent Mode" button from child selector → PIN dialog appears if PIN is set
+- **Progression**: Click Parent Mode → Enter PIN or set new PIN on first access → If correct, enter parent panel → Change PIN option available in Settings tab
+- **Success criteria**: PIN persists between sessions, incorrect attempts prevented, clear feedback on PIN entry, ability to change PIN from Settings
+
 ### Parent/Child Mode Toggle
-- **Functionality**: Switch between parent control panel and child-friendly interface
+- **Functionality**: Switch between parent control panel and child-friendly interface, protected by PIN
 - **Purpose**: Separate experiences for different user types - management vs. task completion
-- **Trigger**: Mode selector button accessible from both views
-- **Progression**: Click mode toggle → Interface transforms to appropriate view → Relevant features display
-- **Success criteria**: Clean transition between modes, appropriate features visible for each role
+- **Trigger**: Parent Mode button from child selector or Exit Parent Mode from parent panel
+- **Progression**: Click mode toggle → PIN verification if entering parent mode → Interface transforms to appropriate view → Relevant features display
+- **Success criteria**: Clean transition between modes, appropriate features visible for each role, PIN protection active
 
 ### Chore Management (Parent)
 - **Functionality**: Create, edit, delete chores with name, description, point value, frequency (daily/weekly/bi-weekly), time of day scheduling (AM/PM/Both/Anytime), and optional start/end dates. Quick-add from 40+ pre-built chore templates organized by category.
@@ -70,6 +77,9 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Edge Case Handling
 
+- **No PIN Set**: On first Parent Mode access, prompt to set a PIN instead of entering one
+- **Forgotten PIN**: No recovery mechanism (this is intentional - parents must remember their PIN)
+- **PIN Change**: Available in Parent Mode Settings tab, requires current PIN verification
 - **No Children Added**: Display friendly empty state with "Add your first child" prompt
 - **No Chores Created**: Show onboarding message encouraging parents to create chores or use templates
 - **No Rewards Available**: Show empty state in rewards shop prompting parents to add rewards

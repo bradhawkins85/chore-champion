@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X } from '@phosphor-icons/react'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -30,6 +30,7 @@ import { RewardDialog } from './RewardDialog'
 import { RewardCard } from './RewardCard'
 import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 import { WeeklySummary } from './WeeklySummary'
+import { ChangePinDialog } from './ChangePinDialog'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -39,6 +40,7 @@ interface ParentPanelProps {
   childPoints: Map<string, number>
   rewards: Reward[]
   purchases: RewardPurchase[]
+  parentPin: string | null
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -52,6 +54,7 @@ interface ParentPanelProps {
   onDeleteReward: (id: string) => void
   onFulfillPurchase: (purchaseId: string) => void
   onUnfulfillPurchase: (purchaseId: string) => void
+  onChangePin: (newPin: string) => void
   onExitParentMode: () => void
 }
 
@@ -63,6 +66,7 @@ export function ParentPanel({
   childPoints,
   rewards,
   purchases,
+  parentPin,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -76,6 +80,7 @@ export function ParentPanel({
   onDeleteReward,
   onFulfillPurchase,
   onUnfulfillPurchase,
+  onChangePin,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -86,6 +91,7 @@ export function ParentPanel({
   const [deleteChildId, setDeleteChildId] = useState<string | null>(null)
   const [deleteRewardId, setDeleteRewardId] = useState<string | null>(null)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
+  const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
 
   const popularTemplates = choreTemplates.slice(0, 6)
 
@@ -190,6 +196,10 @@ export function ParentPanel({
                 {purchases.filter((p) => !p.fulfilled).length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Gear className="h-4 w-4 mr-2" />
+            Settings
           </TabsTrigger>
         </TabsList>
 
@@ -430,7 +440,49 @@ export function ParentPanel({
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Settings</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage security and app preferences
+              </p>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-fredoka font-semibold text-lg">Parent Mode PIN</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {parentPin
+                        ? 'Change your PIN to protect Parent Mode access'
+                        : 'Set a PIN to protect Parent Mode access'}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setChangePinDialogOpen(true)}
+                    variant="outline"
+                    className="font-fredoka"
+                  >
+                    {parentPin ? 'Change PIN' : 'Set PIN'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <ChangePinDialog
+        open={changePinDialogOpen}
+        onClose={() => setChangePinDialogOpen(false)}
+        onSuccess={onChangePin}
+        currentPin={parentPin}
+      />
 
       <RewardDialog onSave={onAddReward} />
 

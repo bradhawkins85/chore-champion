@@ -8,6 +8,7 @@ import { ParentPanel } from '@/components/ParentPanel'
 import { ChildSelector } from '@/components/ChildSelector'
 import { ChildChoreView } from '@/components/ChildChoreView'
 import { RewardShop } from '@/components/RewardShop'
+import { ParentPinDialog } from '@/components/ParentPinDialog'
 import {
   AppMode,
   Child,
@@ -23,6 +24,9 @@ function App() {
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
+  const [showPinDialog, setShowPinDialog] = useState(false)
+  
+  const [parentPin, setParentPin] = useKV<string | null>('parent-pin', null)
 
   const [chores, setChores] = useKV<Chore[]>('chores', [])
   const [childrenList, setChildrenList] = useKV<Child[]>('children', [])
@@ -200,6 +204,25 @@ function App() {
     toast.info('Reward marked as unfulfilled')
   }
 
+  const handleOpenParentMode = () => {
+    setShowPinDialog(true)
+  }
+
+  const handlePinSuccess = () => {
+    setShowPinDialog(false)
+    setMode('parent')
+  }
+
+  const handleSetPin = (pin: string) => {
+    setParentPin(pin)
+    toast.success('Parent PIN set successfully!')
+  }
+
+  const handleChangePin = (newPin: string) => {
+    setParentPin(newPin)
+    toast.success('Parent PIN changed successfully!')
+  }
+
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
@@ -215,6 +238,7 @@ function App() {
           childPoints={childPoints}
           rewards={rewards || []}
           purchases={purchases || []}
+          parentPin={parentPin ?? null}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -228,6 +252,7 @@ function App() {
           onDeleteReward={handleDeleteReward}
           onFulfillPurchase={handleFulfillPurchase}
           onUnfulfillPurchase={handleUnfulfillPurchase}
+          onChangePin={handleChangePin}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)
@@ -281,7 +306,7 @@ function App() {
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => setMode('parent')}
+                  onClick={handleOpenParentMode}
                   className="font-fredoka text-lg"
                 >
                   <Gear className="h-5 w-5 mr-2" />
@@ -295,11 +320,19 @@ function App() {
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               onSelect={setSelectedChild}
-              onParentMode={() => setMode('parent')}
+              onParentMode={handleOpenParentMode}
             />
           )}
         </>
       )}
+
+      <ParentPinDialog
+        open={showPinDialog}
+        onClose={() => setShowPinDialog(false)}
+        onSuccess={handlePinSuccess}
+        storedPin={parentPin ?? null}
+        onSetPin={handleSetPin}
+      />
 
       <Toaster />
     </div>
