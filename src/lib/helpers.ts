@@ -274,14 +274,15 @@ export function isChoreCompleted(
   choreId: string,
   childId: string,
   frequency: ChoreFrequency,
-  choreTimeOfDay: ChoreTimeOfDay
+  choreTimeOfDay?: ChoreTimeOfDay
 ): boolean {
+  const timeOfDay = choreTimeOfDay || 'anytime'
   if (frequency === 'daily') {
-    return isChoreCompletedToday(completions, choreId, childId, choreTimeOfDay)
+    return isChoreCompletedToday(completions, choreId, childId, timeOfDay)
   } else if (frequency === 'weekly') {
-    return isChoreCompletedThisWeek(completions, choreId, childId, choreTimeOfDay)
+    return isChoreCompletedThisWeek(completions, choreId, childId, timeOfDay)
   } else {
-    return isChoreCompletedThisBiWeek(completions, choreId, childId, choreTimeOfDay)
+    return isChoreCompletedThisBiWeek(completions, choreId, childId, timeOfDay)
   }
 }
 
@@ -336,7 +337,7 @@ export function isRewardAvailableForChild(
   reward: { requirements?: { childId: string; requiredChoreIds: string[] }[] },
   childId: string,
   completions: ChoreCompletion[],
-  choresMap: Map<string, { frequency: ChoreFrequency; timeOfDay: ChoreTimeOfDay }>
+  choresMap: Map<string, { frequency: ChoreFrequency; timeOfDay?: ChoreTimeOfDay }>
 ): boolean {
   const requirement = reward.requirements?.find(r => r.childId === childId)
   if (!requirement || requirement.requiredChoreIds.length === 0) {

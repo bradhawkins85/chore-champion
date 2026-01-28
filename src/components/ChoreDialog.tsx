@@ -63,54 +63,14 @@ export function ChoreDialog({
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryPoints, setCategoryPoints] = useState<CategoryPoints[]>(editChore?.categoryPoints || [])
   const [desiredTime, setDesiredTime] = useState(editChore?.desiredTime || '')
+  const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
+  const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
+  const [categoryPointOverrides, setCategoryPointOverrides] = useState<CategoryPointOverride[]>(editChore?.categoryPointOverrides || [])
+  const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
+  const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
+  const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
 
-  const weekDays: { value: DayOfWeek; label: string }[] = [
-    { value: 'monday', label: 'Mon' },
-    { value: 'tuesday', label: 'Tue' },
-    { value: 'wednesday', label: 'Wed' },
-    { value: 'thursday', label: 'Thu' },
-    { value: 'friday', label: 'Fri' },
-    { value: 'saturday', label: 'Sat' },
-    { value: 'sunday', label: 'Sun' },
-  ]
 
-  const toggleDayOfWeek = (day: DayOfWeek) => {
-    setDaysOfWeek((current) => {
-      if (current.includes(day)) {
-        return current.filter((d) => d !== day)
-      } else {
-        return [...current, day]
-      }
-    })
-  }
-
-  const toggleRepeatDay = (day: DayOfWeek) => {
-    setRepeatSpecificDays((current) => {
-      if (current.includes(day)) {
-        return current.filter((d) => d !== day)
-      } else {
-        return [...current, day]
-      }
-    })
-  }
-
-  const getRepeatPatternDescription = () => {
-    if (!repeatInterval || repeatInterval === '0') return ''
-    
-    const interval = parseInt(repeatInterval)
-    const intervalText = interval === 1 ? 'every week' : interval === 2 ? 'every other week' : `every ${interval} weeks`
-    
-    if (repeatSpecificDays.length === 0) {
-      return `Repeats ${intervalText}`
-    }
-    
-    const dayLabels = repeatSpecificDays
-      .map(d => weekDays.find(wd => wd.value === d)?.label)
-      .filter(Boolean)
-      .join(', ')
-    
-    return `Repeats ${intervalText} on ${dayLabels}`
-  }
 
   useEffect(() => {
     if (editChore) {
@@ -118,7 +78,7 @@ export function ChoreDialog({
       setDescription(editChore.description)
       setPoints(editChore.points.toString())
       setFrequency(editChore.frequency)
-      setTimeOfDay(editChore.timeOfDay)
+      setTimeOfDay(editChore.timeOfDay || 'anytime')
       setCompletionType(editChore.completionType)
       setCategoryIds(editChore.categoryIds || [])
       setPointOverrides(editChore.pointOverrides || [])
@@ -128,21 +88,6 @@ export function ChoreDialog({
       setUseTimeWindow(!!editChore.timeWindow)
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
-      setStartDate('')
-      setEndDate('')
-      setDaysOfWeek([])
-      setUseRepeatPattern(false)
-      setRepeatInterval('1')
-      setRepeatSpecificDays([])
-      setRepeatAnchorDate('')
-    } else {
-      setStartDate('')
-      setEndDate('')
-      setDaysOfWeek([])
-      setUseRepeatPattern(false)
-      setRepeatInterval('1')
-      setRepeatSpecificDays([])
-      setRepeatAnchorDate('')
     }
   }, [editChore])
 
@@ -223,13 +168,6 @@ export function ChoreDialog({
       setUseTimeWindow(false)
       setTimeWindowStart('')
       setTimeWindowEnd('')
-      setStartDate('')
-      setEndDate('')
-      setDaysOfWeek([])
-      setUseRepeatPattern(false)
-      setRepeatInterval('1')
-      setRepeatSpecificDays([])
-      setRepeatAnchorDate('')
     }
     onOpenChange(false)
   }
@@ -449,122 +387,6 @@ export function ChoreDialog({
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Days of Week (optional)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {weekDays.map((day) => (
-                      <Button
-                        key={day.value}
-                        type="button"
-                        variant={daysOfWeek.includes(day.value) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleDayOfWeek(day.value)}
-                        className="font-fredoka"
-                        disabled={useRepeatPattern}
-                      >
-                        {day.label}
-                      </Button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {daysOfWeek.length === 0 
-                      ? 'Leave empty to show every day' 
-                      : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
-                    }
-                  </p>
-                </div>
-                <Separator />
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="use-repeat-pattern" className="text-base font-fredoka font-semibold">
-                        Advanced Repeat Pattern
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Create patterns like "every other Monday" or "every 3 weeks"
-                      </p>
-                    </div>
-                    <Switch
-                      id="use-repeat-pattern"
-                      checked={useRepeatPattern}
-                      onCheckedChange={(checked) => {
-                        setUseRepeatPattern(checked)
-                        if (!checked) {
-                          setRepeatSpecificDays([])
-                          setRepeatAnchorDate('')
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  {useRepeatPattern && (
-                    <div className="space-y-4 pl-4 border-l-2 border-primary">
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          {getRepeatPatternDescription() || 'Configure the repeat pattern below'}
-                        </AlertDescription>
-                      </Alert>
-                      
-                      <div className="grid gap-2">
-                        <Label htmlFor="repeat-interval">Repeat Every (weeks)</Label>
-                        <Input
-                          id="repeat-interval"
-                          type="number"
-                          value={repeatInterval}
-                          onChange={(e) => setRepeatInterval(e.target.value)}
-                          min="1"
-                          max="52"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {repeatInterval === '1' ? 'Every week (same as weekly frequency)' 
-                            : repeatInterval === '2' ? 'Every other week' 
-                            : `Every ${repeatInterval} weeks`}
-                        </p>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <Label>On These Days (optional)</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {weekDays.map((day) => (
-                            <Button
-                              key={day.value}
-                              type="button"
-                              variant={repeatSpecificDays.includes(day.value) ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => toggleRepeatDay(day.value)}
-                              className="font-fredoka"
-                            >
-                              {day.label}
-                            </Button>
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {repeatSpecificDays.length === 0 
-                            ? 'Leave empty to repeat every day during active weeks' 
-                            : `Will repeat on: ${repeatSpecificDays.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
-                          }
-                        </p>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <Label htmlFor="anchor-date">Starting From (optional)</Label>
-                        <Input
-                          id="anchor-date"
-                          type="date"
-                          value={repeatAnchorDate}
-                          onChange={(e) => setRepeatAnchorDate(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {repeatAnchorDate 
-                            ? `Pattern starts counting from ${new Date(repeatAnchorDate).toLocaleDateString()}`
-                            : 'Leave empty to use the chore creation date or start date as the anchor'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="time-of-day">Time of Day</Label>
                   <Select value={timeOfDay} onValueChange={(v) => setTimeOfDay(v as ChoreTimeOfDay)}>
                     <SelectTrigger id="time-of-day">
@@ -677,35 +499,6 @@ export function ChoreDialog({
                     {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
                   </p>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="start-date">Start Date (optional)</Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  {startDate && (
-                    <p className="text-xs text-muted-foreground">
-                      Chore will become available on this date
-                    </p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="end-date">End Date (optional)</Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate || undefined}
-                  />
-                  {endDate && (
-                    <p className="text-xs text-muted-foreground">
-                      Chore will no longer be available after this date
-                    </p>
-                  )}
-                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -754,122 +547,6 @@ export function ChoreDialog({
                   <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Days of Week (optional)</Label>
-              <div className="flex flex-wrap gap-2">
-                {weekDays.map((day) => (
-                  <Button
-                    key={day.value}
-                    type="button"
-                    variant={daysOfWeek.includes(day.value) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleDayOfWeek(day.value)}
-                    className="font-fredoka"
-                    disabled={useRepeatPattern}
-                  >
-                    {day.label}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {daysOfWeek.length === 0 
-                  ? 'Leave empty to show every day' 
-                  : `Chore will only show on: ${daysOfWeek.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
-                }
-              </p>
-            </div>
-            <Separator />
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="use-repeat-pattern-edit" className="text-base font-fredoka font-semibold">
-                    Advanced Repeat Pattern
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Create patterns like "every other Monday" or "every 3 weeks"
-                  </p>
-                </div>
-                <Switch
-                  id="use-repeat-pattern-edit"
-                  checked={useRepeatPattern}
-                  onCheckedChange={(checked) => {
-                    setUseRepeatPattern(checked)
-                    if (!checked) {
-                      setRepeatSpecificDays([])
-                      setRepeatAnchorDate('')
-                    }
-                  }}
-                />
-              </div>
-              
-              {useRepeatPattern && (
-                <div className="space-y-4 pl-4 border-l-2 border-primary">
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertDescription>
-                      {getRepeatPatternDescription() || 'Configure the repeat pattern below'}
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="repeat-interval-edit">Repeat Every (weeks)</Label>
-                    <Input
-                      id="repeat-interval-edit"
-                      type="number"
-                      value={repeatInterval}
-                      onChange={(e) => setRepeatInterval(e.target.value)}
-                      min="1"
-                      max="52"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {repeatInterval === '1' ? 'Every week (same as weekly frequency)' 
-                        : repeatInterval === '2' ? 'Every other week' 
-                        : `Every ${repeatInterval} weeks`}
-                    </p>
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label>On These Days (optional)</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {weekDays.map((day) => (
-                        <Button
-                          key={day.value}
-                          type="button"
-                          variant={repeatSpecificDays.includes(day.value) ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => toggleRepeatDay(day.value)}
-                          className="font-fredoka"
-                        >
-                          {day.label}
-                        </Button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {repeatSpecificDays.length === 0 
-                        ? 'Leave empty to repeat every day during active weeks' 
-                        : `Will repeat on: ${repeatSpecificDays.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}`
-                      }
-                    </p>
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="anchor-date-edit">Starting From (optional)</Label>
-                    <Input
-                      id="anchor-date-edit"
-                      type="date"
-                      value={repeatAnchorDate}
-                      onChange={(e) => setRepeatAnchorDate(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {repeatAnchorDate 
-                        ? `Pattern starts counting from ${new Date(repeatAnchorDate).toLocaleDateString()}`
-                        : 'Leave empty to use the chore creation date or start date as the anchor'
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="time-of-day">Time of Day</Label>
@@ -983,35 +660,6 @@ export function ChoreDialog({
                 {completionType === 'shareable' && 'Children can work together and share points equally'}
                 {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
               </p>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="start-date">Start Date (optional)</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              {startDate && (
-                <p className="text-xs text-muted-foreground">
-                  Chore will become available on this date
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="end-date">End Date (optional)</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || undefined}
-              />
-              {endDate && (
-                <p className="text-xs text-muted-foreground">
-                  Chore will no longer be available after this date
-                </p>
-              )}
             </div>
           </div>
         )}
