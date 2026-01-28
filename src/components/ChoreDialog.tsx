@@ -520,6 +520,69 @@ export function ChoreDialog({
                 min="1"
               />
             </div>
+            
+            <div className="grid gap-2">
+              <Label>Categories & Points</Label>
+              <div className="space-y-3">
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No categories available. Create categories first.
+                  </p>
+                ) : (
+                  categories.map((category) => {
+                    const isSelected = categoryIds.includes(category.id)
+                    const categoryPointValue = categoryPoints.find(cp => cp.categoryId === category.id)?.points || 10
+                    
+                    return (
+                      <div key={category.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Badge
+                          variant={isSelected ? 'default' : 'outline'}
+                          className="cursor-pointer flex-shrink-0"
+                          style={{
+                            backgroundColor: isSelected ? category.color : 'transparent',
+                            borderColor: category.color,
+                            color: isSelected ? 'white' : category.color,
+                          }}
+                          onClick={() => toggleCategoryId(category.id)}
+                        >
+                          {category.name}
+                        </Badge>
+                        {isSelected && (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Label htmlFor={`cat-points-edit-${category.id}`} className="text-sm whitespace-nowrap">
+                              Points:
+                            </Label>
+                            <Input
+                              id={`cat-points-edit-${category.id}`}
+                              type="number"
+                              value={categoryPointValue}
+                              onChange={(e) => {
+                                const newPoints = parseInt(e.target.value) || 0
+                                setCategoryPoints((current) => {
+                                  const existing = current.find(cp => cp.categoryId === category.id)
+                                  if (existing) {
+                                    return current.map(cp => 
+                                      cp.categoryId === category.id ? { ...cp, points: newPoints } : cp
+                                    )
+                                  }
+                                  return [...current, { categoryId: category.id, points: newPoints }]
+                                })
+                              }}
+                              min="0"
+                              className="w-20"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select categories and assign points for each. Completing this chore will award points in all selected categories.
+              </p>
+            </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="frequency">Frequency</Label>
               <Select value={frequency} onValueChange={(v) => setFrequency(v as ChoreFrequency)}>
