@@ -65,7 +65,7 @@ export function RewardShop({
           </div>
         </div>
 
-        {rewards.length === 0 ? (
+        {rewards.filter(r => !r.disabled).length === 0 ? (
           <Card className="p-12 text-center">
             <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-2xl font-fredoka font-semibold mb-2">
@@ -77,7 +77,7 @@ export function RewardShop({
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {rewards.map((reward) => {
+            {rewards.filter(r => !r.disabled).map((reward) => {
               const customCost = getRewardCostForChild(reward, child.id)
               const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
               const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)

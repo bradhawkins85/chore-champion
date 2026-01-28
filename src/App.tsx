@@ -220,6 +220,18 @@ function App() {
     toast.success('Reward deleted')
   }
 
+  const handleToggleRewardDisabled = (id: string) => {
+    setRewards((current) =>
+      (current || []).map((r) =>
+        r.id === id ? { ...r, disabled: !r.disabled } : r
+      )
+    )
+    const reward = (rewards || []).find((r) => r.id === id)
+    if (reward) {
+      toast.success(reward.disabled ? 'Reward enabled' : 'Reward disabled')
+    }
+  }
+
   const handlePurchaseReward = (childId: string, rewardId: string, cost: number) => {
     const reward = (rewards || []).find((r) => r.id === rewardId)
     if (!reward) return
@@ -370,6 +382,7 @@ function App() {
           onAddReward={handleAddReward}
           onEditReward={handleEditReward}
           onDeleteReward={handleDeleteReward}
+          onToggleRewardDisabled={handleToggleRewardDisabled}
           onFulfillPurchase={handleFulfillPurchase}
           onUnfulfillPurchase={handleUnfulfillPurchase}
           onChangePin={handleChangePin}

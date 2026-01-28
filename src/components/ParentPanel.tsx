@@ -56,6 +56,7 @@ interface ParentPanelProps {
   onAddReward: (reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onEditReward: (id: string, reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onDeleteReward: (id: string) => void
+  onToggleRewardDisabled: (id: string) => void
   onFulfillPurchase: (purchaseId: string) => void
   onUnfulfillPurchase: (purchaseId: string) => void
   onChangePin: (newPin: string) => void
@@ -86,6 +87,7 @@ export function ParentPanel({
   onAddReward,
   onEditReward,
   onDeleteReward,
+  onToggleRewardDisabled,
   onFulfillPurchase,
   onUnfulfillPurchase,
   onChangePin,
@@ -486,6 +488,7 @@ export function ParentPanel({
                     chores={chores}
                     onEdit={onEditReward}
                     onDelete={setDeleteRewardId}
+                    onToggleDisabled={onToggleRewardDisabled}
                     purchaseCount={purchaseCount}
                   />
                 )

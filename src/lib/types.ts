@@ -103,6 +103,7 @@ export interface Reward {
   costOverrides?: RewardCostOverride[]
   requirements?: RewardRequirement[]
   purchaseLimit?: PurchaseLimit
+  disabled?: boolean
 }
 
 export interface RewardPurchase {
