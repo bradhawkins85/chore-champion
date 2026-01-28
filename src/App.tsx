@@ -309,11 +309,13 @@ function App() {
   }
 
   const handleAddReward = (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
+    const categoryIdsArray = Array.isArray(rewardData.categoryIds) ? [...rewardData.categoryIds] : []
+    
     const newReward: Reward = {
       ...rewardData,
       id: `reward_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
-      categoryIds: Array.isArray(rewardData.categoryIds) ? rewardData.categoryIds : [],
+      categoryIds: categoryIdsArray,
     }
     setRewards((current) => [...(current || []), newReward])
     toast.success(`Reward "${newReward.name}" created!`)
@@ -323,12 +325,14 @@ function App() {
     id: string,
     rewardData: Omit<Reward, 'id' | 'createdAt'>
   ) => {
+    const categoryIdsArray = Array.isArray(rewardData.categoryIds) ? [...rewardData.categoryIds] : []
+    
     setRewards((current) =>
       (current || []).map((r) =>
         r.id === id ? { 
           ...r, 
           ...rewardData,
-          categoryIds: Array.isArray(rewardData.categoryIds) ? rewardData.categoryIds : [],
+          categoryIds: categoryIdsArray,
         } : r
       )
     )
@@ -539,28 +543,38 @@ function App() {
   const migratedRewards = useMemo(() => {
     if (!rewards || rewards.length === 0) return rewards || []
     
-    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds))
+    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
     if (!needsMigration) return rewards
     
     const firstCategoryId = (categories || [])[0]?.id
     
-    return rewards.map((reward) => ({
-      ...reward,
-      categoryIds: Array.isArray(reward.categoryIds) ? reward.categoryIds : (firstCategoryId ? [firstCategoryId] : []),
-    }))
+    return rewards.map((reward) => {
+      const rewardCategoryIds = reward.categoryIds
+      const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
+      
+      return {
+        ...reward,
+        categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
+      }
+    })
   }, [rewards, categories])
 
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
     if (rewards && rewards.length > 0 && categories && categories.length > 0) {
-      const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds))
+      const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
       if (needsMigration) {
         const firstCategoryId = categories[0]?.id
-        const migrated = rewards.map((reward) => ({
-          ...reward,
-          categoryIds: Array.isArray(reward.categoryIds) ? reward.categoryIds : (firstCategoryId ? [firstCategoryId] : []),
-        }))
+        const migrated = rewards.map((reward) => {
+          const rewardCategoryIds = reward.categoryIds
+          const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
+          
+          return {
+            ...reward,
+            categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
+          }
+        })
         setRewards(migrated)
         hasMigratedRewards.current = true
       }

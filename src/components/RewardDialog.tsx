@@ -37,7 +37,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [description, setDescription] = useState(reward?.description || '')
   const [cost, setCost] = useState(reward?.cost?.toString() || '')
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
-  const [categoryIds, setCategoryIds] = useState<string[]>(Array.isArray(reward?.categoryIds) ? reward.categoryIds : [])
+  const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
   const [requirements, setRequirements] = useState<RewardRequirement[]>(reward?.requirements || [])
   const [hasLimit, setHasLimit] = useState(!!reward?.purchaseLimit)
@@ -46,32 +46,35 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [limitScope, setLimitScope] = useState<PurchaseLimitScope>(reward?.purchaseLimit?.scope || 'per-child')
 
   useEffect(() => {
-    if (open && reward) {
-      setName(reward.name)
-      setDescription(reward.description)
-      setCost(reward.cost.toString())
-      setImageEmoji(reward.imageEmoji)
-      setCategoryIds(Array.isArray(reward.categoryIds) ? reward.categoryIds : [])
-      setCostOverrides(reward.costOverrides || [])
-      setRequirements(reward.requirements || [])
-      setHasLimit(!!reward.purchaseLimit)
-      setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
-      setLimitInterval(reward.purchaseLimit?.interval || 'day')
-      setLimitScope(reward.purchaseLimit?.scope || 'per-child')
-    } else if (open && !reward) {
-      setName('')
-      setDescription('')
-      setCost('')
-      setImageEmoji('🎁')
-      setCategoryIds([])
-      setCostOverrides([])
-      setRequirements([])
-      setHasLimit(false)
-      setLimitMax('1')
-      setLimitInterval('day')
-      setLimitScope('per-child')
+    if (open) {
+      if (reward) {
+        setName(reward.name)
+        setDescription(reward.description)
+        setCost(reward.cost.toString())
+        setImageEmoji(reward.imageEmoji)
+        const rewardCategoryIds = reward.categoryIds || []
+        setCategoryIds(Array.isArray(rewardCategoryIds) ? [...rewardCategoryIds] : [])
+        setCostOverrides(reward.costOverrides || [])
+        setRequirements(reward.requirements || [])
+        setHasLimit(!!reward.purchaseLimit)
+        setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
+        setLimitInterval(reward.purchaseLimit?.interval || 'day')
+        setLimitScope(reward.purchaseLimit?.scope || 'per-child')
+      } else {
+        setName('')
+        setDescription('')
+        setCost('')
+        setImageEmoji('🎁')
+        setCategoryIds([])
+        setCostOverrides([])
+        setRequirements([])
+        setHasLimit(false)
+        setLimitMax('1')
+        setLimitInterval('day')
+        setLimitScope('per-child')
+      }
     }
-  }, [open, reward])
+  }, [open, reward, reward?.categoryIds])
 
   const toggleCategoryId = (id: string) => {
     setCategoryIds((current) => {
@@ -95,12 +98,14 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         }
       : undefined
 
+    const categoryIdsToSave = Array.isArray(categoryIds) ? [...categoryIds] : []
+
     onSave({
       name: name.trim(),
       description: description.trim(),
       cost: parseInt(cost, 10),
       imageEmoji,
-      categoryIds,
+      categoryIds: categoryIdsToSave,
       costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
       purchaseLimit,

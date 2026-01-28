@@ -44,6 +44,28 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
               {reward.description && (
                 <p className="text-sm text-muted-foreground">{reward.description}</p>
               )}
+              {Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {reward.categoryIds.map((catId) => {
+                    const category = categories.find(c => c.id === catId)
+                    if (!category) return null
+                    return (
+                      <Badge
+                        key={catId}
+                        variant="outline"
+                        style={{
+                          backgroundColor: `${category.color}15`,
+                          borderColor: category.color,
+                          color: category.color,
+                        }}
+                        className="text-xs"
+                      >
+                        {category.name}
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
               {(hasCustomizations || reward.purchaseLimit) && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {reward.costOverrides && reward.costOverrides.length > 0 && (

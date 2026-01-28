@@ -135,7 +135,7 @@ export function RewardShop({
                             {reward.description}
                           </p>
                         )}
-                        {reward.categoryIds && reward.categoryIds.length > 0 && (
+                        {Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1 justify-center">
                             {reward.categoryIds.map((catId) => {
                               const category = categoriesMap.get(catId)
