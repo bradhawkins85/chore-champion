@@ -234,6 +234,7 @@ function App() {
           chores={chores || []}
           childrenList={childrenList || []}
           assignments={assignments || []}
+          completions={completions || []}
           childPoints={childPoints}
           rewards={rewards || []}
           purchases={purchases || []}

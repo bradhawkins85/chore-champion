@@ -13,8 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Package, Check } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase } from '@/lib/types'
+import { Plus, Package, Check, ChartBar } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion } from '@/lib/types'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
 import { ChoreDialog } from './ChoreDialog'
@@ -23,11 +23,13 @@ import { AssignChoresView } from './AssignChoresView'
 import { RewardDialog } from './RewardDialog'
 import { RewardCard } from './RewardCard'
 import { PurchaseHistoryCard } from './PurchaseHistoryCard'
+import { WeeklySummary } from './WeeklySummary'
 
 interface ParentPanelProps {
   chores: Chore[]
   childrenList: Child[]
   assignments: ChoreAssignment[]
+  completions: ChoreCompletion[]
   childPoints: Map<string, number>
   rewards: Reward[]
   purchases: RewardPurchase[]
@@ -50,6 +52,7 @@ export function ParentPanel({
   chores,
   childrenList,
   assignments,
+  completions,
   childPoints,
   rewards,
   purchases,
@@ -130,8 +133,12 @@ export function ParentPanel({
         </p>
       </div>
 
-      <Tabs defaultValue="children" className="space-y-6">
+      <Tabs defaultValue="summary" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="summary">
+            <ChartBar className="h-4 w-4 mr-2" />
+            Weekly Summary
+          </TabsTrigger>
           <TabsTrigger value="children">Children</TabsTrigger>
           <TabsTrigger value="chores">Chores</TabsTrigger>
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
@@ -145,6 +152,25 @@ export function ParentPanel({
             )}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="summary" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Weekly Summary</h2>
+              <p className="text-sm text-muted-foreground">
+                Track each child's progress and achievements
+              </p>
+            </div>
+          </div>
+
+          <WeeklySummary
+            childrenList={childrenList}
+            chores={chores}
+            completions={completions}
+            purchases={purchases}
+            childPoints={childPoints}
+          />
+        </TabsContent>
 
         <TabsContent value="children" className="space-y-4">
           <div className="flex justify-between items-center">
