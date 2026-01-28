@@ -1,0 +1,153 @@
+# Planning Guide
+
+A family chore management system that gamifies daily and weekly tasks for children while providing parents with comprehensive control over chore assignments, scheduling, and rewards.
+
+**Experience Qualities**: 
+1. **Playful** - Children should feel excited and motivated to complete chores through colorful visuals, point celebrations, and achievement-focused design.
+2. **Intuitive** - Both parent and child interfaces should be instantly understandable, with the child view optimized for young users on tablets.
+3. **Empowering** - Parents should feel in control with powerful management tools, while children feel autonomous completing their tasks.
+
+**Complexity Level**: Light Application (multiple features with basic state)
+This app manages chores, points, and user roles but doesn't require complex multi-view navigation or advanced data relationships. State management is straightforward with parent/child mode switching and basic CRUD operations.
+
+## Essential Features
+
+### Parent/Child Mode Toggle
+- **Functionality**: Switch between parent control panel and child-friendly interface
+- **Purpose**: Separate experiences for different user types - management vs. task completion
+- **Trigger**: Mode selector button accessible from both views
+- **Progression**: Click mode toggle → Interface transforms to appropriate view → Relevant features display
+- **Success criteria**: Clean transition between modes, appropriate features visible for each role
+
+### Chore Management (Parent)
+- **Functionality**: Create, edit, delete chores with name, description, point value, and frequency (daily/weekly)
+- **Purpose**: Give parents full control over what tasks children need to complete
+- **Trigger**: "Add Chore" button in parent panel
+- **Progression**: Click add → Fill form (name, points, frequency) → Save → Chore appears in list
+- **Success criteria**: Chores persist, can be edited/deleted, display correct frequency
+
+### Child Assignment (Parent)
+- **Functionality**: Create child profiles and assign specific chores to each child
+- **Purpose**: Personalize task lists for different children with different responsibilities
+- **Trigger**: Add child profile, then assign chores from master list
+- **Progression**: Create child → View child's chore list → Select from available chores → Assign with schedule
+- **Success criteria**: Each child sees only their assigned chores, assignments persist
+
+### Chore Completion (Child)
+- **Functionality**: View assigned chores, mark as complete, see points awarded
+- **Purpose**: Simple, rewarding interface for children to track and complete tasks
+- **Trigger**: Child opens app in child mode, selects their profile
+- **Progression**: Select profile → View today's chores → Tap chore → Confirm completion → Points animate and add to total
+- **Success criteria**: Completed chores are marked, points increment, visual celebration on completion
+
+### Points Tracking
+- **Functionality**: Track cumulative points per child, display prominently
+- **Purpose**: Gamify chores and provide measurable progress toward rewards
+- **Trigger**: Automatic calculation on chore completion
+- **Progression**: Complete chore → Points add to total → Updated total displays with animation
+- **Success criteria**: Accurate point totals, persistent across sessions, visible in both modes
+
+### Chore Reset System
+- **Functionality**: Daily chores reset each day, weekly chores reset each week
+- **Purpose**: Ensure chores reappear on schedule without manual intervention
+- **Trigger**: Automatic based on timestamp comparison
+- **Progression**: App checks last completion → If interval passed → Chore becomes available again
+- **Success criteria**: Chores reset at appropriate intervals, completion history maintained
+
+## Edge Case Handling
+
+- **No Children Added**: Display friendly empty state with "Add your first child" prompt
+- **No Chores Created**: Show onboarding message encouraging parents to create chores
+- **All Chores Complete**: Celebratory message for child, summary view for parents
+- **Point Adjustment**: Parents can manually adjust points (add/subtract) for corrections
+- **Accidental Completion**: Parents can uncheck completed chores in parent mode
+- **Multiple Children Using Simultaneously**: Each child has separate profile selection to prevent conflicts
+
+## Design Direction
+
+The design should evoke a sense of fun, accomplishment, and clarity. The parent interface should feel organized and efficient—like a control dashboard—while the child interface should feel like an engaging game with large touch targets, bright colors, and celebratory moments. Visual hierarchy should clearly separate completed from pending tasks, and point awards should feel rewarding through animation and emphasis.
+
+## Color Selection
+
+A vibrant, energetic palette that appeals to children while maintaining professionalism for parents.
+
+- **Primary Color**: Bright playful purple (oklch(0.6 0.22 290)) - Communicates creativity and fun, suitable for a family app
+- **Secondary Colors**: Sunny yellow (oklch(0.85 0.15 95)) for highlights and celebrations, soft blue (oklch(0.65 0.12 240)) for parent mode calm
+- **Accent Color**: Energetic orange (oklch(0.72 0.18 45)) - Draws attention to action buttons and point awards
+- **Foreground/Background Pairings**: 
+  - Background (Soft cream oklch(0.98 0.01 85)): Dark gray text (oklch(0.25 0 0)) - Ratio 13.2:1 ✓
+  - Primary (Purple oklch(0.6 0.22 290)): White text (oklch(1 0 0)) - Ratio 5.8:1 ✓
+  - Accent (Orange oklch(0.72 0.18 45)): Dark text (oklch(0.2 0 0)) - Ratio 8.1:1 ✓
+  - Card surfaces (White oklch(1 0 0)): Dark gray text (oklch(0.25 0 0)) - Ratio 14.5:1 ✓
+
+## Font Selection
+
+Typography should be friendly, legible at large sizes for children, and organized for parent data. The chosen typeface should have rounded characteristics that feel approachable.
+
+- **Typographic Hierarchy**:
+  - H1 (Child Name/Welcome): Fredoka Bold/36px/tight tracking - Playful rounded font perfect for kids
+  - H2 (Section Headers): Fredoka Semibold/24px/normal tracking
+  - H3 (Chore Titles): Fredoka Medium/20px/normal tracking
+  - Body (Descriptions, Parent UI): Inter Regular/16px/relaxed leading - Clean, readable for management interface
+  - Points Display: Fredoka Bold/32px/tight tracking - Makes numbers feel important and exciting
+  - Small Labels: Inter Medium/14px/normal tracking
+
+## Animations
+
+Animations should celebrate achievements and provide smooth transitions, especially in the child interface where completion should feel rewarding.
+
+- **Chore Completion**: Scale pulse + confetti burst when marking complete, with point number animating up
+- **Points Counter**: Number count-up animation when points are awarded
+- **Mode Switching**: Smooth fade transition between parent and child interfaces
+- **Chore Card Interactions**: Gentle hover lift on desktop, immediate feedback on touch
+- **List Reordering**: Smooth animated transitions when chores are completed and move to bottom of list
+- **Profile Selection**: Playful bounce when child selects their avatar/name
+
+## Component Selection
+
+- **Components**: 
+  - Card for chore items and child profiles with hover states
+  - Dialog for adding/editing chores and children
+  - Button with multiple variants (primary for completion, secondary for management)
+  - Badge for point displays and frequency labels
+  - Avatar for child profiles
+  - Switch for parent/child mode toggle
+  - Form components (Input, Label, Textarea, Select) for chore management
+  - Progress bar for daily/weekly completion percentage
+  - Tabs for organizing parent panel sections (Chores, Children, Overview)
+  - Alert Dialog for deletion confirmations
+  
+- **Customizations**: 
+  - Extra-large touch-friendly buttons for child interface (min 80px height)
+  - Custom confetti animation component using framer-motion for celebrations
+  - Large card components with prominent checkboxes for child chore list
+  - Point badge with glow effect and animation capabilities
+  
+- **States**: 
+  - Chore cards: default (pending), checked (completed), disabled (not available today)
+  - Buttons: default, hover (lift), active (press down), disabled (for completed)
+  - Profile avatars: unselected, selected (border + glow), hover
+  - Mode toggle: clear visual distinction between parent (organized, blue tones) and child (playful, purple tones)
+  
+- **Icon Selection**: 
+  - CheckCircle (Phosphor) for completed chores
+  - Star (Phosphor) for points and rewards
+  - Calendar (Phosphor) for frequency indicators
+  - Plus (Phosphor) for adding chores/children
+  - Gear (Phosphor) for parent mode/settings
+  - User (Phosphor) for child profiles
+  - Trash (Phosphor) for deletions
+  - Pencil (Phosphor) for editing
+  
+- **Spacing**: 
+  - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container
+  - Parent interface: Efficient spacing with gap-4, p-6 on containers
+  - Cards: p-6 for child view, p-4 for parent view
+  - Forms: gap-4 for form fields, mb-6 for form sections
+  
+- **Mobile**: 
+  - Child interface is tablet-first (optimized for 768px+) with large touch targets
+  - Parent interface scales down gracefully with stacked layouts below 768px
+  - Navigation switches from tabs to dropdown menu on mobile
+  - Cards stack vertically on small screens
+  - Point displays remain prominent but adjust size proportionally
