@@ -60,16 +60,20 @@ function App() {
   
   const hasMigratedRewards = useRef(false)
 
+  const hasInitializedCategories = useRef(false)
+
   useEffect(() => {
-    if (categories && categories.length === 0) {
+    if (!hasInitializedCategories.current && categories && categories.length === 0) {
+      const timestamp = Date.now()
       const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
-        id: `category_${Date.now()}_${index}`,
-        createdAt: Date.now(),
+        id: `category_${timestamp}_${index}`,
+        createdAt: timestamp,
       }))
       setCategories(defaultCategories)
+      hasInitializedCategories.current = true
     }
-  }, [categories, setCategories])
+  }, [])
 
   const migratedChores = useMemo(() => {
     if (!chores || chores.length === 0) return chores || []
