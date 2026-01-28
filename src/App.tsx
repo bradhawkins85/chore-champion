@@ -313,6 +313,7 @@ function App() {
       ...rewardData,
       id: `reward_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
+      categoryIds: Array.isArray(rewardData.categoryIds) ? rewardData.categoryIds : [],
     }
     setRewards((current) => [...(current || []), newReward])
     toast.success(`Reward "${newReward.name}" created!`)
@@ -324,7 +325,11 @@ function App() {
   ) => {
     setRewards((current) =>
       (current || []).map((r) =>
-        r.id === id ? { ...r, ...rewardData } : r
+        r.id === id ? { 
+          ...r, 
+          ...rewardData,
+          categoryIds: Array.isArray(rewardData.categoryIds) ? rewardData.categoryIds : [],
+        } : r
       )
     )
     toast.success('Reward updated!')
@@ -534,14 +539,14 @@ function App() {
   const migratedRewards = useMemo(() => {
     if (!rewards || rewards.length === 0) return rewards || []
     
-    const needsMigration = rewards.some(r => !r.categoryIds)
+    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds))
     if (!needsMigration) return rewards
     
     const firstCategoryId = (categories || [])[0]?.id
     
     return rewards.map((reward) => ({
       ...reward,
-      categoryIds: reward.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
+      categoryIds: Array.isArray(reward.categoryIds) ? reward.categoryIds : (firstCategoryId ? [firstCategoryId] : []),
     }))
   }, [rewards, categories])
 
@@ -549,12 +554,12 @@ function App() {
     if (hasMigratedRewards.current) return
     
     if (rewards && rewards.length > 0 && categories && categories.length > 0) {
-      const needsMigration = rewards.some(r => !r.categoryIds)
+      const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds))
       if (needsMigration) {
         const firstCategoryId = categories[0]?.id
         const migrated = rewards.map((reward) => ({
           ...reward,
-          categoryIds: reward.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
+          categoryIds: Array.isArray(reward.categoryIds) ? reward.categoryIds : (firstCategoryId ? [firstCategoryId] : []),
         }))
         setRewards(migrated)
         hasMigratedRewards.current = true
