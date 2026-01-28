@@ -612,8 +612,6 @@ export function ParentPanel({
         currentPin={parentPin}
       />
 
-      <RewardDialog onSave={onAddReward} />
-
       <ChoreDialog
         open={choreDialogOpen}
         onOpenChange={(open) => {
