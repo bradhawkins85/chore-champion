@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Calendar, Star, CalendarBlank, CalendarCheck } from '@phosphor-icons/react'
+import { Calendar, Star, CalendarBlank, CalendarCheck, PencilSimple, Repeat } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -20,8 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Child, Chore, ChoreAssignment } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, DayOfWeek, RepeatPattern } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
+import { EditAssignmentDialog } from '@/components/EditAssignmentDialog'
 
 interface AssignChoresViewProps {
   child: Child
@@ -30,6 +31,15 @@ interface AssignChoresViewProps {
   onBack: () => void
   onAssign: (choreId: string) => void
   onUnassign: (assignmentId: string) => void
+  onEditAssignment: (
+    assignmentId: string,
+    updates: {
+      startDate?: number
+      endDate?: number
+      daysOfWeek?: DayOfWeek[]
+      repeatPattern?: RepeatPattern
+    }
+  ) => void
 }
 
 export function AssignChoresView({
@@ -39,9 +49,12 @@ export function AssignChoresView({
   onBack,
   onAssign,
   onUnassign,
+  onEditAssignment,
 }: AssignChoresViewProps) {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [selectedChoreId, setSelectedChoreId] = useState<string>('')
+  const [editingAssignment, setEditingAssignment] = useState<ChoreAssignment | null>(null)
+  const [editingChoreName, setEditingChoreName] = useState('')
 
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
@@ -64,6 +77,17 @@ export function AssignChoresView({
       day: 'numeric',
       year: 'numeric',
     })
+  }
+
+  const formatDaysOfWeek = (days: DayOfWeek[] | undefined) => {
+    if (!days || days.length === 0) return 'Every day'
+    if (days.length === 7) return 'Every day'
+    return days.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ')
+  }
+
+  const handleEditAssignment = (assignment: ChoreAssignment, choreName: string) => {
+    setEditingAssignment(assignment)
+    setEditingChoreName(choreName)
   }
 
   return (
@@ -128,13 +152,23 @@ export function AssignChoresView({
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => assignment && onUnassign(assignment.id)}
-                    >
-                      Remove
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => assignment && handleEditAssignment(assignment, chore.name)}
+                      >
+                        <PencilSimple className="h-4 w-4 mr-1" />
+                        Edit Schedule
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => assignment && onUnassign(assignment.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -149,6 +183,18 @@ export function AssignChoresView({
                       <Calendar className="h-4 w-4" />
                       <span className="capitalize">{chore.frequency}</span>
                     </div>
+                    {assignment?.daysOfWeek && assignment.daysOfWeek.length > 0 && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDaysOfWeek(assignment.daysOfWeek)}</span>
+                      </div>
+                    )}
+                    {assignment?.repeatPattern && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Repeat className="h-4 w-4" />
+                        <span>Every {assignment.repeatPattern.interval} week{assignment.repeatPattern.interval > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
                     {assignment?.startDate && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <CalendarBlank className="h-4 w-4" />
@@ -208,6 +254,14 @@ export function AssignChoresView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditAssignmentDialog
+        assignment={editingAssignment}
+        choreName={editingChoreName}
+        open={!!editingAssignment}
+        onClose={() => setEditingAssignment(null)}
+        onSave={onEditAssignment}
+      />
       </div>
     </div>
   )

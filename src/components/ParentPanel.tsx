@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -57,6 +57,15 @@ interface ParentPanelProps {
   onDeleteChild: (id: string) => void
   onAssignChore: (childId: string, choreId: string) => void
   onUnassignChore: (assignmentId: string) => void
+  onEditAssignment: (
+    assignmentId: string,
+    updates: {
+      startDate?: number
+      endDate?: number
+      daysOfWeek?: DayOfWeek[]
+      repeatPattern?: RepeatPattern
+    }
+  ) => void
   onAddReward: (reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onEditReward: (id: string, reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onDeleteReward: (id: string) => void
@@ -94,6 +103,7 @@ export function ParentPanel({
   onDeleteChild,
   onAssignChore,
   onUnassignChore,
+  onEditAssignment,
   onAddReward,
   onEditReward,
   onDeleteReward,
@@ -232,6 +242,7 @@ export function ParentPanel({
         onBack={() => setSelectedChild(null)}
         onAssign={(choreId) => onAssignChore(selectedChild.id, choreId)}
         onUnassign={onUnassignChore}
+        onEditAssignment={onEditAssignment}
       />
     )
   }

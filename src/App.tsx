@@ -23,6 +23,8 @@ import {
   CelebrationAnimation,
   GoalTracker,
   Category,
+  DayOfWeek,
+  RepeatPattern,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES } from '@/lib/helpers'
 
@@ -225,6 +227,23 @@ function App() {
   const handleUnassignChore = (assignmentId: string) => {
     setAssignments((current) => (current || []).filter((a) => a.id !== assignmentId))
     toast.success('Chore unassigned')
+  }
+
+  const handleEditAssignment = (
+    assignmentId: string,
+    updates: {
+      startDate?: number
+      endDate?: number
+      daysOfWeek?: DayOfWeek[]
+      repeatPattern?: RepeatPattern
+    }
+  ) => {
+    setAssignments((current) =>
+      (current || []).map((a) =>
+        a.id === assignmentId ? { ...a, ...updates } : a
+      )
+    )
+    toast.success('Schedule updated!')
   }
 
   const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
@@ -548,6 +567,7 @@ function App() {
           onDeleteChild={handleDeleteChild}
           onAssignChore={handleAssignChore}
           onUnassignChore={handleUnassignChore}
+          onEditAssignment={handleEditAssignment}
           onAddReward={handleAddReward}
           onEditReward={handleEditReward}
           onDeleteReward={handleDeleteReward}
