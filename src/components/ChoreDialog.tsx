@@ -22,8 +22,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Star } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern, ChorePointOverride, Category, CategoryPoints, CategoryPointOverride } from '@/lib/types'
+import { Sparkle, User, Info } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -64,8 +64,6 @@ export function ChoreDialog({
   const [categoryPoints, setCategoryPoints] = useState<CategoryPoints[]>(editChore?.categoryPoints || [])
   const [desiredTime, setDesiredTime] = useState(editChore?.desiredTime || '')
   const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
-  const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
-  const [categoryPointOverrides, setCategoryPointOverrides] = useState<CategoryPointOverride[]>(editChore?.categoryPointOverrides || [])
   const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
@@ -81,9 +79,7 @@ export function ChoreDialog({
       setTimeOfDay(editChore.timeOfDay || 'anytime')
       setCompletionType(editChore.completionType)
       setCategoryIds(editChore.categoryIds || [])
-      setPointOverrides(editChore.pointOverrides || [])
       setCategoryPoints(editChore.categoryPoints || [])
-      setCategoryPointOverrides(editChore.categoryPointOverrides || [])
       setDesiredTime(editChore.desiredTime || '')
       setUseTimeWindow(!!editChore.timeWindow)
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
@@ -109,7 +105,6 @@ export function ChoreDialog({
     setCategoryIds((current) => {
       if (current.includes(id)) {
         setCategoryPoints((currentPoints) => currentPoints.filter((cp) => cp.categoryId !== id))
-        setCategoryPointOverrides((currentOverrides) => currentOverrides.filter((cpo) => cpo.categoryId !== id))
         return current.filter((cid) => cid !== id)
       } else {
         setCategoryPoints((currentPoints) => [...currentPoints, { categoryId: id, points: 10 }])
@@ -130,14 +125,6 @@ export function ChoreDialog({
       completionType,
       categoryIds,
       categoryPoints: categoryPoints.length > 0 ? categoryPoints : undefined,
-    }
-
-    if (pointOverrides.length > 0) {
-      choreData.pointOverrides = pointOverrides
-    }
-
-    if (categoryPointOverrides.length > 0) {
-      choreData.categoryPointOverrides = categoryPointOverrides
     }
 
     if (desiredTime) {
@@ -162,8 +149,6 @@ export function ChoreDialog({
       setCompletionType('individual')
       setCategoryIds([])
       setCategoryPoints([])
-      setCategoryPointOverrides([])
-      setPointOverrides([])
       setDesiredTime('')
       setUseTimeWindow(false)
       setTimeWindowStart('')
@@ -703,61 +688,6 @@ export function ChoreDialog({
                           {child.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-medium">{child.name}</span>
-                      </div>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-            <Separator className="my-4" />
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-muted-foreground" />
-                <Label className="text-base font-fredoka font-semibold">Custom Points Per Child</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Override the default {points} points for specific children (optional)
-              </p>
-              <div className="space-y-2">
-                {childrenList.map((child) => {
-                  const override = pointOverrides.find(o => o.childId === child.id)
-                  const assignment = assignments.find(
-                    (a) => a.childId === child.id && a.choreId === editChore.id
-                  )
-                  const isAssigned = !!assignment
-                  
-                  if (!isAssigned) return null
-
-                  return (
-                    <Card key={child.id} className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold flex-shrink-0"
-                          style={{ backgroundColor: child.avatarColor }}
-                        >
-                          {child.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-medium flex-1">{child.name}</span>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            placeholder={points}
-                            value={override?.points ?? ''}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              setPointOverrides(current => {
-                                const filtered = current.filter(o => o.childId !== child.id)
-                                if (value === '') {
-                                  return filtered
-                                }
-                                return [...filtered, { childId: child.id, points: parseInt(value) || 0 }]
-                              })
-                            }}
-                            className="w-20"
-                            min="0"
-                          />
-                          <span className="text-sm text-muted-foreground">pts</span>
-                        </div>
                       </div>
                     </Card>
                   )

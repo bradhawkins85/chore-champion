@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Child, Chore, ChoreAssignment, DayOfWeek, RepeatPattern } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, DayOfWeek, RepeatPattern, Category, ChoreTimeOfDay, TimeWindow, ChorePointOverride, CategoryPointOverride } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
 import { EditAssignmentDialog } from '@/components/EditAssignmentDialog'
 
@@ -28,6 +28,7 @@ interface AssignChoresViewProps {
   child: Child
   allChores: Chore[]
   assignments: ChoreAssignment[]
+  categories: Category[]
   onBack: () => void
   onAssign: (choreId: string) => void
   onUnassign: (assignmentId: string) => void
@@ -38,6 +39,10 @@ interface AssignChoresViewProps {
       endDate?: number
       daysOfWeek?: DayOfWeek[]
       repeatPattern?: RepeatPattern
+      timeOfDay?: ChoreTimeOfDay
+      timeWindow?: TimeWindow
+      pointOverrides?: ChorePointOverride[]
+      categoryPointOverrides?: CategoryPointOverride[]
     }
   ) => void
 }
@@ -46,6 +51,7 @@ export function AssignChoresView({
   child,
   allChores,
   assignments,
+  categories,
   onBack,
   onAssign,
   onUnassign,
@@ -88,6 +94,21 @@ export function AssignChoresView({
   const handleEditAssignment = (assignment: ChoreAssignment, choreName: string) => {
     setEditingAssignment(assignment)
     setEditingChoreName(choreName)
+  }
+
+  const getChoreCategories = (choreId: string) => {
+    const chore = allChores.find(c => c.id === choreId)
+    if (!chore || !chore.categoryPoints) return []
+    
+    return chore.categoryPoints.map(cp => {
+      const category = categories.find(cat => cat.id === cp.categoryId)
+      return category ? {
+        id: category.id,
+        name: category.name,
+        color: category.color,
+        points: cp.points,
+      } : null
+    }).filter(Boolean) as { id: string; name: string; color: string; points: number }[]
   }
 
   return (
@@ -159,7 +180,7 @@ export function AssignChoresView({
                         onClick={() => assignment && handleEditAssignment(assignment, chore.name)}
                       >
                         <PencilSimple className="h-4 w-4 mr-1" />
-                        Edit Schedule
+                        Manage Chore
                       </Button>
                       <Button
                         variant="ghost"
@@ -261,6 +282,10 @@ export function AssignChoresView({
         open={!!editingAssignment}
         onClose={() => setEditingAssignment(null)}
         onSave={onEditAssignment}
+        child={child}
+        chorePoints={editingAssignment ? allChores.find(c => c.id === editingAssignment.choreId)?.points : 10}
+        choreCategories={editingAssignment ? getChoreCategories(editingAssignment.choreId) : []}
+        categories={categories}
       />
       </div>
     </div>

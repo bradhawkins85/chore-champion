@@ -301,25 +301,29 @@ export function isChoreActive(assignment: ChoreAssignment): boolean {
 }
 
 export function getChorePointsForChild(
-  chore: { points: number; pointOverrides?: { childId: string; points: number }[] },
+  chore: { points: number },
+  assignment: ChoreAssignment | undefined,
   childId: string
 ): number {
-  const override = chore.pointOverrides?.find(o => o.childId === childId)
+  if (!assignment) return chore.points
+  const override = assignment.pointOverrides?.find(o => o.childId === childId)
   return override ? override.points : chore.points
 }
 
 export function getChoreCategoryPointsForChild(
   chore: { 
     categoryPoints?: { categoryId: string; points: number }[]
-    categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
   },
+  assignment: ChoreAssignment | undefined,
   childId: string,
   categoryId: string
 ): number {
-  const override = chore.categoryPointOverrides?.find(
-    o => o.childId === childId && o.categoryId === categoryId
-  )
-  if (override) return override.points
+  if (assignment) {
+    const override = assignment.categoryPointOverrides?.find(
+      o => o.childId === childId && o.categoryId === categoryId
+    )
+    if (override) return override.points
+  }
   
   const categoryPoint = chore.categoryPoints?.find(cp => cp.categoryId === categoryId)
   return categoryPoint ? categoryPoint.points : 0
@@ -353,7 +357,7 @@ export function isRewardAvailableForChild(
 
 export function getChildTotalPoints(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number; completionType?: string; pointOverrides?: { childId: string; points: number }[] }>,
+  choresMap: Map<string, { points: number; completionType?: string }>,
   childId: string,
   assignments?: ChoreAssignment[]
 ): number {
@@ -363,7 +367,8 @@ export function getChildTotalPoints(
       const chore = choresMap.get(c.choreId)
       if (!chore) return sum
       
-      const chorePoints = getChorePointsForChild(chore, childId)
+      const assignment = assignments?.find(a => a.childId === childId && a.choreId === c.choreId)
+      const chorePoints = getChorePointsForChild(chore, assignment, childId)
       
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
@@ -580,10 +585,8 @@ export function getChildPointsByCategory(
   choresMap: Map<string, { 
     points: number
     completionType?: string
-    pointOverrides?: { childId: string; points: number }[]
     categoryIds: string[]
     categoryPoints?: { categoryId: string; points: number }[]
-    categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
   }>,
   childId: string,
   categoryId: string,
@@ -595,7 +598,8 @@ export function getChildPointsByCategory(
       const chore = choresMap.get(c.choreId)
       if (!chore || !chore.categoryIds.includes(categoryId)) return sum
       
-      const chorePoints = getChoreCategoryPointsForChild(chore, childId, categoryId)
+      const assignment = assignments?.find(a => a.childId === childId && a.choreId === c.choreId)
+      const chorePoints = getChoreCategoryPointsForChild(chore, assignment, childId, categoryId)
       
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length

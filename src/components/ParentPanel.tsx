@@ -239,6 +239,7 @@ export function ParentPanel({
         child={selectedChild}
         allChores={chores}
         assignments={assignments}
+        categories={categories}
         onBack={() => setSelectedChild(null)}
         onAssign={(choreId) => onAssignChore(selectedChild.id, choreId)}
         onUnassign={onUnassignChore}

@@ -52,8 +52,6 @@ export interface Chore {
   desiredTime?: string
   timeOfDay?: ChoreTimeOfDay
   timeWindow?: TimeWindow
-  pointOverrides?: ChorePointOverride[]
-  categoryPointOverrides?: CategoryPointOverride[]
 }
 
 export interface Child {

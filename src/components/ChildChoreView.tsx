@@ -54,12 +54,15 @@ export function ChildChoreView({
   const currentTimeOfDay = getCurrentTimeOfDay()
 
   const { pendingChores, completedChores, missedChores, unavailableChores } = useMemo(() => {
-    const pending: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
-    const completed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
-    const missed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
-    const unavailable: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
+    const pending: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
+    const completed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
+    const missed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
+    const unavailable: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
     childChores.forEach((chore) => {
+      const assignment = childAssignments.find(a => a.choreId === chore.id)
+      if (!assignment) return
+      
       const windowStatus = getTimeWindowStatus(chore)
       
       if (chore.completionType === 'once-per-day') {
@@ -84,7 +87,7 @@ export function ChildChoreView({
             )
           })
           if (completedByMe) {
-            completed.push({ chore })
+            completed.push({ chore, assignment })
           }
           return
         }
@@ -97,28 +100,28 @@ export function ChildChoreView({
         if (currentTimeOfDay === 'am') {
           if (!amCompleted) {
             if (!windowStatus.isWithinWindow) {
-              unavailable.push({ chore, timeOfDay: 'am', windowStatus })
+              unavailable.push({ chore, assignment, timeOfDay: 'am', windowStatus })
             } else {
-              pending.push({ chore, timeOfDay: 'am' })
+              pending.push({ chore, assignment, timeOfDay: 'am' })
             }
           } else {
-            completed.push({ chore, timeOfDay: 'am' })
+            completed.push({ chore, assignment, timeOfDay: 'am' })
           }
         } else {
           if (!amCompleted) {
-            missed.push({ chore, timeOfDay: 'am' })
+            missed.push({ chore, assignment, timeOfDay: 'am' })
           } else {
-            completed.push({ chore, timeOfDay: 'am' })
+            completed.push({ chore, assignment, timeOfDay: 'am' })
           }
           
           if (!pmCompleted) {
             if (!windowStatus.isWithinWindow) {
-              unavailable.push({ chore, timeOfDay: 'pm', windowStatus })
+              unavailable.push({ chore, assignment, timeOfDay: 'pm', windowStatus })
             } else {
-              pending.push({ chore, timeOfDay: 'pm' })
+              pending.push({ chore, assignment, timeOfDay: 'pm' })
             }
           } else {
-            completed.push({ chore, timeOfDay: 'pm' })
+            completed.push({ chore, assignment, timeOfDay: 'pm' })
           }
         }
       } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
@@ -127,25 +130,25 @@ export function ChildChoreView({
         const isAvailable = isChoreAvailableNow(chore.timeOfDay)
         
         if (isMissedChore) {
-          missed.push({ chore, timeOfDay: chore.timeOfDay })
+          missed.push({ chore, assignment, timeOfDay: chore.timeOfDay })
         } else if (!isCompleted && isAvailable) {
           if (!windowStatus.isWithinWindow) {
-            unavailable.push({ chore, timeOfDay: chore.timeOfDay, windowStatus })
+            unavailable.push({ chore, assignment, timeOfDay: chore.timeOfDay, windowStatus })
           } else {
-            pending.push({ chore, timeOfDay: chore.timeOfDay })
+            pending.push({ chore, assignment, timeOfDay: chore.timeOfDay })
           }
         } else if (isCompleted) {
-          completed.push({ chore, timeOfDay: chore.timeOfDay })
+          completed.push({ chore, assignment, timeOfDay: chore.timeOfDay })
         }
       } else {
         const isCompleted = isChoreCompleted(completions, chore.id, child.id, chore.frequency, chore.timeOfDay)
         if (isCompleted) {
-          completed.push({ chore })
+          completed.push({ chore, assignment })
         } else {
           if (!windowStatus.isWithinWindow) {
-            unavailable.push({ chore, windowStatus })
+            unavailable.push({ chore, assignment, windowStatus })
           } else {
-            pending.push({ chore })
+            pending.push({ chore, assignment })
           }
         }
       }
@@ -166,11 +169,11 @@ export function ChildChoreView({
     .toUpperCase()
     .slice(0, 2)
 
-  const handleComplete = (chore: Chore, timeOfDay?: 'am' | 'pm') => {
+  const handleComplete = (chore: Chore, assignment: ChoreAssignment, timeOfDay?: 'am' | 'pm') => {
     if (celebrationSettings.enabled) {
       const animation = getRandomCelebrationAnimation(celebrationSettings)
       setCelebrating({ 
-        points: getChorePointsForChild(chore, child.id),
+        points: getChorePointsForChild(chore, assignment, child.id),
         animation 
       })
     }
@@ -282,7 +285,7 @@ export function ChildChoreView({
               <div>
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid gap-4">
-                  {pendingChores.map(({ chore, timeOfDay }, index) => (
+                  {pendingChores.map(({ chore, assignment, timeOfDay }, index) => (
                     <motion.div
                       key={`${chore.id}-${timeOfDay || 'anytime'}`}
                       initial={{ opacity: 0, x: -20 }}
@@ -291,7 +294,7 @@ export function ChildChoreView({
                     >
                       <Card
                         className="cursor-pointer hover:scale-102 transition-all hover:shadow-xl"
-                        onClick={() => handleComplete(chore, timeOfDay)}
+                        onClick={() => handleComplete(chore, assignment, timeOfDay)}
                       >
                         <CardContent className="p-6">
                           <div className="flex items-center gap-4">
@@ -327,7 +330,7 @@ export function ChildChoreView({
                                   chore.categoryPoints.map((cp) => {
                                     const category = categories.find(c => c.id === cp.categoryId)
                                     if (!category) return null
-                                    const categoryPoints = getChoreCategoryPointsForChild(chore, child.id, cp.categoryId)
+                                    const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
                                     return (
                                       <Badge
                                         key={cp.categoryId}
@@ -351,8 +354,8 @@ export function ChildChoreView({
                                   >
                                     <Star weight="fill" className="h-4 w-4 mr-1" />
                                     {chore.completionType === 'shareable' 
-                                      ? `Up to ${getChorePointsForChild(chore, child.id)} pts (shared)`
-                                      : `${getChorePointsForChild(chore, child.id)} pts`}
+                                      ? `Up to ${getChorePointsForChild(chore, assignment, child.id)} pts (shared)`
+                                      : `${getChorePointsForChild(chore, assignment, child.id)} pts`}
                                   </Badge>
                                 )}
                                 <div className="flex items-center gap-1 text-muted-foreground">
@@ -376,7 +379,7 @@ export function ChildChoreView({
                   Completed ✓
                 </h2>
                 <div className="grid gap-4">
-                  {completedChores.map(({ chore, timeOfDay }) => (
+                  {completedChores.map(({ chore, assignment, timeOfDay }) => (
                     <Card key={`${chore.id}-${timeOfDay || 'completed'}`} className="opacity-60">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-4">
@@ -396,7 +399,7 @@ export function ChildChoreView({
                                 chore.categoryPoints.map((cp) => {
                                   const category = categories.find(c => c.id === cp.categoryId)
                                   if (!category) return null
-                                  const categoryPoints = getChoreCategoryPointsForChild(chore, child.id, cp.categoryId)
+                                  const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
                                   return (
                                     <Badge
                                       key={cp.categoryId}
@@ -417,7 +420,7 @@ export function ChildChoreView({
                                   className="font-fredoka text-lg px-3 py-1"
                                 >
                                   <Star weight="fill" className="h-4 w-4 mr-1" />
-                                  {getChorePointsForChild(chore, child.id)} pts
+                                  {getChorePointsForChild(chore, assignment, child.id)} pts
                                 </Badge>
                               )}
                             </div>
@@ -449,7 +452,7 @@ export function ChildChoreView({
                   Not Available Right Now
                 </h2>
                 <div className="grid gap-4">
-                  {unavailableChores.map(({ chore, timeOfDay, windowStatus }) => (
+                  {unavailableChores.map(({ chore, assignment, timeOfDay, windowStatus }) => (
                     <Card key={`${chore.id}-${timeOfDay || 'unavailable'}`} className="opacity-50">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-4">
@@ -484,7 +487,7 @@ export function ChildChoreView({
                                 chore.categoryPoints.map((cp) => {
                                   const category = categories.find(c => c.id === cp.categoryId)
                                   if (!category) return null
-                                  const categoryPoints = getChoreCategoryPointsForChild(chore, child.id, cp.categoryId)
+                                  const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
                                   return (
                                     <Badge
                                       key={cp.categoryId}
@@ -505,7 +508,7 @@ export function ChildChoreView({
                                   className="font-fredoka text-lg px-3 py-1"
                                 >
                                   <Star weight="fill" className="h-4 w-4 mr-1" />
-                                  {getChorePointsForChild(chore, child.id)} pts
+                                  {getChorePointsForChild(chore, assignment, child.id)} pts
                                 </Badge>
                               )}
                             </div>
