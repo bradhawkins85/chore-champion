@@ -236,6 +236,10 @@ function App() {
       endDate?: number
       daysOfWeek?: DayOfWeek[]
       repeatPattern?: RepeatPattern
+      timeOfDay?: 'am' | 'pm' | 'both' | 'anytime'
+      timeWindow?: { startTime: string; endTime: string }
+      pointOverrides?: { childId: string; points: number }[]
+      categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
     }
   ) => {
     setAssignments((current) =>
@@ -243,7 +247,7 @@ function App() {
         a.id === assignmentId ? { ...a, ...updates } : a
       )
     )
-    toast.success('Schedule updated!')
+    toast.success('Assignment updated!')
   }
 
   const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {

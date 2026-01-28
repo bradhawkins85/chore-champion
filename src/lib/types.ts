@@ -45,15 +45,15 @@ export interface Chore {
   description: string
   points: number
   frequency: ChoreFrequency
-  timeOfDay: ChoreTimeOfDay
   completionType: ChoreCompletionType
   createdAt: number
   categoryIds: string[]
   categoryPoints?: CategoryPoints[]
+  desiredTime?: string
+  timeOfDay?: ChoreTimeOfDay
+  timeWindow?: TimeWindow
   pointOverrides?: ChorePointOverride[]
   categoryPointOverrides?: CategoryPointOverride[]
-  desiredTime?: string
-  timeWindow?: TimeWindow
 }
 
 export interface Child {
@@ -73,6 +73,10 @@ export interface ChoreAssignment {
   endDate?: number
   daysOfWeek?: DayOfWeek[]
   repeatPattern?: RepeatPattern
+  timeOfDay?: ChoreTimeOfDay
+  timeWindow?: TimeWindow
+  pointOverrides?: ChorePointOverride[]
+  categoryPointOverrides?: CategoryPointOverride[]
 }
 
 export interface ChoreCompletion {

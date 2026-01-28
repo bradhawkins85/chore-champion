@@ -10,6 +10,10 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -19,10 +23,11 @@ import {
 } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarBlank, X } from '@phosphor-icons/react'
-import { ChoreAssignment, DayOfWeek, RepeatPattern } from '@/lib/types'
+import { CalendarBlank, X, Info } from '@phosphor-icons/react'
+import { ChoreAssignment, DayOfWeek, RepeatPattern, ChoreTimeOfDay, TimeWindow, ChorePointOverride, CategoryPointOverride, Child, Category } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
 
 interface EditAssignmentDialogProps {
   assignment: ChoreAssignment | null
@@ -36,8 +41,16 @@ interface EditAssignmentDialogProps {
       endDate?: number
       daysOfWeek?: DayOfWeek[]
       repeatPattern?: RepeatPattern
+      timeOfDay?: ChoreTimeOfDay
+      timeWindow?: TimeWindow
+      pointOverrides?: ChorePointOverride[]
+      categoryPointOverrides?: CategoryPointOverride[]
     }
   ) => void
+  child?: Child
+  chorePoints?: number
+  choreCategories?: { id: string; name: string; color: string; points: number }[]
+  categories?: Category[]
 }
 
 export function EditAssignmentDialog({

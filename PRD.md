@@ -19,12 +19,12 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Progression**: Create categories with names, colors, and descriptions → When creating chores, select categories and specify points awarded for each category (e.g., Brush Teeth awards 10 Regular points + 1 Extra point) → Assign categories to rewards → Points earned from chores in a category can only be spent on rewards in that same category → Track points separately per category
 - **Success criteria**: Categories display with distinct colors, chores can award different point amounts to multiple categories, rewards can require points from multiple categories, points are tracked independently per category, rewards only purchaseable if child has enough points in all required categories, category-specific points display clearly in chore cards and child view.
 
-### Custom Points Per Child (Chores)
-- **Functionality**: Override the default point value of any chore for specific children, including category-specific point overrides. Set custom point amounts that better reflect the difficulty or effort required for that child across different point categories.
+### Custom Points Per Child (Chores) - NOW CONFIGURED AT ASSIGNMENT LEVEL
+- **Functionality**: Override the default point value of any chore for specific children when assigning the chore, including category-specific point overrides. Set custom point amounts that better reflect the difficulty or effort required for that child across different point categories.
 - **Purpose**: Allow parents to reward children fairly based on individual ability - some chores may be harder for younger children or those with specific challenges, while being easier for older siblings. Category-specific overrides enable even more granular control (e.g., a child might get extra "Extra" points for a particularly challenging task).
-- **Trigger**: Edit chore → Navigate to "Custom Points Per Child" section → Enter custom point values for assigned children (future enhancement for category-specific overrides)
-- **Progression**: Open chore editor → View assigned children list → For each child, optionally enter a custom point value → Leave blank to use default → Save chore → Child receives custom points when completing
-- **Success criteria**: Custom points override default values in child view, completion tracking, and point calculations. Display indicators show which chores have custom points. Points display correctly in celebrations and totals. Category-specific point awards are calculated correctly.
+- **Trigger**: Manage Chores → Select child → Edit Schedule for assigned chore → Set custom points in assignment dialog
+- **Progression**: Navigate to child's assigned chores → Click "Edit Schedule" on a chore → Enter custom point values for that child's assignment → Leave blank to use chore default → Save assignment → Child receives custom points when completing
+- **Success criteria**: Custom points override default values in child view, completion tracking, and point calculations. Display indicators show which assignments have custom points. Points display correctly in celebrations and totals. Category-specific point awards are calculated correctly per assignment.
 
 ### Custom Cost Per Child (Rewards)
 - **Functionality**: Override the default cost of any reward for specific children. Set different point costs that reflect individual circumstances or milestones.
