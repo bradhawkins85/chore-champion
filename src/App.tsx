@@ -21,6 +21,7 @@ import {
   MissedChore,
   CelebrationSettings,
   CelebrationAnimation,
+  GoalTracker,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward } from '@/lib/helpers'
 
@@ -51,6 +52,7 @@ function App() {
       hearts: true,
     },
   })
+  const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
 
   const migratedChores = useMemo(() => {
     if (!chores || chores.length === 0) return chores || []
@@ -388,6 +390,30 @@ function App() {
     toast.info('Missed chore dismissed')
   }
 
+  const handleToggleGoalTracking = (childId: string, rewardId: string) => {
+    setTrackedGoals((current) => {
+      const currentGoals = current || []
+      const existingGoal = currentGoals.find(g => g.childId === childId)
+      
+      if (existingGoal?.rewardId === rewardId) {
+        toast.info('Goal tracking removed')
+        return currentGoals.filter(g => g.childId !== childId)
+      } else {
+        const reward = (rewards || []).find(r => r.id === rewardId)
+        if (reward) {
+          toast.success(`Tracking goal: ${reward.name}`)
+        }
+        if (existingGoal) {
+          return currentGoals.map(g => 
+            g.childId === childId ? { ...g, rewardId } : g
+          )
+        } else {
+          return [...currentGoals, { childId, rewardId }]
+        }
+      }
+    })
+  }
+
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
@@ -439,6 +465,8 @@ function App() {
             chores={migratedChores || []}
             completions={completions || []}
             purchases={purchases || []}
+            trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
+            onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
               (purchases || [])
@@ -467,6 +495,8 @@ function App() {
             completions={completions || []}
             totalPoints={childPoints.get(selectedChild.id) || 0}
             celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
+            trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
+            rewards={rewards || []}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}
@@ -499,6 +529,8 @@ function App() {
               childrenList={childrenList || []}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
+              trackedGoals={trackedGoals || []}
+              rewards={rewards || []}
               onSelect={setSelectedChild}
               onParentMode={handleOpenParentMode}
             />

@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour } from '@/lib/helpers'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker } from '@/lib/types'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
+import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ChildChoreViewProps {
@@ -21,6 +22,8 @@ interface ChildChoreViewProps {
   onUndo: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onBack: () => void
   onShopClick: () => void
+  trackedGoal?: GoalTracker | null
+  rewards?: Reward[]
 }
 
 export function ChildChoreView({
@@ -34,6 +37,8 @@ export function ChildChoreView({
   onUndo,
   onBack,
   onShopClick,
+  trackedGoal,
+  rewards = [],
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -184,6 +189,11 @@ export function ChildChoreView({
     )
   }
 
+  const trackedReward = useMemo(() => {
+    if (!trackedGoal || !rewards) return null
+    return rewards.find(r => r.id === trackedGoal.rewardId)
+  }, [trackedGoal, rewards])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -216,6 +226,16 @@ export function ChildChoreView({
             </Button>
           </div>
         </div>
+
+        {trackedReward && (
+          <div className="mb-8">
+            <GoalProgress
+              reward={trackedReward}
+              currentPoints={totalPoints}
+              targetPoints={getRewardCostForChild(trackedReward, child.id)}
+            />
+          </div>
+        )}
 
         {childChores.length === 0 ? (
           <Card>

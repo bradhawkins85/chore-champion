@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
-import { Child, Reward, Chore, ChoreCompletion, RewardPurchase } from '@/lib/types'
+import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward } from '@/lib/helpers'
 import { useMemo } from 'react'
@@ -16,6 +16,8 @@ interface RewardShopProps {
   chores?: Chore[]
   completions?: ChoreCompletion[]
   purchases?: RewardPurchase[]
+  trackedGoal?: GoalTracker | null
+  onToggleGoalTracking?: (rewardId: string) => void
 }
 
 export function RewardShop({
@@ -27,6 +29,8 @@ export function RewardShop({
   chores = [],
   completions = [],
   purchases = [],
+  trackedGoal,
+  onToggleGoalTracking,
 }: RewardShopProps) {
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
@@ -84,6 +88,7 @@ export function RewardShop({
               const canAfford = availablePoints >= customCost
               const canPurchase = canAfford && requirementsMet && purchaseLimitCheck.canPurchase
               const requirement = reward.requirements?.find(r => r.childId === child.id)
+              const isTracked = trackedGoal?.rewardId === reward.id
               
               return (
                 <motion.div
@@ -96,10 +101,25 @@ export function RewardShop({
                       canPurchase
                         ? 'hover:shadow-xl cursor-pointer'
                         : 'opacity-60'
-                    }`}
+                    } ${isTracked ? 'ring-2 ring-accent' : ''}`}
                   >
                     <div className="flex flex-col h-full">
-                      <div className="text-center mb-4">
+                      <div className="text-center mb-4 relative">
+                        {onToggleGoalTracking && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onToggleGoalTracking(reward.id)
+                            }}
+                            className="absolute top-0 right-0 p-2 hover:scale-110 transition-transform"
+                            aria-label={isTracked ? "Remove from goals" : "Track as goal"}
+                          >
+                            <Star 
+                              weight={isTracked ? "fill" : "regular"} 
+                              className={`h-8 w-8 ${isTracked ? 'text-accent' : 'text-muted-foreground'}`}
+                            />
+                          </button>
+                        )}
                         <div className="text-7xl mb-3">{reward.imageEmoji}</div>
                         <h3 className="text-2xl font-fredoka font-bold mb-2">
                           {reward.name}

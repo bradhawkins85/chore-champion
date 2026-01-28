@@ -137,3 +137,8 @@ export interface CelebrationSettings {
     [key in CelebrationAnimation]: boolean
   }
 }
+
+export interface GoalTracker {
+  childId: string
+  rewardId: string
+}

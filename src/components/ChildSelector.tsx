@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Gear } from '@phosphor-icons/react'
-import { Child } from '@/lib/types'
+import { Progress } from '@/components/ui/progress'
+import { Gear, Trophy } from '@phosphor-icons/react'
+import { Child, GoalTracker, Reward } from '@/lib/types'
+import { getRewardCostForChild } from '@/lib/helpers'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -10,9 +12,19 @@ interface ChildSelectorProps {
   pendingPurchasesCount: number
   onSelect: (child: Child) => void
   onParentMode: () => void
+  trackedGoals?: GoalTracker[]
+  rewards?: Reward[]
 }
 
-export function ChildSelector({ childrenList, childPoints, pendingPurchasesCount, onSelect, onParentMode }: ChildSelectorProps) {
+export function ChildSelector({ 
+  childrenList, 
+  childPoints, 
+  pendingPurchasesCount, 
+  onSelect, 
+  onParentMode,
+  trackedGoals = [],
+  rewards = [],
+}: ChildSelectorProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -32,6 +44,12 @@ export function ChildSelector({ childrenList, childPoints, pendingPurchasesCount
               .join('')
               .toUpperCase()
               .slice(0, 2)
+
+            const childGoal = trackedGoals.find(g => g.childId === child.id)
+            const goalReward = childGoal ? rewards.find(r => r.id === childGoal.rewardId) : null
+            const currentPoints = childPoints.get(child.id) || 0
+            const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id) : 0
+            const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
 
             return (
               <motion.div
@@ -62,8 +80,23 @@ export function ChildSelector({ childrenList, childPoints, pendingPurchasesCount
                       {child.name}
                     </h2>
                     <p className="text-2xl font-fredoka text-accent">
-                      {childPoints.get(child.id) || 0} ⭐
+                      {currentPoints} ⭐
                     </p>
+                    
+                    {goalReward && (
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
+                          <Trophy className="h-4 w-4" weight="fill" />
+                          <span>Goal: {goalReward.name}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <Progress value={progress} className="h-2" />
+                          <p className="text-xs text-muted-foreground">
+                            {currentPoints} / {targetPoints} points
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
