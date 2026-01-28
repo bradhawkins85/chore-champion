@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock } from '@phosphor-icons/react'
 import { Chore, DayOfWeek } from '@/lib/types'
-import { isChoreActive } from '@/lib/helpers'
+import { isChoreActive, formatTime12Hour } from '@/lib/helpers'
 
 interface ChoreCardProps {
   chore: Chore
@@ -126,6 +126,18 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
     )
   }
 
+  const getTimeWindowBadge = () => {
+    if (!chore.timeWindow) {
+      return null
+    }
+    return (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        {formatTime12Hour(chore.timeWindow.startTime)} - {formatTime12Hour(chore.timeWindow.endTime)}
+      </Badge>
+    )
+  }
+
   return (
     <Card className={!active ? 'opacity-60' : ''}>
       <CardHeader className="pb-3">
@@ -182,6 +194,7 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
           {getRepeatPatternDisplay()}
           {getDaysOfWeekDisplay()}
           {getTimeOfDayBadge()}
+          {getTimeWindowBadge()}
           {getCompletionTypeBadge()}
           {chore.startDate && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">

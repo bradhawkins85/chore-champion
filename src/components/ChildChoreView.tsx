@@ -4,10 +4,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ChildChoreViewProps {
   child: Child
@@ -44,12 +45,15 @@ export function ChildChoreView({
 
   const currentTimeOfDay = getCurrentTimeOfDay()
 
-  const { pendingChores, completedChores, missedChores } = useMemo(() => {
+  const { pendingChores, completedChores, missedChores, unavailableChores } = useMemo(() => {
     const pending: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
     const completed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
     const missed: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm' }> = []
+    const unavailable: Array<{ chore: Chore; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
     childChores.forEach((chore) => {
+      const windowStatus = getTimeWindowStatus(chore)
+      
       if (chore.completionType === 'once-per-day') {
         const anyoneCompletedToday = completions.some((c) => {
           const today = new Date()
@@ -84,7 +88,11 @@ export function ChildChoreView({
         
         if (currentTimeOfDay === 'am') {
           if (!amCompleted) {
-            pending.push({ chore, timeOfDay: 'am' })
+            if (!windowStatus.isWithinWindow) {
+              unavailable.push({ chore, timeOfDay: 'am', windowStatus })
+            } else {
+              pending.push({ chore, timeOfDay: 'am' })
+            }
           } else {
             completed.push({ chore, timeOfDay: 'am' })
           }
@@ -96,7 +104,11 @@ export function ChildChoreView({
           }
           
           if (!pmCompleted) {
-            pending.push({ chore, timeOfDay: 'pm' })
+            if (!windowStatus.isWithinWindow) {
+              unavailable.push({ chore, timeOfDay: 'pm', windowStatus })
+            } else {
+              pending.push({ chore, timeOfDay: 'pm' })
+            }
           } else {
             completed.push({ chore, timeOfDay: 'pm' })
           }
@@ -109,7 +121,11 @@ export function ChildChoreView({
         if (isMissedChore) {
           missed.push({ chore, timeOfDay: chore.timeOfDay })
         } else if (!isCompleted && isAvailable) {
-          pending.push({ chore, timeOfDay: chore.timeOfDay })
+          if (!windowStatus.isWithinWindow) {
+            unavailable.push({ chore, timeOfDay: chore.timeOfDay, windowStatus })
+          } else {
+            pending.push({ chore, timeOfDay: chore.timeOfDay })
+          }
         } else if (isCompleted) {
           completed.push({ chore, timeOfDay: chore.timeOfDay })
         }
@@ -118,7 +134,11 @@ export function ChildChoreView({
         if (isCompleted) {
           completed.push({ chore })
         } else {
-          pending.push({ chore })
+          if (!windowStatus.isWithinWindow) {
+            unavailable.push({ chore, windowStatus })
+          } else {
+            pending.push({ chore })
+          }
         }
       }
     })
@@ -126,7 +146,8 @@ export function ChildChoreView({
     return { 
       pendingChores: sortChoresByDesiredTime(pending), 
       completedChores: completed, 
-      missedChores: missed 
+      missedChores: missed,
+      unavailableChores: unavailable
     }
   }, [childChores, completions, child.id, currentTimeOfDay])
 
@@ -352,7 +373,62 @@ export function ChildChoreView({
               </div>
             )}
 
-            {pendingChores.length === 0 && completedChores.length > 0 && (
+            {unavailableChores.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-fredoka font-bold mb-4 text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-6 w-6" />
+                  Not Available Right Now
+                </h2>
+                <div className="grid gap-4">
+                  {unavailableChores.map(({ chore, timeOfDay, windowStatus }) => (
+                    <Card key={`${chore.id}-${timeOfDay || 'unavailable'}`} className="opacity-50">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <Clock className="h-12 w-12 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-2xl font-fredoka font-bold">
+                                {chore.name}
+                              </h3>
+                              {getTimeOfDayLabel(timeOfDay)}
+                            </div>
+                            {chore.description && (
+                              <p className="text-lg text-muted-foreground mb-2">
+                                {chore.description}
+                              </p>
+                            )}
+                            {windowStatus.startTime && windowStatus.endTime && (
+                              <Alert className="mt-2">
+                                <Clock className="h-4 w-4" />
+                                <AlertDescription>
+                                  {windowStatus.isBefore && (
+                                    <>Available from <strong>{formatTime12Hour(windowStatus.startTime)}</strong> to <strong>{formatTime12Hour(windowStatus.endTime)}</strong></>
+                                  )}
+                                  {windowStatus.isAfter && (
+                                    <>This chore was available until <strong>{formatTime12Hour(windowStatus.endTime)}</strong></>
+                                  )}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            <div className="flex items-center gap-3 mt-3">
+                              <Badge
+                                variant="secondary"
+                                className="font-fredoka text-lg px-3 py-1"
+                              >
+                                <Star weight="fill" className="h-4 w-4 mr-1" />
+                                {getChorePointsForChild(chore, child.id)} pts
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pendingChores.length === 0 && completedChores.length > 0 && unavailableChores.length === 0 && (
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}

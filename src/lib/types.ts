@@ -15,6 +15,11 @@ export interface ChorePointOverride {
   points: number
 }
 
+export interface TimeWindow {
+  startTime: string
+  endTime: string
+}
+
 export interface Chore {
   id: string
   name: string
@@ -30,6 +35,7 @@ export interface Chore {
   repeatPattern?: RepeatPattern
   pointOverrides?: ChorePointOverride[]
   desiredTime?: string
+  timeWindow?: TimeWindow
 }
 
 export interface Child {

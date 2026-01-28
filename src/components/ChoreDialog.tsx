@@ -76,6 +76,9 @@ export function ChoreDialog({
   )
   const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
   const [desiredTime, setDesiredTime] = useState(editChore?.desiredTime || '')
+  const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
+  const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
+  const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
 
   const weekDays: { value: DayOfWeek; label: string }[] = [
     { value: 'monday', label: 'Mon' },
@@ -108,6 +111,9 @@ export function ChoreDialog({
       )
       setPointOverrides(editChore.pointOverrides || [])
       setDesiredTime(editChore.desiredTime || '')
+      setUseTimeWindow(!!editChore.timeWindow)
+      setTimeWindowStart(editChore.timeWindow?.startTime || '')
+      setTimeWindowEnd(editChore.timeWindow?.endTime || '')
     }
   }, [editChore])
 
@@ -218,6 +224,13 @@ export function ChoreDialog({
       choreData.desiredTime = desiredTime
     }
 
+    if (useTimeWindow && timeWindowStart && timeWindowEnd) {
+      choreData.timeWindow = {
+        startTime: timeWindowStart,
+        endTime: timeWindowEnd,
+      }
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -236,6 +249,9 @@ export function ChoreDialog({
       setRepeatAnchorDate('')
       setPointOverrides([])
       setDesiredTime('')
+      setUseTimeWindow(false)
+      setTimeWindowStart('')
+      setTimeWindowEnd('')
     }
     onOpenChange(false)
   }
@@ -539,6 +555,69 @@ export function ChoreDialog({
                     Used for sorting chores by time - not displayed to children
                   </p>
                 </div>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="use-time-window" className="text-base font-fredoka font-semibold">
+                        Time Window Restriction
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Restrict when this chore can be completed (e.g., Brush Teeth 5-8pm)
+                      </p>
+                    </div>
+                    <Switch
+                      id="use-time-window"
+                      checked={useTimeWindow}
+                      onCheckedChange={(checked) => {
+                        setUseTimeWindow(checked)
+                        if (!checked) {
+                          setTimeWindowStart('')
+                          setTimeWindowEnd('')
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  {useTimeWindow && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary">
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Children will only be able to complete this chore during the specified time window
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="time-window-start">Start Time</Label>
+                          <Input
+                            id="time-window-start"
+                            type="time"
+                            value={timeWindowStart}
+                            onChange={(e) => setTimeWindowStart(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="time-window-end">End Time</Label>
+                          <Input
+                            id="time-window-end"
+                            type="time"
+                            value={timeWindowEnd}
+                            onChange={(e) => setTimeWindowEnd(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      {timeWindowStart && timeWindowEnd && (
+                        <p className="text-xs text-muted-foreground">
+                          This chore can only be completed between {timeWindowStart} and {timeWindowEnd}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="completion-type">Completion Type</Label>
                   <Select value={completionType} onValueChange={(v) => setCompletionType(v as ChoreCompletionType)}>
@@ -782,6 +861,69 @@ export function ChoreDialog({
               <p className="text-xs text-muted-foreground">
                 Used for sorting chores by time - not displayed to children
               </p>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="use-time-window-edit" className="text-base font-fredoka font-semibold">
+                    Time Window Restriction
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Restrict when this chore can be completed (e.g., Brush Teeth 5-8pm)
+                  </p>
+                </div>
+                <Switch
+                  id="use-time-window-edit"
+                  checked={useTimeWindow}
+                  onCheckedChange={(checked) => {
+                    setUseTimeWindow(checked)
+                    if (!checked) {
+                      setTimeWindowStart('')
+                      setTimeWindowEnd('')
+                    }
+                  }}
+                />
+              </div>
+              
+              {useTimeWindow && (
+                <div className="space-y-4 pl-4 border-l-2 border-primary">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Children will only be able to complete this chore during the specified time window
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="time-window-start-edit">Start Time</Label>
+                      <Input
+                        id="time-window-start-edit"
+                        type="time"
+                        value={timeWindowStart}
+                        onChange={(e) => setTimeWindowStart(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="time-window-end-edit">End Time</Label>
+                      <Input
+                        id="time-window-end-edit"
+                        type="time"
+                        value={timeWindowEnd}
+                        onChange={(e) => setTimeWindowEnd(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  {timeWindowStart && timeWindowEnd && (
+                    <p className="text-xs text-muted-foreground">
+                      This chore can only be completed between {timeWindowStart} and {timeWindowEnd}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="completion-type-edit">Completion Type</Label>

@@ -480,3 +480,79 @@ export function sortChoresByDesiredTime<T extends { chore: { desiredTime?: strin
     return timeA - timeB
   })
 }
+
+export function getCurrentTimeInMinutes(): number {
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes()
+}
+
+export function isWithinTimeWindow(chore: { timeWindow?: { startTime: string; endTime: string } }): boolean {
+  if (!chore.timeWindow) {
+    return true
+  }
+
+  const currentMinutes = getCurrentTimeInMinutes()
+  const startMinutes = timeToMinutes(chore.timeWindow.startTime)
+  const endMinutes = timeToMinutes(chore.timeWindow.endTime)
+
+  if (startMinutes === Infinity || endMinutes === Infinity) {
+    return true
+  }
+
+  if (startMinutes <= endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+  } else {
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes
+  }
+}
+
+export function getTimeWindowStatus(chore: { timeWindow?: { startTime: string; endTime: string } }): {
+  isWithinWindow: boolean
+  isBefore: boolean
+  isAfter: boolean
+  startTime?: string
+  endTime?: string
+} {
+  if (!chore.timeWindow) {
+    return { isWithinWindow: true, isBefore: false, isAfter: false }
+  }
+
+  const currentMinutes = getCurrentTimeInMinutes()
+  const startMinutes = timeToMinutes(chore.timeWindow.startTime)
+  const endMinutes = timeToMinutes(chore.timeWindow.endTime)
+
+  if (startMinutes === Infinity || endMinutes === Infinity) {
+    return { isWithinWindow: true, isBefore: false, isAfter: false }
+  }
+
+  const isWithin = isWithinTimeWindow(chore)
+  
+  let isBefore = false
+  let isAfter = false
+
+  if (!isWithin) {
+    if (startMinutes <= endMinutes) {
+      isBefore = currentMinutes < startMinutes
+      isAfter = currentMinutes > endMinutes
+    } else {
+      isBefore = currentMinutes > endMinutes && currentMinutes < startMinutes
+    }
+  }
+
+  return {
+    isWithinWindow: isWithin,
+    isBefore,
+    isAfter,
+    startTime: chore.timeWindow.startTime,
+    endTime: chore.timeWindow.endTime,
+  }
+}
+
+export function formatTime12Hour(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number)
+  if (isNaN(hours) || isNaN(minutes)) return time24
+  
+  const period = hours >= 12 ? 'PM' : 'AM'
+  const hours12 = hours % 12 || 12
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+}
