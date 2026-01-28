@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift } from '@phosphor-icons/react'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -52,6 +52,7 @@ interface ParentPanelProps {
   onDeleteReward: (id: string) => void
   onFulfillPurchase: (purchaseId: string) => void
   onUnfulfillPurchase: (purchaseId: string) => void
+  onExitParentMode: () => void
 }
 
 export function ParentPanel({
@@ -75,6 +76,7 @@ export function ParentPanel({
   onDeleteReward,
   onFulfillPurchase,
   onUnfulfillPurchase,
+  onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
   const [childDialogOpen, setChildDialogOpen] = useState(false)
@@ -145,11 +147,21 @@ export function ParentPanel({
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-fredoka font-bold mb-2">Parent Dashboard</h1>
-        <p className="text-muted-foreground">
-          Manage chores, children, and assignments
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-fredoka font-bold mb-2">Parent Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage chores, children, and assignments
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={onExitParentMode}
+          className="font-fredoka"
+        >
+          <X className="h-5 w-5 mr-2" />
+          Exit Parent Mode
+        </Button>
       </div>
 
       <Tabs defaultValue="summary" className="space-y-6">

@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Gear, User } from '@phosphor-icons/react'
+import { Gear } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { ParentPanel } from '@/components/ParentPanel'
@@ -206,37 +204,8 @@ function App() {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
 
-  const handleModeToggle = (checked: boolean) => {
-    setMode(checked ? 'parent' : 'child')
-    setSelectedChild(null)
-    setShowRewardShop(false)
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <div className="fixed top-4 right-4 z-50 bg-card rounded-lg shadow-lg p-4 flex items-center gap-3">
-        <User className="h-5 w-5" />
-        <Label htmlFor="mode-switch" className="font-fredoka">
-          Child Mode
-        </Label>
-        <Switch
-          id="mode-switch"
-          checked={mode === 'parent'}
-          onCheckedChange={handleModeToggle}
-        />
-        <div className="relative">
-          <Label htmlFor="mode-switch" className="font-fredoka">
-            Parent Mode
-          </Label>
-          {pendingPurchasesCount > 0 && (
-            <div className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-              {pendingPurchasesCount}
-            </div>
-          )}
-        </div>
-        <Gear className="h-5 w-5" />
-      </div>
-
       {mode === 'parent' ? (
         <ParentPanel
           chores={migratedChores || []}
@@ -259,6 +228,11 @@ function App() {
           onDeleteReward={handleDeleteReward}
           onFulfillPurchase={handleFulfillPurchase}
           onUnfulfillPurchase={handleUnfulfillPurchase}
+          onExitParentMode={() => {
+            setMode('child')
+            setSelectedChild(null)
+            setShowRewardShop(false)
+          }}
         />
       ) : selectedChild ? (
         showRewardShop ? (
@@ -319,7 +293,9 @@ function App() {
             <ChildSelector
               childrenList={childrenList || []}
               childPoints={childPoints}
+              pendingPurchasesCount={pendingPurchasesCount}
               onSelect={setSelectedChild}
+              onParentMode={() => setMode('parent')}
             />
           )}
         </>

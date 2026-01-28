@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Gear } from '@phosphor-icons/react'
 import { Child } from '@/lib/types'
 
 interface ChildSelectorProps {
   childrenList: Child[]
   childPoints: Map<string, number>
+  pendingPurchasesCount: number
   onSelect: (child: Child) => void
+  onParentMode: () => void
 }
 
-export function ChildSelector({ childrenList, childPoints, onSelect }: ChildSelectorProps) {
+export function ChildSelector({ childrenList, childPoints, pendingPurchasesCount, onSelect, onParentMode }: ChildSelectorProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -66,6 +69,40 @@ export function ChildSelector({ childrenList, childPoints, onSelect }: ChildSele
               </motion.div>
             )
           })}
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: childrenList.length * 0.1 }}
+          >
+            <Card
+              className="cursor-pointer hover:scale-105 transition-all hover:shadow-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-accent/5"
+              onClick={onParentMode}
+            >
+              <CardContent className="p-8 text-center relative">
+                {pendingPurchasesCount > 0 && (
+                  <div className="absolute top-3 right-3 bg-accent text-accent-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
+                    {pendingPurchasesCount}
+                  </div>
+                )}
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="h-24 w-24 mx-auto mb-4 rounded-full bg-primary flex items-center justify-center">
+                    <Gear className="h-12 w-12 text-primary-foreground" weight="fill" />
+                  </div>
+                </motion.div>
+                <h2 className="text-3xl font-fredoka font-bold mb-2">
+                  Parent Mode
+                </h2>
+                <p className="text-lg font-fredoka text-muted-foreground">
+                  Manage & Configure
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>
