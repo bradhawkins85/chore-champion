@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Star } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern, ChorePointOverride, Category } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, DayOfWeek, RepeatPattern, ChorePointOverride, Category, CategoryPoints, CategoryPointOverride } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -78,6 +78,8 @@ export function ChoreDialog({
       : ''
   )
   const [pointOverrides, setPointOverrides] = useState<ChorePointOverride[]>(editChore?.pointOverrides || [])
+  const [categoryPoints, setCategoryPoints] = useState<CategoryPoints[]>(editChore?.categoryPoints || [])
+  const [categoryPointOverrides, setCategoryPointOverrides] = useState<CategoryPointOverride[]>(editChore?.categoryPointOverrides || [])
   const [desiredTime, setDesiredTime] = useState(editChore?.desiredTime || '')
   const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
@@ -114,6 +116,8 @@ export function ChoreDialog({
           : ''
       )
       setPointOverrides(editChore.pointOverrides || [])
+      setCategoryPoints(editChore.categoryPoints || [])
+      setCategoryPointOverrides(editChore.categoryPointOverrides || [])
       setDesiredTime(editChore.desiredTime || '')
       setUseTimeWindow(!!editChore.timeWindow)
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
@@ -139,8 +143,11 @@ export function ChoreDialog({
   const toggleCategoryId = (id: string) => {
     setCategoryIds((current) => {
       if (current.includes(id)) {
+        setCategoryPoints((currentPoints) => currentPoints.filter((cp) => cp.categoryId !== id))
+        setCategoryPointOverrides((currentOverrides) => currentOverrides.filter((cpo) => cpo.categoryId !== id))
         return current.filter((cid) => cid !== id)
       } else {
+        setCategoryPoints((currentPoints) => [...currentPoints, { categoryId: id, points: 10 }])
         return [...current, id]
       }
     })
@@ -194,6 +201,7 @@ export function ChoreDialog({
       timeOfDay,
       completionType,
       categoryIds,
+      categoryPoints: categoryPoints.length > 0 ? categoryPoints : undefined,
     }
 
     if (daysOfWeek.length > 0 && !useRepeatPattern) {
@@ -235,6 +243,10 @@ export function ChoreDialog({
       choreData.pointOverrides = pointOverrides
     }
 
+    if (categoryPointOverrides.length > 0) {
+      choreData.categoryPointOverrides = categoryPointOverrides
+    }
+
     if (desiredTime) {
       choreData.desiredTime = desiredTime
     }
@@ -256,6 +268,8 @@ export function ChoreDialog({
       setTimeOfDay('anytime')
       setCompletionType('individual')
       setCategoryIds([])
+      setCategoryPoints([])
+      setCategoryPointOverrides([])
       setStartDate('')
       setEndDate('')
       setDaysOfWeek([])
@@ -412,32 +426,64 @@ export function ChoreDialog({
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label>Categories</Label>
-                  <div className="flex flex-wrap gap-2">
+                  <Label>Categories & Points</Label>
+                  <div className="space-y-3">
                     {categories.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         No categories available. Create categories first.
                       </p>
                     ) : (
-                      categories.map((category) => (
-                        <Badge
-                          key={category.id}
-                          variant={categoryIds.includes(category.id) ? 'default' : 'outline'}
-                          className="cursor-pointer"
-                          style={{
-                            backgroundColor: categoryIds.includes(category.id) ? category.color : 'transparent',
-                            borderColor: category.color,
-                            color: categoryIds.includes(category.id) ? 'white' : category.color,
-                          }}
-                          onClick={() => toggleCategoryId(category.id)}
-                        >
-                          {category.name}
-                        </Badge>
-                      ))
+                      categories.map((category) => {
+                        const isSelected = categoryIds.includes(category.id)
+                        const categoryPointValue = categoryPoints.find(cp => cp.categoryId === category.id)?.points || 10
+                        
+                        return (
+                          <div key={category.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                            <Badge
+                              variant={isSelected ? 'default' : 'outline'}
+                              className="cursor-pointer flex-shrink-0"
+                              style={{
+                                backgroundColor: isSelected ? category.color : 'transparent',
+                                borderColor: category.color,
+                                color: isSelected ? 'white' : category.color,
+                              }}
+                              onClick={() => toggleCategoryId(category.id)}
+                            >
+                              {category.name}
+                            </Badge>
+                            {isSelected && (
+                              <div className="flex items-center gap-2 flex-1">
+                                <Label htmlFor={`cat-points-${category.id}`} className="text-sm whitespace-nowrap">
+                                  Points:
+                                </Label>
+                                <Input
+                                  id={`cat-points-${category.id}`}
+                                  type="number"
+                                  value={categoryPointValue}
+                                  onChange={(e) => {
+                                    const newPoints = parseInt(e.target.value) || 0
+                                    setCategoryPoints((current) => {
+                                      const existing = current.find(cp => cp.categoryId === category.id)
+                                      if (existing) {
+                                        return current.map(cp => 
+                                          cp.categoryId === category.id ? { ...cp, points: newPoints } : cp
+                                        )
+                                      }
+                                      return [...current, { categoryId: category.id, points: newPoints }]
+                                    })
+                                  }}
+                                  min="0"
+                                  className="w-20"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Select one or more categories. Chores can belong to multiple point systems.
+                    Select categories and assign points for each. Completing this chore will award points in all selected categories.
                   </p>
                 </div>
                 

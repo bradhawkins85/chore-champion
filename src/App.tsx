@@ -72,7 +72,7 @@ function App() {
     
     let needsAnyMigration = false
     for (const chore of chores) {
-      if (!chore.timeOfDay || !chore.completionType || !chore.categoryIds) {
+      if (!chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints) {
         needsAnyMigration = true
         break
       }
@@ -85,10 +85,10 @@ function App() {
     const firstCategoryId = (categories || [])[0]?.id
     
     return chores.map((chore) => {
-      const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds
+      const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints
       
       if (needsMigration) {
-        return {
+        const migratedChore = {
           ...chore,
           timeOfDay: chore.timeOfDay || 'anytime',
           completionType: chore.completionType || 'individual',
@@ -96,6 +96,15 @@ function App() {
           daysOfWeek: chore.daysOfWeek || undefined,
           repeatPattern: chore.repeatPattern || undefined,
         }
+        
+        if (!chore.categoryPoints && migratedChore.categoryIds.length > 0) {
+          migratedChore.categoryPoints = migratedChore.categoryIds.map(catId => ({
+            categoryId: catId,
+            points: chore.points || 10,
+          }))
+        }
+        
+        return migratedChore
       }
       
       return chore
@@ -570,6 +579,7 @@ function App() {
             celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
             trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
             rewards={rewards || []}
+            categories={categories || []}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}

@@ -307,6 +307,23 @@ export function getChorePointsForChild(
   return override ? override.points : chore.points
 }
 
+export function getChoreCategoryPointsForChild(
+  chore: { 
+    categoryPoints?: { categoryId: string; points: number }[]
+    categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
+  },
+  childId: string,
+  categoryId: string
+): number {
+  const override = chore.categoryPointOverrides?.find(
+    o => o.childId === childId && o.categoryId === categoryId
+  )
+  if (override) return override.points
+  
+  const categoryPoint = chore.categoryPoints?.find(cp => cp.categoryId === categoryId)
+  return categoryPoint ? categoryPoint.points : 0
+}
+
 export function getRewardCostForChild(
   reward: { cost: number; costOverrides?: { childId: string; cost: number }[] },
   childId: string
@@ -559,7 +576,14 @@ export function formatTime12Hour(time24: string): string {
 
 export function getChildPointsByCategory(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number; completionType?: string; pointOverrides?: { childId: string; points: number }[]; categoryIds: string[] }>,
+  choresMap: Map<string, { 
+    points: number
+    completionType?: string
+    pointOverrides?: { childId: string; points: number }[]
+    categoryIds: string[]
+    categoryPoints?: { categoryId: string; points: number }[]
+    categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
+  }>,
   childId: string,
   categoryId: string,
   assignments?: ChoreAssignment[]
@@ -570,7 +594,7 @@ export function getChildPointsByCategory(
       const chore = choresMap.get(c.choreId)
       if (!chore || !chore.categoryIds.includes(categoryId)) return sum
       
-      const chorePoints = getChorePointsForChild(chore, childId)
+      const chorePoints = getChoreCategoryPointsForChild(chore, childId, categoryId)
       
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length

@@ -13,18 +13,18 @@ This app manages chores, points, and user roles but doesn't require complex mult
 ## Essential Features
 
 ### Category System
-- **Functionality**: Create and manage categories (e.g., "Regular", "Extra") that organize chores and rewards into separate point systems. Each chore and reward can belong to multiple categories.
-- **Purpose**: Allow parents to create distinct point economies - for example, regular daily chores earn "Regular" points for everyday rewards, while special extra chores earn "Extra" points for premium rewards. This prevents children from using easy-to-earn points on expensive rewards meant for harder tasks.
-- **Trigger**: Parent Mode → Categories tab → Add/Edit/Delete categories → Assign categories when creating/editing chores and rewards
-- **Progression**: Create categories with names, colors, and descriptions → Assign categories to chores → Assign categories to rewards → Points earned from chores in a category can only be spent on rewards in that same category → Track points separately per category
-- **Success criteria**: Categories display with distinct colors, chores and rewards can have multiple category tags, points are tracked independently per category, rewards only purchaseable if child has enough points in matching categories.
+- **Functionality**: Create and manage categories (e.g., "Regular", "Extra") that organize chores and rewards into separate point systems. Each chore can award points in multiple categories simultaneously (e.g., 10 Regular points + 1 Extra point for brushing teeth). Each reward can belong to multiple categories and costs points from those categories.
+- **Purpose**: Allow parents to create distinct point economies - for example, regular daily chores earn "Regular" points for everyday rewards, while special extra chores earn "Extra" points for premium rewards. Chores can award different amounts of points to different categories, creating flexible incentive structures.
+- **Trigger**: Parent Mode → Categories tab → Add/Edit/Delete categories → Assign categories and points when creating/editing chores → Assign categories when creating/editing rewards
+- **Progression**: Create categories with names, colors, and descriptions → When creating chores, select categories and specify points awarded for each category (e.g., Brush Teeth awards 10 Regular points + 1 Extra point) → Assign categories to rewards → Points earned from chores in a category can only be spent on rewards in that same category → Track points separately per category
+- **Success criteria**: Categories display with distinct colors, chores can award different point amounts to multiple categories, rewards can require points from multiple categories, points are tracked independently per category, rewards only purchaseable if child has enough points in all required categories, category-specific points display clearly in chore cards and child view.
 
 ### Custom Points Per Child (Chores)
-- **Functionality**: Override the default point value of any chore for specific children. Set custom point amounts that better reflect the difficulty or effort required for that child.
-- **Purpose**: Allow parents to reward children fairly based on individual ability - some chores may be harder for younger children or those with specific challenges, while being easier for older siblings.
-- **Trigger**: Edit chore → Navigate to "Custom Points Per Child" section → Enter custom point values for assigned children
+- **Functionality**: Override the default point value of any chore for specific children, including category-specific point overrides. Set custom point amounts that better reflect the difficulty or effort required for that child across different point categories.
+- **Purpose**: Allow parents to reward children fairly based on individual ability - some chores may be harder for younger children or those with specific challenges, while being easier for older siblings. Category-specific overrides enable even more granular control (e.g., a child might get extra "Extra" points for a particularly challenging task).
+- **Trigger**: Edit chore → Navigate to "Custom Points Per Child" section → Enter custom point values for assigned children (future enhancement for category-specific overrides)
 - **Progression**: Open chore editor → View assigned children list → For each child, optionally enter a custom point value → Leave blank to use default → Save chore → Child receives custom points when completing
-- **Success criteria**: Custom points override default values in child view, completion tracking, and point calculations. Display indicators show which chores have custom points. Points display correctly in celebrations and totals.
+- **Success criteria**: Custom points override default values in child view, completion tracking, and point calculations. Display indicators show which chores have custom points. Points display correctly in celebrations and totals. Category-specific point awards are calculated correctly.
 
 ### Custom Cost Per Child (Rewards)
 - **Functionality**: Override the default cost of any reward for specific children. Set different point costs that reflect individual circumstances or milestones.

@@ -471,6 +471,7 @@ export function ParentPanel({
                 <ChoreCard
                   key={chore.id}
                   chore={chore}
+                  categories={categories}
                   onEdit={handleEditChore}
                   onDelete={setDeleteChoreId}
                 />

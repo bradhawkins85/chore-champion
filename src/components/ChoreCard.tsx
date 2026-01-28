@@ -2,16 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock } from '@phosphor-icons/react'
-import { Chore, DayOfWeek } from '@/lib/types'
+import { Chore, DayOfWeek, Category } from '@/lib/types'
 import { isChoreActive, formatTime12Hour } from '@/lib/helpers'
 
 interface ChoreCardProps {
   chore: Chore
   onEdit: (chore: Chore) => void
   onDelete: (choreId: string) => void
+  categories?: Category[]
 }
 
-export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
+export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCardProps) {
   const active = isChoreActive(chore)
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -178,12 +179,38 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
       <CardContent>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="font-fredoka text-base">
-              {chore.points} pts
-            </Badge>
+            {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                {chore.categoryPoints.map((cp) => {
+                  const category = categories.find(c => c.id === cp.categoryId)
+                  if (!category) return null
+                  return (
+                    <Badge 
+                      key={cp.categoryId}
+                      className="font-fredoka"
+                      style={{
+                        backgroundColor: category.color,
+                        color: 'white',
+                      }}
+                    >
+                      {cp.points} {category.name} pts
+                    </Badge>
+                  )
+                })}
+              </div>
+            ) : (
+              <Badge variant="secondary" className="font-fredoka text-base">
+                {chore.points} pts
+              </Badge>
+            )}
             {chore.pointOverrides && chore.pointOverrides.length > 0 && (
               <Badge variant="outline" className="text-xs">
                 Custom for {chore.pointOverrides.length}
+              </Badge>
+            )}
+            {chore.categoryPointOverrides && chore.categoryPointOverrides.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                Category overrides
               </Badge>
             )}
           </div>

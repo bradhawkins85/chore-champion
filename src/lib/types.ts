@@ -18,8 +18,19 @@ export interface RepeatPattern {
   anchorDate?: number
 }
 
+export interface CategoryPoints {
+  categoryId: string
+  points: number
+}
+
 export interface ChorePointOverride {
   childId: string
+  points: number
+}
+
+export interface CategoryPointOverride {
+  childId: string
+  categoryId: string
   points: number
 }
 
@@ -38,11 +49,13 @@ export interface Chore {
   completionType: ChoreCompletionType
   createdAt: number
   categoryIds: string[]
+  categoryPoints?: CategoryPoints[]
   startDate?: number
   endDate?: number
   daysOfWeek?: DayOfWeek[]
   repeatPattern?: RepeatPattern
   pointOverrides?: ChorePointOverride[]
+  categoryPointOverrides?: CategoryPointOverride[]
   desiredTime?: string
   timeWindow?: TimeWindow
 }
