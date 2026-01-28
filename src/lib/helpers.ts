@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment } from './types'
 
 export function getCurrentTimeOfDay(): 'am' | 'pm' {
   const hour = new Date().getHours()
@@ -51,6 +51,22 @@ export function isChoreCompletedForTimeOfDay(
       c.childId === childId &&
       c.completedAt >= today.getTime() &&
       c.timeOfDay === timeOfDay
+  )
+}
+
+export function isChoreCompletedByAnyChildToday(
+  completions: ChoreCompletion[],
+  choreId: string,
+  timeOfDay?: 'am' | 'pm'
+): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  return completions.some(
+    (c) =>
+      c.choreId === choreId &&
+      c.completedAt >= today.getTime() &&
+      (!timeOfDay || c.timeOfDay === timeOfDay)
   )
 }
 
@@ -214,14 +230,35 @@ export function isChoreActive(chore: { startDate?: number; endDate?: number }): 
 
 export function getChildTotalPoints(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number }>,
-  childId: string
+  choresMap: Map<string, { points: number; completionType?: string }>,
+  childId: string,
+  assignments?: ChoreAssignment[]
 ): number {
   return completions
     .filter((c) => c.childId === childId)
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
-      return sum + (chore?.points || 0)
+      if (!chore) return sum
+      
+      if (chore.completionType === 'shareable' && assignments) {
+        const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
+        if (assignedChildren > 1) {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const completionsToday = completions.filter(comp => 
+            comp.choreId === c.choreId && 
+            comp.completedAt >= today.getTime() &&
+            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay)
+          )
+          
+          const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
+          if (childrenWhoCompleted > 0) {
+            return sum + (chore.points / childrenWhoCompleted)
+          }
+        }
+      }
+      
+      return sum + chore.points
     }, 0)
 }
 

@@ -39,6 +39,7 @@ function App() {
     return (chores || []).map((chore) => ({
       ...chore,
       timeOfDay: chore.timeOfDay || 'anytime',
+      completionType: chore.completionType || 'individual',
     }))
   }, [chores])
 
@@ -49,10 +50,10 @@ function App() {
   const childPoints = useMemo(() => {
     const points = new Map<string, number>()
     ;(childrenList || []).forEach((child) => {
-      points.set(child.id, getChildTotalPoints(completions || [], choresMap, child.id))
+      points.set(child.id, getChildTotalPoints(completions || [], choresMap, child.id, assignments || []))
     })
     return points
-  }, [childrenList, completions, choresMap])
+  }, [childrenList, completions, choresMap, assignments])
 
   const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     const newChore: Chore = {

@@ -102,6 +102,7 @@ export function ParentPanel({
       points: template.points,
       frequency: template.frequency,
       timeOfDay: template.timeOfDay,
+      completionType: 'individual',
     }
     onAddChore(choreData)
   }

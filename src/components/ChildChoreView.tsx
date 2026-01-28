@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
@@ -46,6 +46,34 @@ export function ChildChoreView({
     const missed: Chore[] = []
 
     childChores.forEach((chore) => {
+      if (chore.completionType === 'once-per-day') {
+        const anyoneCompletedToday = completions.some((c) => {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          return (
+            c.choreId === chore.id &&
+            c.completedAt >= today.getTime() &&
+            (!chore.timeOfDay || chore.timeOfDay === 'anytime' || chore.timeOfDay === 'both' || c.timeOfDay === chore.timeOfDay)
+          )
+        })
+
+        if (anyoneCompletedToday) {
+          const completedByMe = completions.some((c) => {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            return (
+              c.choreId === chore.id &&
+              c.childId === child.id &&
+              c.completedAt >= today.getTime()
+            )
+          })
+          if (completedByMe) {
+            completed.push(chore)
+          }
+          return
+        }
+      }
+
       if (chore.timeOfDay === 'both') {
         const amCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, child.id, 'am')
         const pmCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, child.id, 'pm')
@@ -220,6 +248,18 @@ export function ChildChoreView({
                                   {chore.name}
                                 </h3>
                                 {getTimeOfDayLabel(timeOfDay)}
+                                {chore.completionType === 'shareable' && (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    Shareable
+                                  </Badge>
+                                )}
+                                {chore.completionType === 'once-per-day' && (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Trophy className="h-3 w-3" />
+                                    First Only
+                                  </Badge>
+                                )}
                               </div>
                               {chore.description && (
                                 <p className="text-lg text-muted-foreground mt-1">
@@ -232,7 +272,9 @@ export function ChildChoreView({
                                   className="font-fredoka text-lg px-3 py-1"
                                 >
                                   <Star weight="fill" className="h-4 w-4 mr-1" />
-                                  {chore.points} pts
+                                  {chore.completionType === 'shareable' 
+                                    ? `Up to ${chore.points} pts (shared)`
+                                    : `${chore.points} pts`}
                                 </Badge>
                                 <div className="flex items-center gap-1 text-muted-foreground">
                                   <Calendar className="h-5 w-5" />

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy } from '@phosphor-icons/react'
 import { Chore } from '@/lib/types'
 import { isChoreActive } from '@/lib/helpers'
 
@@ -42,6 +42,27 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
           <Badge variant="outline" className="flex items-center gap-1">
             <ClockCounterClockwise className="h-3 w-3" />
             AM & PM
+          </Badge>
+        )
+      default:
+        return null
+    }
+  }
+
+  const getCompletionTypeBadge = () => {
+    switch (chore.completionType) {
+      case 'shareable':
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            Shareable
+          </Badge>
+        )
+      case 'once-per-day':
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Trophy className="h-3 w-3" />
+            Once Per Day
           </Badge>
         )
       default:
@@ -96,6 +117,7 @@ export function ChoreCard({ chore, onEdit, onDelete }: ChoreCardProps) {
             <span className="capitalize">{chore.frequency}</span>
           </div>
           {getTimeOfDayBadge()}
+          {getCompletionTypeBadge()}
           {chore.startDate && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <CalendarBlank className="h-4 w-4" />

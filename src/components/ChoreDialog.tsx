@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, Child, ChoreAssignment } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -54,6 +54,7 @@ export function ChoreDialog({
   const [points, setPoints] = useState(editChore?.points.toString() || '10')
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
   const [timeOfDay, setTimeOfDay] = useState<ChoreTimeOfDay>(editChore?.timeOfDay || 'anytime')
+  const [completionType, setCompletionType] = useState<ChoreCompletionType>(editChore?.completionType || 'individual')
   const [startDate, setStartDate] = useState(
     editChore?.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : ''
   )
@@ -70,6 +71,7 @@ export function ChoreDialog({
       setPoints(editChore.points.toString())
       setFrequency(editChore.frequency)
       setTimeOfDay(editChore.timeOfDay)
+      setCompletionType(editChore.completionType)
       setStartDate(editChore.startDate ? new Date(editChore.startDate).toISOString().split('T')[0] : '')
       setEndDate(editChore.endDate ? new Date(editChore.endDate).toISOString().split('T')[0] : '')
     }
@@ -98,6 +100,7 @@ export function ChoreDialog({
       points: parseInt(points) || 10,
       frequency,
       timeOfDay,
+      completionType,
     }
 
     if (startDate) {
@@ -120,6 +123,7 @@ export function ChoreDialog({
       setPoints('10')
       setFrequency('daily')
       setTimeOfDay('anytime')
+      setCompletionType('individual')
       setStartDate('')
       setEndDate('')
     }
@@ -298,6 +302,24 @@ export function ChoreDialog({
                   </p>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="completion-type">Completion Type</Label>
+                  <Select value={completionType} onValueChange={(v) => setCompletionType(v as ChoreCompletionType)}>
+                    <SelectTrigger id="completion-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="shareable">Shareable</SelectItem>
+                      <SelectItem value="once-per-day">Once Per Day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {completionType === 'individual' && 'Each child completes independently for full points'}
+                    {completionType === 'shareable' && 'Children can work together and share points equally'}
+                    {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
+                  </p>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="start-date">Start Date (optional)</Label>
                   <Input
                     id="start-date"
@@ -393,6 +415,24 @@ export function ChoreDialog({
                 {timeOfDay === 'pm' && 'Only shows after noon'}
                 {timeOfDay === 'both' && 'Requires completion in morning and evening'}
                 {timeOfDay === 'anytime' && 'Can be completed at any time of day'}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="completion-type-edit">Completion Type</Label>
+              <Select value={completionType} onValueChange={(v) => setCompletionType(v as ChoreCompletionType)}>
+                <SelectTrigger id="completion-type-edit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="shareable">Shareable</SelectItem>
+                  <SelectItem value="once-per-day">Once Per Day</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {completionType === 'individual' && 'Each child completes independently for full points'}
+                {completionType === 'shareable' && 'Children can work together and share points equally'}
+                {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
               </p>
             </div>
             <div className="grid gap-2">

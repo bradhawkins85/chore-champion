@@ -1,5 +1,6 @@
 export type ChoreFrequency = 'daily' | 'weekly' | 'bi-weekly'
 export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
+export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
 
 export interface Chore {
   id: string
@@ -8,6 +9,7 @@ export interface Chore {
   points: number
   frequency: ChoreFrequency
   timeOfDay: ChoreTimeOfDay
+  completionType: ChoreCompletionType
   createdAt: number
   startDate?: number
   endDate?: number
