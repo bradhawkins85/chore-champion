@@ -1,4 +1,15 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation } from './types'
+
+export function getRandomCelebrationAnimation(settings: CelebrationSettings): CelebrationAnimation {
+  const enabledAnimations = (Object.keys(settings.animations) as CelebrationAnimation[])
+    .filter(key => settings.animations[key])
+  
+  if (enabledAnimations.length === 0) {
+    return 'confetti'
+  }
+  
+  return enabledAnimations[Math.floor(Math.random() * enabledAnimations.length)]
+}
 
 export function getCurrentDayOfWeek(): DayOfWeek {
   const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']

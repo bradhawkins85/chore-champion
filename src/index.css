@@ -82,3 +82,25 @@ body {
 .confetti {
   animation: confetti 2s ease-out forwards;
 }
+
+@keyframes sparkle-fade {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+@keyframes star-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(120vh) rotate(360deg); opacity: 0; }
+}
+
+@keyframes bubble-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0.8; }
+  100% { transform: translateY(-120vh) translateX(calc(-50px + 100px * var(--random, 0.5))); opacity: 0; }
+}
+
+@keyframes heart-float {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  20% { transform: translateY(-20vh) scale(1); opacity: 1; }
+  100% { transform: translateY(-120vh) scale(0.8); opacity: 0; }
+}

@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime } from '@/lib/helpers'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation } from '@/lib/types'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 
 interface ChildChoreViewProps {
@@ -15,6 +15,7 @@ interface ChildChoreViewProps {
   assignments: ChoreAssignment[]
   completions: ChoreCompletion[]
   totalPoints: number
+  celebrationSettings: CelebrationSettings
   onComplete: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onUndo: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onBack: () => void
@@ -27,12 +28,13 @@ export function ChildChoreView({
   assignments,
   completions,
   totalPoints,
+  celebrationSettings,
   onComplete,
   onUndo,
   onBack,
   onShopClick,
 }: ChildChoreViewProps) {
-  const [celebrating, setCelebrating] = useState<number | null>(null)
+  const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
@@ -136,7 +138,13 @@ export function ChildChoreView({
     .slice(0, 2)
 
   const handleComplete = (chore: Chore, timeOfDay?: 'am' | 'pm') => {
-    setCelebrating(getChorePointsForChild(chore, child.id))
+    if (celebrationSettings.enabled) {
+      const animation = getRandomCelebrationAnimation(celebrationSettings)
+      setCelebrating({ 
+        points: getChorePointsForChild(chore, child.id),
+        animation 
+      })
+    }
     onComplete(chore.id, timeOfDay)
   }
 
@@ -362,7 +370,8 @@ export function ChildChoreView({
       <AnimatePresence>
         {celebrating !== null && (
           <ChoreCompletionCelebration
-            points={celebrating}
+            points={celebrating.points}
+            animationType={celebrating.animation}
             onComplete={() => setCelebrating(null)}
           />
         )}

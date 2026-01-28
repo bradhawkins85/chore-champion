@@ -116,3 +116,18 @@ export interface RewardPurchase {
 }
 
 export type AppMode = 'parent' | 'child'
+
+export type CelebrationAnimation = 
+  | 'confetti'
+  | 'fireworks'
+  | 'sparkles'
+  | 'stars'
+  | 'bubbles'
+  | 'hearts'
+
+export interface CelebrationSettings {
+  enabled: boolean
+  animations: {
+    [key in CelebrationAnimation]: boolean
+  }
+}

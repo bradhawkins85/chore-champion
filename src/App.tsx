@@ -19,6 +19,8 @@ import {
   Reward,
   RewardPurchase,
   MissedChore,
+  CelebrationSettings,
+  CelebrationAnimation,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward } from '@/lib/helpers'
 
@@ -38,6 +40,17 @@ function App() {
   const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
   const [history, setHistory] = useKV<ChoreHistoryEvent[]>('chore-history', [])
   const [dismissedMissedChores, setDismissedMissedChores] = useKV<MissedChore[]>('dismissed-missed-chores', [])
+  const [celebrationSettings, setCelebrationSettings] = useKV<CelebrationSettings>('celebration-settings', {
+    enabled: true,
+    animations: {
+      confetti: true,
+      fireworks: true,
+      sparkles: true,
+      stars: true,
+      bubbles: true,
+      hearts: true,
+    },
+  })
 
   const migratedChores = useMemo(() => {
     if (!chores || chores.length === 0) return chores || []
@@ -393,6 +406,7 @@ function App() {
           history={history || []}
           dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
+          celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -408,6 +422,7 @@ function App() {
           onFulfillPurchase={handleFulfillPurchase}
           onUnfulfillPurchase={handleUnfulfillPurchase}
           onChangePin={handleChangePin}
+          onCelebrationSettingsChange={(settings) => setCelebrationSettings(settings)}
           onOverrideComplete={handleOverrideComplete}
           onDismissMissed={handleDismissMissed}
           onExitParentMode={() => {
@@ -451,6 +466,7 @@ function App() {
             assignments={assignments || []}
             completions={completions || []}
             totalPoints={childPoints.get(selectedChild.id) || 0}
+            celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}

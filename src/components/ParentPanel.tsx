@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -33,6 +33,7 @@ import { WeeklySummary } from './WeeklySummary'
 import { ChangePinDialog } from './ChangePinDialog'
 import { UndoHistory } from './UndoHistory'
 import { MissedChoresManager } from './MissedChoresManager'
+import { CelebrationSettingsComponent } from './CelebrationSettings'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -45,6 +46,7 @@ interface ParentPanelProps {
   history: ChoreHistoryEvent[]
   dismissedMissedChores: MissedChore[]
   parentPin: string | null
+  celebrationSettings: CelebrationSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -60,6 +62,7 @@ interface ParentPanelProps {
   onFulfillPurchase: (purchaseId: string) => void
   onUnfulfillPurchase: (purchaseId: string) => void
   onChangePin: (newPin: string) => void
+  onCelebrationSettingsChange: (settings: CelebrationSettings) => void
   onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onExitParentMode: () => void
@@ -76,6 +79,7 @@ export function ParentPanel({
   history,
   dismissedMissedChores,
   parentPin,
+  celebrationSettings,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -91,6 +95,7 @@ export function ParentPanel({
   onFulfillPurchase,
   onUnfulfillPurchase,
   onChangePin,
+  onCelebrationSettingsChange,
   onOverrideComplete,
   onDismissMissed,
   onExitParentMode,
@@ -579,29 +584,36 @@ export function ParentPanel({
             </div>
           </div>
 
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h3 className="font-fredoka font-semibold text-lg">Parent Mode PIN</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {parentPin
-                        ? 'Change your PIN to protect Parent Mode access'
-                        : 'Set a PIN to protect Parent Mode access'}
-                    </p>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-fredoka font-semibold text-lg">Parent Mode PIN</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {parentPin
+                          ? 'Change your PIN to protect Parent Mode access'
+                          : 'Set a PIN to protect Parent Mode access'}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setChangePinDialogOpen(true)}
+                      variant="outline"
+                      className="font-fredoka"
+                    >
+                      {parentPin ? 'Change PIN' : 'Set PIN'}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => setChangePinDialogOpen(true)}
-                    variant="outline"
-                    className="font-fredoka"
-                  >
-                    {parentPin ? 'Change PIN' : 'Set PIN'}
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            <CelebrationSettingsComponent 
+              settings={celebrationSettings}
+              onUpdate={onCelebrationSettingsChange}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 
