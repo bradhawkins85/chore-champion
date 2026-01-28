@@ -194,6 +194,10 @@ function App() {
     toast.info('Reward marked as unfulfilled')
   }
 
+  const pendingPurchasesCount = useMemo(() => {
+    return (purchases || []).filter((p) => !p.fulfilled).length
+  }, [purchases])
+
   const handleModeToggle = (checked: boolean) => {
     setMode(checked ? 'parent' : 'child')
     setSelectedChild(null)
@@ -212,9 +216,16 @@ function App() {
           checked={mode === 'parent'}
           onCheckedChange={handleModeToggle}
         />
-        <Label htmlFor="mode-switch" className="font-fredoka">
-          Parent Mode
-        </Label>
+        <div className="relative">
+          <Label htmlFor="mode-switch" className="font-fredoka">
+            Parent Mode
+          </Label>
+          {pendingPurchasesCount > 0 && (
+            <div className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+              {pendingPurchasesCount}
+            </div>
+          )}
+        </div>
         <Gear className="h-5 w-5" />
       </div>
 
