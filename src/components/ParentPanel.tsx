@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -12,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus } from '@phosphor-icons/react'
+import { Plus, Package, Check } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase } from '@/lib/types'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -21,6 +22,7 @@ import { ChildDialog } from './ChildDialog'
 import { AssignChoresView } from './AssignChoresView'
 import { RewardDialog } from './RewardDialog'
 import { RewardCard } from './RewardCard'
+import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -40,6 +42,8 @@ interface ParentPanelProps {
   onAddReward: (reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onEditReward: (id: string, reward: Omit<Reward, 'id' | 'createdAt'>) => void
   onDeleteReward: (id: string) => void
+  onFulfillPurchase: (purchaseId: string) => void
+  onUnfulfillPurchase: (purchaseId: string) => void
 }
 
 export function ParentPanel({
@@ -60,6 +64,8 @@ export function ParentPanel({
   onAddReward,
   onEditReward,
   onDeleteReward,
+  onFulfillPurchase,
+  onUnfulfillPurchase,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
   const [childDialogOpen, setChildDialogOpen] = useState(false)
@@ -129,6 +135,15 @@ export function ParentPanel({
           <TabsTrigger value="children">Children</TabsTrigger>
           <TabsTrigger value="chores">Chores</TabsTrigger>
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
+          <TabsTrigger value="purchases">
+            <Package className="h-4 w-4 mr-2" />
+            Purchase History
+            {purchases.filter((p) => !p.fulfilled).length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                {purchases.filter((p) => !p.fulfilled).length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="children" className="space-y-4">
@@ -234,6 +249,61 @@ export function ParentPanel({
                   />
                 )
               })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="purchases" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-fredoka font-bold">Purchase History</h2>
+            {purchases.filter((p) => !p.fulfilled).length > 0 && (
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                {purchases.filter((p) => !p.fulfilled).length} pending
+              </Badge>
+            )}
+          </div>
+
+          {purchases.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg text-muted-foreground">
+                  No purchases yet. Children can redeem rewards from the Reward Shop!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const pendingPurchases = purchases.filter((p) => !p.fulfilled)
+                    pendingPurchases.forEach((p) => onFulfillPurchase(p.id))
+                  }}
+                  disabled={purchases.filter((p) => !p.fulfilled).length === 0}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Fulfill All Pending
+                </Button>
+              </div>
+              {[...purchases]
+                .sort((a, b) => b.purchasedAt - a.purchasedAt)
+                .map((purchase) => {
+                  const reward = rewards.find((r) => r.id === purchase.rewardId)
+                  const child = childrenList.find((c) => c.id === purchase.childId)
+                  return (
+                    <PurchaseHistoryCard
+                      key={purchase.id}
+                      purchase={purchase}
+                      reward={reward}
+                      child={child}
+                      onFulfill={onFulfillPurchase}
+                      onUnfulfill={onUnfulfillPurchase}
+                    />
+                  )
+                })}
             </div>
           )}
         </TabsContent>

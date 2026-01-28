@@ -176,6 +176,24 @@ function App() {
     }
   }
 
+  const handleFulfillPurchase = (purchaseId: string) => {
+    setPurchases((current) =>
+      (current || []).map((p) =>
+        p.id === purchaseId ? { ...p, fulfilled: true } : p
+      )
+    )
+    toast.success('Reward marked as fulfilled!')
+  }
+
+  const handleUnfulfillPurchase = (purchaseId: string) => {
+    setPurchases((current) =>
+      (current || []).map((p) =>
+        p.id === purchaseId ? { ...p, fulfilled: false } : p
+      )
+    )
+    toast.info('Reward marked as unfulfilled')
+  }
+
   const handleModeToggle = (checked: boolean) => {
     setMode(checked ? 'parent' : 'child')
     setSelectedChild(null)
@@ -219,6 +237,8 @@ function App() {
           onAddReward={handleAddReward}
           onEditReward={handleEditReward}
           onDeleteReward={handleDeleteReward}
+          onFulfillPurchase={handleFulfillPurchase}
+          onUnfulfillPurchase={handleUnfulfillPurchase}
         />
       ) : selectedChild ? (
         showRewardShop ? (

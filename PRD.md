@@ -61,6 +61,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Progression**: View rewards → Select desired reward → Confirm purchase → Points deducted → Parent notified
 - **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators
 
+### Purchase History & Fulfillment (Parent)
+- **Functionality**: View all reward purchases, track pending claims, mark rewards as fulfilled or unfulfilled
+- **Purpose**: Help parents track which rewards children have earned and ensure they receive their prizes
+- **Trigger**: Parent navigates to "Purchase History" tab in parent panel
+- **Progression**: View purchases sorted by date → See pending count → Click fulfill button → Mark as delivered → Child's purchase shows as fulfilled
+- **Success criteria**: All purchases tracked with timestamps, pending purchases clearly indicated, bulk fulfill option available, ability to toggle fulfillment status
+
 ## Edge Case Handling
 
 - **No Children Added**: Display friendly empty state with "Add your first child" prompt
@@ -71,7 +78,9 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Point Adjustment**: Parents can manually adjust points (add/subtract) for corrections
 - **Accidental Completion**: Parents can uncheck completed chores in parent mode
 - **Multiple Children Using Simultaneously**: Each child has separate profile selection to prevent conflicts
-- **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled
+- **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled or unfulfilled
+- **Multiple Pending Purchases**: Bulk fulfill option to mark all pending purchases as complete at once
+- **Deleted Rewards with Purchase History**: Past purchases remain visible even if reward is deleted
 
 ## Design Direction
 
@@ -119,14 +128,15 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Card for chore items and child profiles with hover states
   - Dialog for adding/editing chores and children
   - Button with multiple variants (primary for completion, secondary for management)
-  - Badge for point displays and frequency labels
+  - Badge for point displays, frequency labels, and pending purchase counts
   - Avatar for child profiles
   - Switch for parent/child mode toggle
   - Form components (Input, Label, Textarea, Select) for chore management
   - Progress bar for daily/weekly completion percentage
-  - Tabs for organizing parent panel sections (Chores, Children, Rewards)
+  - Tabs for organizing parent panel sections (Chores, Children, Rewards, Purchase History)
   - Alert Dialog for deletion confirmations
   - Large reward cards with emojis for visual appeal in shop view
+  - Purchase history cards showing child name, reward, timestamp, and fulfillment status
   
 - **Customizations**: 
   - Extra-large touch-friendly buttons for child interface (min 80px height)
@@ -154,6 +164,10 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Trash (Phosphor) for deletions
   - Pencil (Phosphor) for editing
   - ArrowLeft (Phosphor) for back navigation
+  - Package (Phosphor) for purchase history tab
+  - Check (Phosphor) for fulfillment actions
+  - Clock (Phosphor) for pending status
+  - X (Phosphor) for unfulfill action
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container
