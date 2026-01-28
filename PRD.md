@@ -83,11 +83,18 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Chores reset at appropriate intervals, completion history maintained, inactive chores are hidden from child view but visible (marked as inactive) in parent view
 
 ### Rewards Shop
-- **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points
-- **Purpose**: Give children tangible goals to work toward and motivation to complete chores
+- **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points. Rewards can have purchase limits that restrict how often they can be purchased (per day, week, month, or total) with limits applying per child or to all children combined.
+- **Purpose**: Give children tangible goals to work toward and motivation to complete chores, while allowing parents to control reward frequency and prevent overconsumption of certain rewards
 - **Trigger**: Child clicks "Shop" button from their chore view
-- **Progression**: View rewards → Select desired reward → Confirm purchase → Points deducted → Parent notified
-- **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators
+- **Progression**: View rewards → See limit badges on rewards (e.g., "2/3 this week") → Select desired reward → If limit not reached and points sufficient → Confirm purchase → Points deducted → Parent notified → Limit counter updates
+- **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators, limits enforced at purchase time, limit status clearly visible in shop
+
+### Purchase Limits (Rewards)
+- **Functionality**: Configure optional purchase limits for rewards with flexible intervals (per day, week, month, ever) and scopes (per child or total across all children). Examples: "once per day per child", "twice per week total", "3 times per month per child", "one time ever total".
+- **Purpose**: Control reward frequency to prevent overconsumption, ensure rewards remain special and meaningful, and manage resource-intensive rewards (e.g., limit "Ice Cream Trip" to once per week total for the family)
+- **Trigger**: Edit reward → Toggle "Purchase Limits" → Configure max purchases, interval, and scope
+- **Progression**: Open reward editor → Enable purchase limits switch → Set max purchases (number) → Select interval (day/week/month/ever) → Select scope (per-child/total) → See example text explaining the limit → Save → Shop displays limit status → Purchase attempts blocked when limit reached with clear message
+- **Success criteria**: Limits enforced at purchase time with clear error messages, current usage displayed in shop as badges (e.g., "1/3 this week"), limits reset at appropriate intervals (daily at midnight, weekly on Sunday midnight, monthly on first of month), "ever" limits never reset, scope correctly applies (per-child tracks individually, total tracks across all children), limit information visible in parent view reward cards
 
 ### Purchase History & Fulfillment (Parent)
 - **Functionality**: View all reward purchases, track pending claims, mark rewards as fulfilled or unfulfilled
@@ -143,6 +150,17 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Multiple Requirements**: A reward can require multiple chores - all must be completed to unlock
 - **Requirements and Custom Cost Together**: A reward can have both custom costs and custom requirements per child simultaneously
 - **Deleted Chore in Requirements**: If a required chore is deleted, the requirement is automatically removed (reward becomes available)
+- **No Purchase Limit Set**: Rewards without limits can be purchased unlimited times (default behavior)
+- **Per-Child Limit**: Each child has their own separate counter (e.g., "2 per week per child" means Child A can buy 2 and Child B can buy 2)
+- **Total Limit**: All children share the same counter (e.g., "2 per week total" means 2 purchases combined across all children)
+- **Daily Limit Reset**: Resets at midnight local time (start of new day)
+- **Weekly Limit Reset**: Resets at midnight Sunday (start of new week)
+- **Monthly Limit Reset**: Resets at midnight on the 1st of each month
+- **Ever Limit**: Never resets - once reached, reward becomes permanently unavailable (or until parent edits the limit)
+- **Limit Reached in Shop**: Reward displays with "Limit Reached" badge and disabled purchase button with clear message explaining the limit
+- **Approaching Limit in Shop**: Shop displays current usage count (e.g., "2/3 this week") so children know how many purchases remain
+- **Limit Change Impact**: If parent changes limit settings, the new limits apply immediately using existing purchase history
+- **Limit with Zero Remaining**: Shows as "0/3 this week" with red badge and cannot be purchased
 
 ## Design Direction
 
@@ -245,6 +263,8 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - MoonStars (Phosphor) for PM time indicators
   - Warning (Phosphor) for missed chores
   - Calendar (Phosphor) for day-of-week indicators
+  - Timer (Phosphor) for purchase limits and limit status displays
+  - LockKey (Phosphor) for locked/unavailable rewards due to requirements or limits
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container

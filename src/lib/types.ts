@@ -84,6 +84,15 @@ export interface RewardRequirement {
   requiredChoreIds: string[]
 }
 
+export type PurchaseLimitInterval = 'day' | 'week' | 'month' | 'ever'
+export type PurchaseLimitScope = 'per-child' | 'total'
+
+export interface PurchaseLimit {
+  maxPurchases: number
+  interval: PurchaseLimitInterval
+  scope: PurchaseLimitScope
+}
+
 export interface Reward {
   id: string
   name: string
@@ -93,6 +102,7 @@ export interface Reward {
   createdAt: number
   costOverrides?: RewardCostOverride[]
   requirements?: RewardRequirement[]
+  purchaseLimit?: PurchaseLimit
 }
 
 export interface RewardPurchase {

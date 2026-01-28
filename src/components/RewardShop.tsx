@@ -1,10 +1,10 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Star, ShoppingCart, ArrowLeft, LockKey } from '@phosphor-icons/react'
-import { Child, Reward, Chore, ChoreCompletion } from '@/lib/types'
+import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
+import { Child, Reward, Chore, ChoreCompletion, RewardPurchase } from '@/lib/types'
 import { motion } from 'framer-motion'
-import { getRewardCostForChild, isRewardAvailableForChild } from '@/lib/helpers'
+import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward } from '@/lib/helpers'
 import { useMemo } from 'react'
 
 interface RewardShopProps {
@@ -15,6 +15,7 @@ interface RewardShopProps {
   onBack: () => void
   chores?: Chore[]
   completions?: ChoreCompletion[]
+  purchases?: RewardPurchase[]
 }
 
 export function RewardShop({
@@ -25,6 +26,7 @@ export function RewardShop({
   onBack,
   chores = [],
   completions = [],
+  purchases = [],
 }: RewardShopProps) {
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
@@ -78,8 +80,9 @@ export function RewardShop({
             {rewards.map((reward) => {
               const customCost = getRewardCostForChild(reward, child.id)
               const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
+              const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)
               const canAfford = availablePoints >= customCost
-              const canPurchase = canAfford && requirementsMet
+              const canPurchase = canAfford && requirementsMet && purchaseLimitCheck.canPurchase
               const requirement = reward.requirements?.find(r => r.childId === child.id)
               
               return (
@@ -106,14 +109,26 @@ export function RewardShop({
                             {reward.description}
                           </p>
                         )}
-                        {requirement && requirement.requiredChoreIds.length > 0 && (
-                          <div className="mt-3">
+                        <div className="mt-3 space-y-2">
+                          {requirement && requirement.requiredChoreIds.length > 0 && (
                             <Badge variant={requirementsMet ? "default" : "destructive"} className="flex items-center gap-1 w-fit mx-auto">
                               <LockKey className="h-3 w-3" />
                               {requirementsMet ? "Requirements met" : `Complete ${requirement.requiredChoreIds.length} chore(s) first`}
                             </Badge>
-                          </div>
-                        )}
+                          )}
+                          {reward.purchaseLimit && (
+                            <Badge 
+                              variant={purchaseLimitCheck.canPurchase ? "secondary" : "destructive"} 
+                              className="flex items-center gap-1 w-fit mx-auto"
+                            >
+                              <Timer className="h-3 w-3" />
+                              {purchaseLimitCheck.canPurchase 
+                                ? `${purchaseLimitCheck.currentCount || 0}/${purchaseLimitCheck.maxCount} ${reward.purchaseLimit.interval === 'ever' ? 'total' : `this ${reward.purchaseLimit.interval}`}`
+                                : purchaseLimitCheck.reason
+                              }
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="mt-auto">
                         <div className="flex items-center justify-between mb-3">
@@ -134,6 +149,11 @@ export function RewardShop({
                             <>
                               <LockKey className="mr-2" />
                               Complete Chores First
+                            </>
+                          ) : !purchaseLimitCheck.canPurchase ? (
+                            <>
+                              <Timer className="mr-2" />
+                              Limit Reached
                             </>
                           ) : canAfford ? (
                             <>

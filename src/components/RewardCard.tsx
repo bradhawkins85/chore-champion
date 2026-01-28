@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, Trash, Star } from '@phosphor-icons/react'
+import { Pencil, Trash, Star, Timer } from '@phosphor-icons/react'
 import { Reward, Child, Chore } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
 
@@ -17,6 +17,14 @@ interface RewardCardProps {
 export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0, childrenList = [], chores = [] }: RewardCardProps) {
   const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0) || 
                              (reward.requirements && reward.requirements.length > 0)
+  
+  const getLimitText = () => {
+    if (!reward.purchaseLimit) return null
+    const { maxPurchases, interval, scope } = reward.purchaseLimit
+    const intervalText = interval === 'ever' ? 'total' : `per ${interval}`
+    const scopeText = scope === 'per-child' ? 'per child' : 'total'
+    return `${maxPurchases}× ${intervalText} (${scopeText})`
+  }
 
   return (
     <Card className="p-4 hover:shadow-lg transition-shadow">
@@ -29,8 +37,8 @@ export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0, childr
               {reward.description && (
                 <p className="text-sm text-muted-foreground">{reward.description}</p>
               )}
-              {hasCustomizations && (
-                <div className="flex gap-1 mt-1">
+              {(hasCustomizations || reward.purchaseLimit) && (
+                <div className="flex flex-wrap gap-1 mt-1">
                   {reward.costOverrides && reward.costOverrides.length > 0 && (
                     <Badge variant="outline" className="text-xs">
                       Custom cost for {reward.costOverrides.length} {reward.costOverrides.length === 1 ? 'child' : 'children'}
@@ -39,6 +47,12 @@ export function RewardCard({ reward, onEdit, onDelete, purchaseCount = 0, childr
                   {reward.requirements && reward.requirements.length > 0 && (
                     <Badge variant="outline" className="text-xs">
                       Requirements for {reward.requirements.length} {reward.requirements.length === 1 ? 'child' : 'children'}
+                    </Badge>
+                  )}
+                  {reward.purchaseLimit && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <Timer className="h-3 w-3" />
+                      {getLimitText()}
                     </Badge>
                   )}
                 </div>

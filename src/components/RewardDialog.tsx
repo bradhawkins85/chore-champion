@@ -12,12 +12,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, LockKey } from '@phosphor-icons/react'
-import { Reward, Child, Chore, RewardCostOverride, RewardRequirement } from '@/lib/types'
+import { Plus, Star, LockKey, Timer } from '@phosphor-icons/react'
+import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 
 interface RewardDialogProps {
   reward?: Reward
@@ -35,6 +37,10 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
   const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
   const [requirements, setRequirements] = useState<RewardRequirement[]>(reward?.requirements || [])
+  const [hasLimit, setHasLimit] = useState(!!reward?.purchaseLimit)
+  const [limitMax, setLimitMax] = useState(reward?.purchaseLimit?.maxPurchases?.toString() || '1')
+  const [limitInterval, setLimitInterval] = useState<PurchaseLimitInterval>(reward?.purchaseLimit?.interval || 'day')
+  const [limitScope, setLimitScope] = useState<PurchaseLimitScope>(reward?.purchaseLimit?.scope || 'per-child')
 
   useEffect(() => {
     if (reward) {
@@ -44,12 +50,24 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setImageEmoji(reward.imageEmoji)
       setCostOverrides(reward.costOverrides || [])
       setRequirements(reward.requirements || [])
+      setHasLimit(!!reward.purchaseLimit)
+      setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
+      setLimitInterval(reward.purchaseLimit?.interval || 'day')
+      setLimitScope(reward.purchaseLimit?.scope || 'per-child')
     }
   }, [reward])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !cost) return
+
+    const purchaseLimit: PurchaseLimit | undefined = hasLimit
+      ? {
+          maxPurchases: parseInt(limitMax, 10) || 1,
+          interval: limitInterval,
+          scope: limitScope,
+        }
+      : undefined
 
     onSave({
       name: name.trim(),
@@ -58,6 +76,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       imageEmoji,
       costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
+      purchaseLimit,
     })
 
     if (!reward) {
@@ -67,6 +86,10 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setImageEmoji('🎁')
       setCostOverrides([])
       setRequirements([])
+      setHasLimit(false)
+      setLimitMax('1')
+      setLimitInterval('day')
+      setLimitScope('per-child')
     }
     setOpen(false)
   }
@@ -158,6 +181,74 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               placeholder="e.g., 50"
               required
             />
+          </div>
+
+          <Separator />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Timer className="h-5 w-5 text-muted-foreground" />
+                <Label className="text-base font-fredoka font-semibold">Purchase Limits</Label>
+              </div>
+              <Switch
+                checked={hasLimit}
+                onCheckedChange={setHasLimit}
+              />
+            </div>
+            {hasLimit && (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Restrict how often this reward can be purchased
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="limit-max" className="text-sm">Max Purchases</Label>
+                    <Input
+                      id="limit-max"
+                      type="number"
+                      min="1"
+                      value={limitMax}
+                      onChange={(e) => setLimitMax(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="limit-interval" className="text-sm">Interval</Label>
+                    <Select value={limitInterval} onValueChange={(v) => setLimitInterval(v as PurchaseLimitInterval)}>
+                      <SelectTrigger id="limit-interval" className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day">Per Day</SelectItem>
+                        <SelectItem value="week">Per Week</SelectItem>
+                        <SelectItem value="month">Per Month</SelectItem>
+                        <SelectItem value="ever">Ever (Total)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="limit-scope" className="text-sm">Scope</Label>
+                    <Select value={limitScope} onValueChange={(v) => setLimitScope(v as PurchaseLimitScope)}>
+                      <SelectTrigger id="limit-scope" className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="per-child">Per Child</SelectItem>
+                        <SelectItem value="total">Total</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-md">
+                  <p className="text-sm">
+                    <span className="font-semibold">Example: </span>
+                    {limitScope === 'per-child' ? 'Each child' : 'All children combined'} can purchase this reward{' '}
+                    <span className="font-semibold">{limitMax} time{parseInt(limitMax) > 1 ? 's' : ''}</span>{' '}
+                    {limitInterval === 'ever' ? 'total' : `per ${limitInterval}`}.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {childrenList.length > 0 && (

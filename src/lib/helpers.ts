@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval } from './types'
 
 export function getCurrentDayOfWeek(): DayOfWeek {
   const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -374,3 +374,79 @@ export const AVATAR_COLORS = [
   'oklch(0.68 0.2 340)',
   'oklch(0.75 0.15 80)',
 ]
+
+function getIntervalStartTime(interval: PurchaseLimitInterval): number {
+  const now = new Date()
+  
+  switch (interval) {
+    case 'day':
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+    
+    case 'week':
+      now.setDate(now.getDate() - now.getDay())
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+    
+    case 'month':
+      now.setDate(1)
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+    
+    case 'ever':
+      return 0
+  }
+}
+
+export function getPurchaseCount(
+  purchases: RewardPurchase[],
+  rewardId: string,
+  interval: PurchaseLimitInterval,
+  childId?: string
+): number {
+  const startTime = getIntervalStartTime(interval)
+  
+  return purchases.filter(p => {
+    if (p.rewardId !== rewardId) return false
+    if (p.purchasedAt < startTime) return false
+    if (childId && p.childId !== childId) return false
+    return true
+  }).length
+}
+
+export function canPurchaseReward(
+  reward: Reward,
+  childId: string,
+  purchases: RewardPurchase[]
+): { canPurchase: boolean; reason?: string; currentCount?: number; maxCount?: number } {
+  if (!reward.purchaseLimit) {
+    return { canPurchase: true }
+  }
+
+  const { maxPurchases, interval, scope } = reward.purchaseLimit
+  
+  const currentCount = getPurchaseCount(
+    purchases,
+    reward.id,
+    interval,
+    scope === 'per-child' ? childId : undefined
+  )
+
+  if (currentCount >= maxPurchases) {
+    const intervalText = interval === 'ever' ? 'total' : `per ${interval}`
+    const scopeText = scope === 'per-child' ? 'for you' : 'in total'
+    
+    return {
+      canPurchase: false,
+      reason: `Limit reached: ${maxPurchases} ${intervalText} ${scopeText}`,
+      currentCount,
+      maxCount: maxPurchases,
+    }
+  }
+
+  return {
+    canPurchase: true,
+    currentCount,
+    maxCount: maxPurchases,
+  }
+}

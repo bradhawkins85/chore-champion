@@ -20,7 +20,7 @@ import {
   RewardPurchase,
   MissedChore,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -221,6 +221,17 @@ function App() {
   }
 
   const handlePurchaseReward = (childId: string, rewardId: string, cost: number) => {
+    const reward = (rewards || []).find((r) => r.id === rewardId)
+    if (!reward) return
+
+    const limitCheck = canPurchaseReward(reward, childId, purchases || [])
+    if (!limitCheck.canPurchase) {
+      toast.error('Cannot purchase reward', {
+        description: limitCheck.reason,
+      })
+      return
+    }
+
     const newPurchase: RewardPurchase = {
       id: `purchase_${Date.now()}_${Math.random()}`,
       childId,
@@ -230,7 +241,6 @@ function App() {
     }
     setPurchases((current) => [...(current || []), newPurchase])
     
-    const reward = (rewards || []).find((r) => r.id === rewardId)
     if (reward) {
       toast.success(`🎉 You got ${reward.name}!`, {
         description: `${cost} points spent. Ask your parents for your reward!`,
@@ -378,6 +388,7 @@ function App() {
             rewards={rewards || []}
             chores={migratedChores || []}
             completions={completions || []}
+            purchases={purchases || []}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
               (purchases || [])
