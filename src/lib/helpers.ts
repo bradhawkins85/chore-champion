@@ -1138,44 +1138,6 @@ export function getExpiredPointsByCategory(
   return expiredChorePoints + expiredBonusPoints
 }
 
-export function generateDeviceFingerprint(): string {
-  const STORAGE_KEY = 'chorequest_device_id'
-  
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    return stored
-  }
-  
-  const components = [
-    navigator.userAgent,
-    navigator.language,
-    navigator.languages?.join(',') || '',
-    new Date().getTimezoneOffset().toString(),
-    screen.width + 'x' + screen.height,
-    screen.colorDepth.toString(),
-    navigator.hardwareConcurrency?.toString() || '',
-    navigator.maxTouchPoints?.toString() || '',
-    navigator.platform || '',
-    (window.devicePixelRatio || 1).toString(),
-  ]
-  
-  const str = components.join('|')
-  
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash
-  }
-  
-  const randomSuffix = Math.random().toString(36).substring(2, 15)
-  const fingerprint = `device_${Math.abs(hash).toString(36)}_${randomSuffix}`
-  
-  localStorage.setItem(STORAGE_KEY, fingerprint)
-  
-  return fingerprint
-}
-
 export async function getUserIPAddress(): Promise<string | null> {
   try {
     const response = await fetch('https://api.ipify.org?format=json')

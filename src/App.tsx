@@ -30,11 +30,10 @@ import {
   BiometricSettings,
   PointSwap,
   CategoryBonusCompletion,
-  DeviceConfig,
   IPRestrictionSettings,
   IPAccessAttempt,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, generateDeviceFingerprint, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { WelcomePage } from '@/components/WelcomePage'
 
 function App() {
@@ -80,9 +79,6 @@ function App() {
   const [categories, setCategories] = useKV<Category[]>('categories', [])
   const [pointSwaps, setPointSwaps] = useKV<PointSwap[]>('point-swaps', [])
   const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
-  const [devices, setDevices] = useKV<DeviceConfig[]>('devices', [])
-  const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
-  const deviceInitialized = useRef(false)
   const [ipRestrictions, setIPRestrictions] = useKV<IPRestrictionSettings>('ip-restrictions', {
     enabled: false,
     allowedIPs: [],
@@ -97,37 +93,6 @@ function App() {
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
 
-  useEffect(() => {
-    if (deviceInitialized.current) return
-    
-    const fingerprint = generateDeviceFingerprint()
-    const existingDevice = (devices || []).find(d => d.deviceFingerprint === fingerprint)
-    
-    if (existingDevice) {
-      setCurrentDeviceId(existingDevice.id)
-      setDevices((current) =>
-        (current || []).map((d) =>
-          d.id === existingDevice.id ? { ...d, lastSeen: Date.now() } : d
-        )
-      )
-      deviceInitialized.current = true
-    } else if (devices !== undefined) {
-      const isFirstDevice = (devices || []).length === 0
-      const newDevice: DeviceConfig = {
-        id: `device_${Date.now()}_${Math.random()}`,
-        name: `Device ${(devices || []).length + 1}`,
-        deviceFingerprint: fingerprint,
-        createdAt: Date.now(),
-        lastSeen: Date.now(),
-        parentModeEnabled: true,
-        allowedChildIds: isFirstDevice ? [] : []
-      }
-      setDevices((current) => [...(current || []), newDevice])
-      setCurrentDeviceId(newDevice.id)
-      deviceInitialized.current = true
-    }
-  }, [devices, childrenList, setDevices])
-  
   useEffect(() => {
     const checkIPAccess = async () => {
       setIsCheckingIP(true)
@@ -412,13 +377,6 @@ function App() {
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
-    
-    setDevices((current) =>
-      (current || []).map((device) => ({
-        ...device,
-        allowedChildIds: device.allowedChildIds.filter((childId) => childId !== id),
-      }))
-    )
     
     toast.success('Child removed')
   }
@@ -926,20 +884,6 @@ function App() {
     }
   }
 
-  const handleUpdateDevice = (deviceId: string, updates: Partial<DeviceConfig>) => {
-    setDevices((current) =>
-      (current || []).map((d) =>
-        d.id === deviceId ? { ...d, ...updates } : d
-      )
-    )
-    toast.success('Device settings updated!')
-  }
-
-  const handleDeleteDevice = (deviceId: string) => {
-    setDevices((current) => (current || []).filter((d) => d.id !== deviceId))
-    toast.success('Device removed')
-  }
-
   const handlePinOverride = (pin: string) => {
     if (!ipRestrictions || !ipRestrictions.overridePin) {
       toast.error('No access PIN configured')
@@ -1001,32 +945,6 @@ function App() {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
 
-  const currentDevice = useMemo(() => {
-    return (devices || []).find(d => d.id === currentDeviceId)
-  }, [devices, currentDeviceId])
-
-  const filteredChildren = useMemo(() => {
-    if (!currentDevice) return childrenList || []
-    return (childrenList || []).filter(child => 
-      currentDevice.allowedChildIds.includes(child.id)
-    )
-  }, [childrenList, currentDevice])
-
-  const isParentModeAllowed = useMemo(() => {
-    if (!currentDevice) return true
-    return currentDevice.parentModeEnabled
-  }, [currentDevice])
-
-  const handleOpenParentMode = () => {
-    if (!isParentModeAllowed) {
-      toast.error('Parent mode is disabled on this device', {
-        description: 'Contact the administrator to enable parent mode for this device',
-      })
-      return
-    }
-    setShowPinDialog(true)
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {isCheckingIP ? (
@@ -1057,8 +975,6 @@ function App() {
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
-          devices={devices || []}
-          currentDeviceId={currentDeviceId}
           ipRestrictions={ipRestrictions || { enabled: false, allowedIPs: [], overridePin: null, requirePinForUnapproved: false }}
           currentIP={currentIP}
           accessHistory={accessHistory || []}
@@ -1088,8 +1004,6 @@ function App() {
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}
-          onUpdateDevice={handleUpdateDevice}
-          onDeleteDevice={handleDeleteDevice}
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onExitParentMode={() => {
             setMode('child')
@@ -1172,32 +1086,28 @@ function App() {
         )
       ) : (
         <>
-          {filteredChildren.length === 0 ? (
+          {(childrenList || []).length === 0 ? (
             <div className="min-h-screen flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <h1 className="text-4xl font-fredoka font-bold mb-4">
-                  {(childrenList || []).length === 0 ? 'Welcome to ChoreQuest!' : 'No Children Available'}
+                  Welcome to ChoreQuest!
                 </h1>
                 <p className="text-xl text-muted-foreground mb-6">
-                  {(childrenList || []).length === 0 
-                    ? 'Switch to Parent Mode to add children and create chores.'
-                    : 'No children profiles are enabled for this device. Contact the administrator to enable profiles.'}
+                  Switch to Parent Mode to add children and create chores.
                 </p>
-                {isParentModeAllowed && (
-                  <Button
-                    size="lg"
-                    onClick={handleOpenParentMode}
-                    className="font-fredoka text-lg"
-                  >
-                    <Gear className="h-5 w-5 mr-2" />
-                    Go to Parent Mode
-                  </Button>
-                )}
+                <Button
+                  size="lg"
+                  onClick={() => setShowPinDialog(true)}
+                  className="font-fredoka text-lg"
+                >
+                  <Gear className="h-5 w-5 mr-2" />
+                  Go to Parent Mode
+                </Button>
               </div>
             </div>
           ) : (
             <ChildSelector
-              childrenList={filteredChildren}
+              childrenList={childrenList || []}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={trackedGoals || []}
@@ -1208,7 +1118,7 @@ function App() {
               chores={migratedChores || []}
               completions={completions || []}
               onSelect={setSelectedChild}
-              onParentMode={handleOpenParentMode}
+              onParentMode={() => setShowPinDialog(true)}
             />
           )}
         </>

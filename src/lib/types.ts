@@ -257,16 +257,6 @@ export interface CategoryBonusCompletion {
   targetCategoryId: string
 }
 
-export interface DeviceConfig {
-  id: string
-  name: string
-  deviceFingerprint: string
-  createdAt: number
-  lastSeen: number
-  allowedChildIds: string[]
-  parentModeEnabled: boolean
-}
-
 export interface IPRestrictionSettings {
   enabled: boolean
   allowedIPs: string[]
