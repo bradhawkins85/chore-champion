@@ -415,3 +415,19 @@ export interface ReportSummary {
   mostCompletedChore: string | null
   mostEarnedCategory: string | null
 }
+
+export interface WeatherSettings {
+  enabled: boolean
+  location: string
+  latitude: number | null
+  longitude: number | null
+}
+
+export interface WeatherData {
+  temperature: number
+  condition: string
+  conditionCode: number
+  feels_like: number
+  humidity: number
+  description: string
+}

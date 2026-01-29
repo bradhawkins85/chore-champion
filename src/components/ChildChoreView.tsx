@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherSettings } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OnThisDay } from './OnThisDay'
+import { WeatherDisplay } from './WeatherDisplay'
 
 interface ChildChoreViewProps {
   child: Child
@@ -31,6 +32,7 @@ interface ChildChoreViewProps {
   availableCategoryPoints?: Map<string, number>
   onSwapPoints?: (fromCategoryId: string, toCategoryId: string, fromAmount: number, toAmount: number) => void
   onUpdateCalendarRefresh?: (timestamp: number) => void
+  weatherSettings?: WeatherSettings
 }
 
 export function ChildChoreView({
@@ -52,6 +54,7 @@ export function ChildChoreView({
   availableCategoryPoints,
   onSwapPoints,
   onUpdateCalendarRefresh,
+  weatherSettings,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -309,6 +312,12 @@ export function ChildChoreView({
               currentPoints={totalPoints}
               targetPoints={getRewardCostForChild(trackedReward, child.id)}
             />
+          </div>
+        )}
+
+        {weatherSettings && (
+          <div className="mb-8">
+            <WeatherDisplay settings={weatherSettings} />
           </div>
         )}
 

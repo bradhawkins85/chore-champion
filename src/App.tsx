@@ -34,6 +34,7 @@ import {
   IPAccessAttempt,
   WeeklyReportSettings,
   ReportTemplate,
+  WeatherSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -97,6 +98,12 @@ function App() {
     lastSent: null,
   })
   const [reportTemplates, setReportTemplates] = useKV<ReportTemplate[]>('report-templates', [])
+  const [weatherSettings, setWeatherSettings] = useKV<WeatherSettings>('weather-settings', {
+    enabled: false,
+    location: '',
+    latitude: null,
+    longitude: null,
+  })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -945,6 +952,10 @@ function App() {
     setIPRestrictions(settings)
   }
 
+  const handleUpdateWeatherSettings = (settings: WeatherSettings) => {
+    setWeatherSettings(settings)
+  }
+
   const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
     const newTemplate: ReportTemplate = {
       ...templateData,
@@ -1042,6 +1053,7 @@ function App() {
           accessHistory={accessHistory || []}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
           reportTemplates={reportTemplates || []}
+          weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1070,6 +1082,7 @@ function App() {
           onUndoCompletion={handleUndoCompletion}
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
+          onUpdateWeatherSettings={handleUpdateWeatherSettings}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -1138,6 +1151,7 @@ function App() {
             categories={categories || []}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
+            weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
@@ -1186,6 +1200,7 @@ function App() {
               assignments={assignments || []}
               chores={migratedChores || []}
               completions={completions || []}
+              weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />

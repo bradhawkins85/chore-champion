@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -41,6 +41,7 @@ import { BiometricSettings as BiometricSettingsComponent } from './BiometricSett
 import { IPRestrictions } from './IPRestrictions'
 import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
+import { WeatherSettingsComponent } from './WeatherSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -65,6 +66,7 @@ interface ParentPanelProps {
   accessHistory: IPAccessAttempt[]
   weeklyReportSettings: WeeklyReportSettings
   reportTemplates: ReportTemplate[]
+  weatherSettings: WeatherSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -101,6 +103,7 @@ interface ParentPanelProps {
   onUndoCompletion: (completionId: string) => void
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
+  onUpdateWeatherSettings: (settings: WeatherSettings) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -124,6 +127,7 @@ export function ParentPanel({
   childCategoryPoints,
   bonusCompletions,
   reportTemplates,
+  weatherSettings,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -156,6 +160,7 @@ export function ParentPanel({
   onUpdateIPRestrictions,
   weeklyReportSettings,
   onUpdateWeeklyReportSettings,
+  onUpdateWeatherSettings,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -777,6 +782,11 @@ export function ParentPanel({
             <BiometricSettingsComponent
               settings={biometricSettings}
               onChange={onBiometricSettingsChange}
+            />
+
+            <WeatherSettingsComponent
+              settings={weatherSettings}
+              onUpdate={onUpdateWeatherSettings}
             />
 
             <WeeklyReportSettingsComponent

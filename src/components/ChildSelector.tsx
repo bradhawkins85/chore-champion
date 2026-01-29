@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Gear, Trophy, Clock } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion } from '@/lib/types'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration } from '@/lib/helpers'
+import { WeatherDisplay } from '@/components/WeatherDisplay'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -21,6 +22,7 @@ interface ChildSelectorProps {
   assignments?: ChoreAssignment[]
   chores?: Chore[]
   completions?: ChoreCompletion[]
+  weatherSettings?: WeatherSettings
 }
 
 export function ChildSelector({ 
@@ -36,6 +38,7 @@ export function ChildSelector({
   assignments = [],
   chores = [],
   completions = [],
+  weatherSettings,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
 
@@ -75,10 +78,21 @@ export function ChildSelector({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-center text-lg font-inter text-muted-foreground mb-8"
+          className="text-center text-lg font-inter text-muted-foreground mb-4"
         >
           {formatDateTime(currentDateTime)}
         </motion.p>
+
+        {weatherSettings && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8 max-w-md mx-auto"
+          >
+            <WeatherDisplay settings={weatherSettings} />
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {childrenList.map((child, index) => {
