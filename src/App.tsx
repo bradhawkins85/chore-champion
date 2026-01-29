@@ -120,14 +120,16 @@ function App() {
         createdAt: Date.now(),
         lastSeen: Date.now(),
         parentModeEnabled: true,
-        parentModeEnabled: true,
+        allowedChildIds: isFirstDevice ? [] : []
+      }
       setDevices((current) => [...(current || []), newDevice])
       setCurrentDeviceId(newDevice.id)
       deviceInitialized.current = true
     }
   }, [devices, childrenList, setDevices])
+  
   useEffect(() => {
-
+    const checkIPAccess = async () => {
       setIsCheckingIP(true)
       const ip = await getUserIPAddress()
       setCurrentIP(ip)
