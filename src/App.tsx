@@ -38,6 +38,7 @@ import {
   WeatherSettings,
   SMTPSettings,
   EmailAlertSettings,
+  SpeechSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -133,6 +134,9 @@ function App() {
     lastDigestSent: null,
   })
   const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
+  const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
+    enabled: true,
+  })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -1341,6 +1345,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={pendingDigestItems || []}
+          speechSettings={speechSettings || { enabled: true }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1372,6 +1377,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
           onUpdateSMTPSettings={handleUpdateSMTPSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
+          onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -1499,6 +1505,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               chores={migratedChores || []}
               completions={completions || []}
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
+              speechSettings={speechSettings || { enabled: true }}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />

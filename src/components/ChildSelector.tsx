@@ -4,8 +4,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Gear, Trophy, Clock } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings } from '@/lib/types'
+import { Button } from '@/components/ui/button'
+import { Gear, Trophy, Clock, SpeakerHigh } from '@phosphor-icons/react'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 
@@ -23,6 +24,7 @@ interface ChildSelectorProps {
   chores?: Chore[]
   completions?: ChoreCompletion[]
   weatherSettings?: WeatherSettings
+  speechSettings?: SpeechSettings
 }
 
 export function ChildSelector({ 
@@ -39,8 +41,10 @@ export function ChildSelector({
   chores = [],
   completions = [],
   weatherSettings,
+  speechSettings,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,6 +53,31 @@ export function ChildSelector({
 
     return () => clearInterval(timer)
   }, [])
+
+  const handleSpeak = (choreId: string, choreName: string, choreDescription: string, speakDescription: boolean = true) => {
+    if (!speechSettings?.enabled) return
+    
+    setIsSpeaking(choreId)
+    
+    const utterance = new SpeechSynthesisUtterance()
+    utterance.text = speakDescription && choreDescription 
+      ? `${choreName}. ${choreDescription}` 
+      : choreName
+    utterance.rate = 0.9
+    utterance.pitch = 1
+    utterance.volume = 1
+    
+    utterance.onend = () => {
+      setIsSpeaking(null)
+    }
+    
+    utterance.onerror = () => {
+      setIsSpeaking(null)
+    }
+    
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  }
 
   const formatDateTime = (date: Date) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -169,9 +198,33 @@ export function ChildSelector({
                           <Clock className="h-4 w-4" weight="fill" />
                           <span>Next Up:</span>
                         </div>
-                        <p className="text-base font-fredoka font-semibold text-foreground">
-                          {nextChore.chore.name}
-                        </p>
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-base font-fredoka font-semibold text-foreground">
+                            {nextChore.chore.name}
+                          </p>
+                          {speechSettings?.enabled && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSpeak(
+                                  nextChore.chore.id,
+                                  nextChore.chore.name,
+                                  nextChore.chore.description,
+                                  nextChore.chore.speakDescription ?? true
+                                )
+                              }}
+                              disabled={isSpeaking === nextChore.chore.id}
+                            >
+                              <SpeakerHigh 
+                                className="h-4 w-4" 
+                                weight={isSpeaking === nextChore.chore.id ? "fill" : "regular"}
+                              />
+                            </Button>
+                          )}
+                        </div>
                         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                           {nextChore.timeOfDay && (
                             <Badge variant="secondary" className="text-xs">

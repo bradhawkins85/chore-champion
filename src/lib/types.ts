@@ -100,6 +100,7 @@ export interface Chore {
   approvalConfigs?: ApprovalConfig[]
   maxCompletions?: number
   weatherConditions?: WeatherConditionRequirement
+  speakDescription?: boolean
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'
@@ -490,4 +491,8 @@ export interface PendingDigestItem {
   choreId: string
   completionId: string
   timestamp: number
+}
+
+export interface SpeechSettings {
+  enabled: boolean
 }

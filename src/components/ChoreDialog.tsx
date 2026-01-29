@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Check, CloudSun } from '@phosphor-icons/react'
+import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh } from '@phosphor-icons/react'
 import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -83,6 +83,7 @@ export function ChoreDialog({
   const [weatherTempUnit, setWeatherTempUnit] = useState<'celsius' | 'fahrenheit'>(
     editChore?.weatherConditions?.unit || 'fahrenheit'
   )
+  const [speakDescription, setSpeakDescription] = useState(editChore?.speakDescription ?? true)
 
   useEffect(() => {
     if (editChore) {
@@ -106,6 +107,7 @@ export function ChoreDialog({
       setWeatherMinTemp(editChore.weatherConditions?.minTemp?.toString() || '')
       setWeatherMaxTemp(editChore.weatherConditions?.maxTemp?.toString() || '')
       setWeatherTempUnit(editChore.weatherConditions?.unit || 'fahrenheit')
+      setSpeakDescription(editChore.speakDescription ?? true)
     }
   }, [editChore])
 
@@ -203,6 +205,8 @@ export function ChoreDialog({
       choreData.weatherConditions = weatherReq
     }
 
+    choreData.speakDescription = speakDescription
+
     onSave(choreData)
 
     if (!editChore) {
@@ -226,6 +230,7 @@ export function ChoreDialog({
       setWeatherMinTemp('')
       setWeatherMaxTemp('')
       setWeatherTempUnit('fahrenheit')
+      setSpeakDescription(true)
     }
     onOpenChange(false)
   }
@@ -697,6 +702,25 @@ export function ChoreDialog({
                     </div>
                   )}
                 </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <SpeakerHigh className="h-5 w-5 text-muted-foreground" />
+                      <Label htmlFor="speak-description" className="text-base font-fredoka font-semibold">
+                        Speak Description
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Include description when chore is read aloud (requires speech enabled)
+                    </p>
+                  </div>
+                  <Switch
+                    id="speak-description"
+                    checked={speakDescription}
+                    onCheckedChange={setSpeakDescription}
+                  />
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -1061,6 +1085,25 @@ export function ChoreDialog({
                   </div>
                 </div>
               )}
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <SpeakerHigh className="h-5 w-5 text-muted-foreground" />
+                  <Label htmlFor="speak-description-edit" className="text-base font-fredoka font-semibold">
+                    Speak Description
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Include description when chore is read aloud (requires speech enabled)
+                </p>
+              </div>
+              <Switch
+                id="speak-description-edit"
+                checked={speakDescription}
+                onCheckedChange={setSpeakDescription}
+              />
             </div>
           </div>
         )}

@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -43,6 +43,7 @@ import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
 import { EmailSettings } from './EmailSettings'
 import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
+import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -73,6 +74,7 @@ interface ParentPanelProps {
   smtpSettings: SMTPSettings
   emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
+  speechSettings: SpeechSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -112,6 +114,7 @@ interface ParentPanelProps {
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
   onUpdateSMTPSettings: (settings: SMTPSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
+  onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -177,6 +180,8 @@ export function ParentPanel({
   onUpdateWeatherSettings,
   onUpdateSMTPSettings,
   onUpdateEmailAlertSettings,
+  speechSettings,
+  onUpdateSpeechSettings,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -829,6 +834,11 @@ export function ParentPanel({
             <CelebrationSettingsComponent 
               settings={celebrationSettings}
               onUpdate={onCelebrationSettingsChange}
+            />
+
+            <SpeechSettingsComponent
+              settings={speechSettings}
+              onUpdate={onUpdateSpeechSettings}
             />
           </div>
         </TabsContent>
