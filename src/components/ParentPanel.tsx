@@ -330,7 +330,7 @@ export function ParentPanel({
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="mx-auto p-6 max-w-6xl">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-fredoka font-bold mb-2">Parent Dashboard</h1>

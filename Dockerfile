@@ -14,12 +14,16 @@ RUN npm config set strict-ssl false
 COPY package*.json ./
 
 # Install dependencies
-# Work around npm 10.x exit handler bug in Docker
-# For multi-arch builds, optional dependencies must be explicitly included
-# Using npm install (not npm ci) to avoid the npm optional dependencies bug
-# documented in https://github.com/npm/cli/issues/4828
-# Note: package-lock.json is used when available to maintain reproducibility
-RUN timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
+# Work around npm optional dependencies bug in multi-arch builds
+# (https://github.com/npm/cli/issues/4828)
+# Strategy: Use npm ci for reproducibility, then force reinstall rollup
+# to ensure platform-specific optional dependencies are correctly resolved
+RUN timeout 300 npm ci --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
+
+# Force reinstall rollup to get correct platform-specific binaries
+# This is necessary because npm ci doesn't always correctly install optional dependencies
+# for the target architecture in multi-arch Docker builds
+RUN npm install --force rollup
 
 COPY . .
 

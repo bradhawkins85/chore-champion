@@ -13,10 +13,6 @@ try {
   console.error('failed to parse custom styles', err)
 }
 const defaultTheme = {
-  container: {
-    center: true,
-    padding: "2rem",
-  },
   extend: {
     screens: {
       coarse: { raw: "(pointer: coarse)" },
