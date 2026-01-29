@@ -10,7 +10,15 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Child } from '@/lib/types'
+import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Child, CalendarRefreshInterval } from '@/lib/types'
 import { AVATAR_COLORS } from '@/lib/helpers'
 
 interface ChildDialogProps {
@@ -26,12 +34,20 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
     editChild?.avatarColor || AVATAR_COLORS[0]
   )
   const [icsUrl, setIcsUrl] = useState(editChild?.icsUrl || '')
+  const [calendarAutoRefresh, setCalendarAutoRefresh] = useState(
+    editChild?.calendarAutoRefresh ?? false
+  )
+  const [calendarRefreshInterval, setCalendarRefreshInterval] = useState<CalendarRefreshInterval>(
+    editChild?.calendarRefreshInterval || '15min'
+  )
 
   useEffect(() => {
     if (open) {
       setName(editChild?.name || '')
       setAvatarColor(editChild?.avatarColor || AVATAR_COLORS[0])
       setIcsUrl(editChild?.icsUrl || '')
+      setCalendarAutoRefresh(editChild?.calendarAutoRefresh ?? false)
+      setCalendarRefreshInterval(editChild?.calendarRefreshInterval || '15min')
     }
   }, [open, editChild])
 
@@ -42,12 +58,16 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
       name: name.trim(),
       avatarColor,
       icsUrl: icsUrl.trim() || undefined,
+      calendarAutoRefresh,
+      calendarRefreshInterval,
     })
 
     if (!editChild) {
       setName('')
       setAvatarColor(AVATAR_COLORS[0])
       setIcsUrl('')
+      setCalendarAutoRefresh(false)
+      setCalendarRefreshInterval('15min')
     }
     onOpenChange(false)
   }
@@ -98,6 +118,48 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
               Add an ICS calendar feed to display events on the child's main page
             </p>
           </div>
+          {icsUrl && (
+            <>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="auto-refresh">Auto-refresh calendar feed</Label>
+                  <Switch
+                    id="auto-refresh"
+                    checked={calendarAutoRefresh}
+                    onCheckedChange={setCalendarAutoRefresh}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Automatically refresh the calendar feed at regular intervals
+                </p>
+              </div>
+              {calendarAutoRefresh && (
+                <div className="grid gap-2">
+                  <Label htmlFor="refresh-interval">Refresh Interval</Label>
+                  <Select
+                    value={calendarRefreshInterval}
+                    onValueChange={(value) => setCalendarRefreshInterval(value as CalendarRefreshInterval)}
+                  >
+                    <SelectTrigger id="refresh-interval">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5min">Every 5 minutes</SelectItem>
+                      <SelectItem value="15min">Every 15 minutes</SelectItem>
+                      <SelectItem value="30min">Every 30 minutes</SelectItem>
+                      <SelectItem value="1hour">Every hour</SelectItem>
+                      <SelectItem value="6hours">Every 6 hours</SelectItem>
+                      <SelectItem value="12hours">Every 12 hours</SelectItem>
+                      <SelectItem value="24hours">Every 24 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    How often to check for calendar updates
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -72,6 +72,40 @@ export function OnThisDay({
     loadICSFeed(false)
   }, [child.icsUrl])
 
+  useEffect(() => {
+    if (!child.calendarAutoRefresh || !child.icsUrl) {
+      return
+    }
+
+    const getIntervalMs = () => {
+      switch (child.calendarRefreshInterval) {
+        case '5min':
+          return 5 * 60 * 1000
+        case '15min':
+          return 15 * 60 * 1000
+        case '30min':
+          return 30 * 60 * 1000
+        case '1hour':
+          return 60 * 60 * 1000
+        case '6hours':
+          return 6 * 60 * 60 * 1000
+        case '12hours':
+          return 12 * 60 * 60 * 1000
+        case '24hours':
+          return 24 * 60 * 60 * 1000
+        default:
+          return 15 * 60 * 1000
+      }
+    }
+
+    const intervalMs = getIntervalMs()
+    const interval = setInterval(() => {
+      loadICSFeed(false)
+    }, intervalMs)
+
+    return () => clearInterval(interval)
+  }, [child.calendarAutoRefresh, child.calendarRefreshInterval, child.icsUrl])
+
   const historicalDates = useMemo(() => {
     const today = new Date()
     const currentMonth = today.getMonth()

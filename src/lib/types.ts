@@ -83,6 +83,8 @@ export interface Chore {
   approvalConfigs?: ApprovalConfig[]
 }
 
+export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'
+
 export interface Child {
   id: string
   name: string
@@ -91,6 +93,8 @@ export interface Child {
   createdAt: number
   icsUrl?: string
   calendarLastRefresh?: number
+  calendarAutoRefresh?: boolean
+  calendarRefreshInterval?: CalendarRefreshInterval
 }
 
 export interface ChoreAssignment {
