@@ -36,6 +36,7 @@ import {
   ReportTemplate,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
+import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 
 function App() {
@@ -156,8 +157,7 @@ function App() {
 
   useEffect(() => {
     if (reportTemplates && reportTemplates.length === 0) {
-      const { DEFAULT_REPORT_TEMPLATES } = require('@/lib/reportHelpers')
-      const defaultTemplates = DEFAULT_REPORT_TEMPLATES.map((template: any, index: number) => ({
+      const defaultTemplates = DEFAULT_REPORT_TEMPLATES.map((template, index: number) => ({
         ...template,
         id: `template_default_${index}`,
         createdAt: Date.now(),
