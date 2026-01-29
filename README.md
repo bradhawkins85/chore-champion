@@ -200,6 +200,90 @@
 # Build the image
 docker-compose build
 
+# Start in detached mode
+docker-compose up -d
+
+# Start with logs
+docker-compose up
+
+# Stop the containers
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Remove volumes (reset all data)
+docker-compose down -v
+```
+
+---
+
+## 📱 Progressive Web App (PWA)
+
+ChoreQuest is a fully-featured Progressive Web App that can be installed on mobile devices and desktops for an app-like experience.
+
+### ✨ PWA Features
+
+- **🚀 Offline Support** - Access chores and view progress even without internet
+- **📲 Installable** - Add to home screen on iOS, Android, and desktop
+- **⚡ Fast Loading** - Optimized caching for instant app startup
+- **🔔 Full Screen Mode** - Immersive app experience without browser UI
+- **🎯 App Shortcuts** - Quick access to Parent Mode from home screen
+
+### 📲 Installation Instructions
+
+#### **iOS (iPhone/iPad)**
+1. Open ChoreQuest in Safari
+2. Tap the Share button (square with arrow pointing up)
+3. Scroll down and tap "Add to Home Screen"
+4. Tap "Add" in the top right corner
+5. ChoreQuest will appear on your home screen like a native app
+
+#### **Android**
+1. Open ChoreQuest in Chrome
+2. Tap the menu button (three dots) in the top right
+3. Select "Install app" or "Add to Home screen"
+4. Tap "Install" in the popup
+5. ChoreQuest will appear in your app drawer
+
+#### **Desktop (Chrome/Edge)**
+1. Open ChoreQuest in Chrome or Edge
+2. Look for the install icon (⊕ or computer icon) in the address bar
+3. Click the icon and select "Install"
+4. ChoreQuest will open in its own window
+
+Alternatively, click the three-dot menu → "Install ChoreQuest"
+
+### 🎨 PWA Customization
+
+The PWA manifest is configured in `/public/manifest.json`. You can customize:
+- App name and description
+- Theme colors
+- App icons (located in `/public/icons/`)
+- Display mode (standalone, fullscreen, etc.)
+- App shortcuts
+
+### 🔄 Service Worker
+
+The service worker (`/public/service-worker.js`) handles:
+- Offline caching
+- Background sync
+- Push notifications (future feature)
+- Automatic updates
+
+When a new version is available, users will be prompted to reload the app.
+
+---
+
+## 🔧 Docker Commands
+
+```bash
+# Build the image
+docker-compose build
+
 # Start the container
 docker-compose up -d
 

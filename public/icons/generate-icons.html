@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Generate Icons</title>
+</head>
+<body>
+  <h1>Icon Generator</h1>
+  <p>Generating icons...</p>
+  <canvas id="canvas"></canvas>
+  
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const iconSVG = `<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="512" height="512" rx="128" fill="#65CC99"/>
+      <path d="M256 96C211.8 96 176 131.8 176 176V216H336V176C336 131.8 300.2 96 256 96Z" fill="white"/>
+      <rect x="144" y="216" width="224" height="200" rx="24" fill="white"/>
+      <circle cx="256" cy="296" r="32" fill="#65CC99"/>
+      <path d="M232 328L224 368H288L280 328H232Z" fill="#65CC99"/>
+      <path d="M196 248L212 280L228 248H196Z" fill="#65CC99"/>
+      <path d="M284 248L300 280L316 248H284Z" fill="#65CC99"/>
+      <rect x="232" y="368" width="48" height="32" rx="8" fill="#65CC99"/>
+    </svg>`;
+    
+    sizes.forEach(size => {
+      canvas.width = size;
+      canvas.height = size;
+      
+      const img = new Image();
+      const blob = new Blob([iconSVG], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = function() {
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        canvas.toBlob(function(blob) {
+          const link = document.createElement('a');
+          link.download = `icon-${size}x${size}.png`;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+        });
+        
+        URL.revokeObjectURL(url);
+      };
+      
+      img.src = url;
+    });
+    
+    document.body.innerHTML += '<p>Icons generated! Check your downloads folder.</p>';
+    document.body.innerHTML += '<p><strong>Note:</strong> For production, use a proper image editing tool or icon generator service to create high-quality app icons.</p>';
+  </script>
+</body>
+</html>

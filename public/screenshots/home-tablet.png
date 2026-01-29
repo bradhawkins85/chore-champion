@@ -1,0 +1,5 @@
+<svg width="1024" height="768" viewBox="0 0 1024 768" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="768" fill="#F7F9FB"/>
+  <text x="512" y="384" text-anchor="middle" font-family="Arial" font-size="32" fill="#65CC99">ChoreQuest</text>
+  <text x="512" y="424" text-anchor="middle" font-family="Arial" font-size="20" fill="#666">Tablet View</text>
+</svg>

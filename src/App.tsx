@@ -11,6 +11,9 @@ import { RewardShop } from '@/components/RewardShop'
 import { ParentPinDialog } from '@/components/ParentPinDialog'
 import { PointsHistoryView } from '@/components/PointsHistoryView'
 import { CalendarView } from '@/components/CalendarView'
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
+import { OfflineIndicator } from '@/components/OfflineIndicator'
+import { initializePWA } from '@/lib/pwaHelper'
 import {
   AppMode,
   Child,
@@ -144,6 +147,10 @@ function App() {
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
+
+  useEffect(() => {
+    initializePWA()
+  }, [])
 
   useEffect(() => {
     const checkIPAccess = async () => {
@@ -1526,6 +1533,8 @@ Please log in to ChoreQuest to approve or reject this completion.
       />
 
       <Toaster />
+      <PWAInstallPrompt />
+      <OfflineIndicator />
     </div>
   )
 }
