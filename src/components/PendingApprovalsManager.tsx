@@ -12,8 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Check, X, Clock, SunHorizon, MoonStars } from '@phosphor-icons/react'
-import { Child, Chore, ChoreCompletion } from '@/lib/types'
+import { Check, X, Clock, SunHorizon, MoonStars, PaperPlaneTilt } from '@phosphor-icons/react'
+import { Child, Chore, ChoreCompletion, EmailAlertSettings } from '@/lib/types'
 
 interface PendingApprovalsManagerProps {
   childrenList: Child[]
@@ -21,6 +21,9 @@ interface PendingApprovalsManagerProps {
   completions: ChoreCompletion[]
   onApprove: (completionId: string) => void
   onReject: (completionId: string, reason?: string) => void
+  emailAlertSettings: EmailAlertSettings
+  pendingDigestItems: any[]
+  onSendDigestNow: () => void
 }
 
 export function PendingApprovalsManager({
@@ -29,6 +32,9 @@ export function PendingApprovalsManager({
   completions,
   onApprove,
   onReject,
+  emailAlertSettings,
+  pendingDigestItems,
+  onSendDigestNow,
 }: PendingApprovalsManagerProps) {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [selectedCompletion, setSelectedCompletion] = useState<ChoreCompletion | null>(null)
@@ -37,6 +43,19 @@ export function PendingApprovalsManager({
   const pendingCompletions = completions
     .filter((c) => c.approvalStatus === 'pending')
     .sort((a, b) => a.completedAt - b.completedAt)
+
+  const getDigestModeLabel = (mode: string): string => {
+    switch (mode) {
+      case 'immediate': return 'Immediate'
+      case '15min': return 'Every 15 minutes'
+      case '30min': return 'Every 30 minutes'
+      case '1hour': return 'Every 1 hour'
+      case '2hours': return 'Every 2 hours'
+      case '4hours': return 'Every 4 hours'
+      case 'daily': return 'Once daily'
+      default: return 'Immediate'
+    }
+  }
 
   const handleRejectClick = (completion: ChoreCompletion) => {
     setSelectedCompletion(completion)
@@ -77,22 +96,71 @@ export function PendingApprovalsManager({
 
   if (pendingCompletions.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Check className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-lg text-muted-foreground mb-2">
-            All caught up!
-          </p>
-          <p className="text-sm text-muted-foreground">
-            No chores are pending approval right now.
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        {emailAlertSettings.digestMode !== 'immediate' && pendingDigestItems.length > 0 && (
+          <Card className="mb-4 border-primary/50 bg-primary/5">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">
+                      {pendingDigestItems.length} approval{pendingDigestItems.length > 1 ? 's' : ''} queued for digest
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Digest mode: {getDigestModeLabel(emailAlertSettings.digestMode)}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={onSendDigestNow} size="sm">
+                  <PaperPlaneTilt className="h-4 w-4 mr-2" />
+                  Send Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Check className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-lg text-muted-foreground mb-2">
+              All caught up!
+            </p>
+            <p className="text-sm text-muted-foreground">
+              No chores are pending approval right now.
+            </p>
+          </CardContent>
+        </Card>
+      </>
     )
   }
 
   return (
     <>
+      {emailAlertSettings.digestMode !== 'immediate' && pendingDigestItems.length > 0 && (
+        <Card className="mb-4 border-primary/50 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">
+                    {pendingDigestItems.length} approval{pendingDigestItems.length > 1 ? 's' : ''} queued for digest
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Digest mode: {getDigestModeLabel(emailAlertSettings.digestMode)}
+                  </p>
+                </div>
+              </div>
+              <Button onClick={onSendDigestNow} size="sm">
+                <PaperPlaneTilt className="h-4 w-4 mr-2" />
+                Send Now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <div className="space-y-3">
         {pendingCompletions.map((completion) => {
           const child = childrenList.find((c) => c.id === completion.childId)

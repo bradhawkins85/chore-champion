@@ -129,7 +129,10 @@ function App() {
     weeklyReportAlerts: false,
     pendingApprovalAlerts: false,
     recipientEmails: [],
+    digestMode: 'immediate',
+    lastDigestSent: null,
   })
+  const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -504,7 +507,7 @@ function App() {
       toast.info('Chore marked for parent approval', {
         description: 'Points will be awarded after approval',
       })
-      sendPendingApprovalEmail(childId, choreId)
+      sendPendingApprovalEmail(childId, choreId, completionId)
     }
 
     if (!requiresApproval) {
@@ -1031,7 +1034,7 @@ Please fulfill this reward when you get a chance!
     })
   }
 
-  const sendPendingApprovalEmail = async (childId: string, choreId: string) => {
+  const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
     if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
       return
     }
@@ -1045,8 +1048,9 @@ Please fulfill this reward when you get a chance!
 
     if (!child || !chore) return
 
-    const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
-    const emailBody = `
+    if (emailAlertSettings.digestMode === 'immediate') {
+      const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
+      const emailBody = `
 ${child.name} has completed a chore that requires your approval:
 
 Chore Details:
@@ -1056,17 +1060,137 @@ Chore Details:
 - Time: ${new Date().toLocaleString()}
 
 Please log in to ChoreQuest to approve or reject this completion.
-    `.trim()
+      `.trim()
 
-    console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
+      console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
+      console.log('Subject:', emailSubject)
+      console.log('Body:', emailBody)
+      console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+
+      toast.info('Approval notification sent to parents', {
+        description: `${child.name}'s chore pending approval`,
+      })
+    } else {
+      setPendingDigestItems((current) => [
+        ...(current || []),
+        {
+          childId,
+          choreId,
+          completionId,
+          timestamp: Date.now(),
+        },
+      ])
+    }
+  }
+
+  const sendDigestEmail = async () => {
+    if (!pendingDigestItems || pendingDigestItems.length === 0) {
+      return
+    }
+
+    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+      return
+    }
+
+    if (emailAlertSettings.recipientEmails.length === 0) {
+      return
+    }
+
+    const groupedByChild = new Map<string, any[]>()
+    
+    for (const item of pendingDigestItems) {
+      if (!groupedByChild.has(item.childId)) {
+        groupedByChild.set(item.childId, [])
+      }
+      groupedByChild.get(item.childId)!.push(item)
+    }
+
+    let emailBody = `You have ${pendingDigestItems.length} chore${pendingDigestItems.length > 1 ? 's' : ''} pending approval:\n\n`
+
+    for (const [childId, items] of groupedByChild.entries()) {
+      const child = (childrenList || []).find((c) => c.id === childId)
+      if (!child) continue
+
+      emailBody += `${child.name}:\n`
+      
+      for (const item of items) {
+        const chore = (migratedChores || []).find((c) => c.id === item.choreId)
+        if (!chore) continue
+        
+        const timeStr = new Date(item.timestamp).toLocaleString()
+        emailBody += `  - ${chore.name} (${chore.points} points) - ${timeStr}\n`
+      }
+      
+      emailBody += '\n'
+    }
+
+    emailBody += 'Please log in to ChoreQuest to approve or reject these completions.'
+
+    const emailSubject = `⏳ ${pendingDigestItems.length} Chore${pendingDigestItems.length > 1 ? 's' : ''} Pending Approval`
+
+    console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
     console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
 
-    toast.info('Approval notification sent to parents', {
-      description: `${child.name}'s chore pending approval`,
+    setPendingDigestItems([])
+    
+    setEmailAlertSettings((current) => ({
+      ...(current || {
+        rewardPurchaseAlerts: false,
+        choreCompletionAlerts: false,
+        weeklyReportAlerts: false,
+        pendingApprovalAlerts: false,
+        recipientEmails: [],
+        digestMode: 'immediate',
+        lastDigestSent: null,
+      }),
+      lastDigestSent: Date.now(),
+    }))
+
+    toast.success('Digest email sent to parents', {
+      description: `${pendingDigestItems.length} pending approval${pendingDigestItems.length > 1 ? 's' : ''} notified`,
     })
   }
+
+  const getDigestIntervalMs = (interval: string): number => {
+    switch (interval) {
+      case '15min': return 15 * 60 * 1000
+      case '30min': return 30 * 60 * 1000
+      case '1hour': return 60 * 60 * 1000
+      case '2hours': return 2 * 60 * 60 * 1000
+      case '4hours': return 4 * 60 * 60 * 1000
+      case 'daily': return 24 * 60 * 60 * 1000
+      default: return 0
+    }
+  }
+
+  useEffect(() => {
+    if (!emailAlertSettings || emailAlertSettings.digestMode === 'immediate') {
+      return
+    }
+
+    if (!pendingDigestItems || pendingDigestItems.length === 0) {
+      return
+    }
+
+    const intervalMs = getDigestIntervalMs(emailAlertSettings.digestMode)
+    if (intervalMs === 0) return
+
+    const lastSent = emailAlertSettings.lastDigestSent || 0
+    const timeSinceLastSend = Date.now() - lastSent
+    
+    if (timeSinceLastSend >= intervalMs) {
+      sendDigestEmail()
+    } else {
+      const timeout = setTimeout(() => {
+        sendDigestEmail()
+      }, intervalMs - timeSinceLastSend)
+
+      return () => clearTimeout(timeout)
+    }
+  }, [pendingDigestItems, emailAlertSettings?.digestMode, emailAlertSettings?.lastDigestSent])
+
 
   const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
     const newTemplate: ReportTemplate = {
@@ -1214,7 +1338,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           reportTemplates={reportTemplates || []}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
-          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [] }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
+          pendingDigestItems={pendingDigestItems || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1249,6 +1374,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
+          onSendDigestNow={sendDigestEmail}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

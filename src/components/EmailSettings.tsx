@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Envelope, Check, Warning } from '@phosphor-icons/react'
-import { SMTPSettings, EmailAlertSettings } from '@/lib/types'
+import { Envelope, Check, Warning, Clock } from '@phosphor-icons/react'
+import { SMTPSettings, EmailAlertSettings, DigestInterval } from '@/lib/types'
 
 interface EmailSettingsProps {
   smtpSettings: SMTPSettings
@@ -135,6 +136,27 @@ export function EmailSettings({
       [type]: enabled,
     })
     toast.success(enabled ? 'Alert enabled' : 'Alert disabled')
+  }
+
+  const handleDigestModeChange = (mode: DigestInterval) => {
+    onUpdateEmailAlertSettings({
+      ...emailAlertSettings,
+      digestMode: mode,
+    })
+    toast.success('Digest mode updated')
+  }
+
+  const getDigestModeLabel = (mode: DigestInterval): string => {
+    switch (mode) {
+      case 'immediate': return 'Immediate (Send right away)'
+      case '15min': return 'Every 15 minutes'
+      case '30min': return 'Every 30 minutes'
+      case '1hour': return 'Every 1 hour'
+      case '2hours': return 'Every 2 hours'
+      case '4hours': return 'Every 4 hours'
+      case 'daily': return 'Once daily'
+      default: return 'Immediate'
+    }
   }
 
   return (
@@ -377,6 +399,44 @@ export function EmailSettings({
               }
             />
           </div>
+
+          {emailAlertSettings.pendingApprovalAlerts && (
+            <>
+              <Separator />
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label>Digest Mode</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Combine multiple pending approvals into a single email
+                </p>
+                <Select
+                  value={emailAlertSettings.digestMode}
+                  onValueChange={(value) => handleDigestModeChange(value as DigestInterval)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select digest mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="immediate">Immediate (Send right away)</SelectItem>
+                    <SelectItem value="15min">Every 15 minutes</SelectItem>
+                    <SelectItem value="30min">Every 30 minutes</SelectItem>
+                    <SelectItem value="1hour">Every 1 hour</SelectItem>
+                    <SelectItem value="2hours">Every 2 hours</SelectItem>
+                    <SelectItem value="4hours">Every 4 hours</SelectItem>
+                    <SelectItem value="daily">Once daily</SelectItem>
+                  </SelectContent>
+                </Select>
+                {emailAlertSettings.digestMode !== 'immediate' && (
+                  <p className="text-xs text-muted-foreground">
+                    Pending approvals will be grouped and sent {getDigestModeLabel(emailAlertSettings.digestMode).toLowerCase()}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <Separator />
 

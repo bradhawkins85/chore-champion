@@ -454,10 +454,21 @@ export interface SMTPSettings {
   fromName: string
 }
 
+export type DigestInterval = 'immediate' | '15min' | '30min' | '1hour' | '2hours' | '4hours' | 'daily'
+
 export interface EmailAlertSettings {
   rewardPurchaseAlerts: boolean
   choreCompletionAlerts: boolean
   weeklyReportAlerts: boolean
   pendingApprovalAlerts: boolean
   recipientEmails: string[]
+  digestMode: DigestInterval
+  lastDigestSent: number | null
+}
+
+export interface PendingDigestItem {
+  childId: string
+  choreId: string
+  completionId: string
+  timestamp: number
 }

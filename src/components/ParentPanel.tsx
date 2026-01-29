@@ -70,6 +70,7 @@ interface ParentPanelProps {
   weatherSettings: WeatherSettings
   smtpSettings: SMTPSettings
   emailAlertSettings: EmailAlertSettings
+  pendingDigestItems: any[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -112,6 +113,7 @@ interface ParentPanelProps {
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
+  onSendDigestNow: () => void
   onExitParentMode: () => void
 }
 
@@ -136,6 +138,7 @@ export function ParentPanel({
   weatherSettings,
   smtpSettings,
   emailAlertSettings,
+  pendingDigestItems,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -174,6 +177,7 @@ export function ParentPanel({
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
+  onSendDigestNow,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -443,6 +447,9 @@ export function ParentPanel({
             completions={completions}
             onApprove={onApproveCompletion}
             onReject={onRejectCompletion}
+            emailAlertSettings={emailAlertSettings}
+            pendingDigestItems={pendingDigestItems}
+            onSendDigestNow={onSendDigestNow}
           />
         </TabsContent>
 
