@@ -119,17 +119,15 @@ function App() {
         deviceFingerprint: fingerprint,
         createdAt: Date.now(),
         lastSeen: Date.now(),
-        allowedChildIds: isFirstDevice ? (childrenList || []).map(c => c.id) : [],
         parentModeEnabled: true,
-      }
+        parentModeEnabled: true,
       setDevices((current) => [...(current || []), newDevice])
       setCurrentDeviceId(newDevice.id)
       deviceInitialized.current = true
     }
   }, [devices, childrenList, setDevices])
-
   useEffect(() => {
-    const checkIPAccess = async () => {
+
       setIsCheckingIP(true)
       const ip = await getUserIPAddress()
       setCurrentIP(ip)
