@@ -555,7 +555,7 @@ function App() {
   const handleAddReward = (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
     const categoryIdsArray = Array.isArray(rewardData.categoryIds) ? [...rewardData.categoryIds] : []
     
-    
+    const newReward: Reward = {
       ...rewardData,
       id: `reward_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
