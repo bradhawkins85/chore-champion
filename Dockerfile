@@ -15,7 +15,8 @@ COPY package*.json ./
 
 # Install dependencies
 # Work around npm 10.x exit handler bug in Docker
-RUN timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
+# Include optional dependencies for native modules (needed for ARM builds)
+RUN timeout 300 npm install --legacy-peer-deps --include=optional || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 COPY . .
 
