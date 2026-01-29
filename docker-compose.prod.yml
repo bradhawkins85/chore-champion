@@ -38,6 +38,9 @@ services:
           memory: 128M
 
   api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     image: ${DOCKER_API_IMAGE:-chorequest-api:latest}
     container_name: chorequest-api
     restart: always
@@ -80,6 +83,11 @@ services:
           memory: 128M
 
   chorequest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
     image: ${DOCKER_IMAGE:-chorequest:latest}
     container_name: chorequest-app
     restart: always

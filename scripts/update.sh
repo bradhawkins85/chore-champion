@@ -28,14 +28,14 @@ echo "Pulling latest code/image..."
 if [ -f Dockerfile ]; then
     git pull || echo "Not a git repository, skipping pull"
     echo "Building new image..."
-    docker-compose -f docker-compose.prod.yml build --no-cache
+    docker compose -f docker-compose.prod.yml build --no-cache
 else
-    docker-compose -f docker-compose.prod.yml pull
+    docker compose -f docker-compose.prod.yml pull
 fi
 
 echo ""
 echo "Recreating containers..."
-docker-compose -f docker-compose.prod.yml up -d --force-recreate
+docker compose -f docker-compose.prod.yml up -d --force-recreate
 
 echo ""
 echo "Cleaning up old images..."

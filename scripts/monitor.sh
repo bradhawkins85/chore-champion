@@ -36,7 +36,7 @@ check_container_running() {
         log "ERROR: Container is not running"
         send_alert "Container Down" "ChoreQuest container is not running. Attempting restart..."
         
-        docker-compose -f docker-compose.prod.yml up -d
+        docker compose -f docker-compose.prod.yml up -d
         sleep 10
         
         if docker ps | grep -q "$CONTAINER_NAME"; then

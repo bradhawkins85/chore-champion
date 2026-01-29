@@ -16,11 +16,11 @@ check_requirements() {
         echo "✅ Docker found: $(docker --version)"
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    if ! docker compose version &> /dev/null; then
         echo "❌ Docker Compose is not installed"
         missing=1
     else
-        echo "✅ Docker Compose found: $(docker-compose --version)"
+        echo "✅ Docker Compose found: $(docker compose version)"
     fi
     
     if ! command -v node &> /dev/null; then
@@ -70,16 +70,16 @@ deploy_docker_compose() {
     fi
     
     echo "Building and starting containers..."
-    docker-compose up -d --build
+    docker compose up -d --build
     
     echo ""
     echo "✅ ChoreQuest is now running!"
     echo "🌐 Access at: http://localhost:8080"
     echo ""
     echo "Useful commands:"
-    echo "  View logs:    docker-compose logs -f"
-    echo "  Stop:         docker-compose down"
-    echo "  Restart:      docker-compose restart"
+    echo "  View logs:    docker compose logs -f"
+    echo "  Stop:         docker compose down"
+    echo "  Restart:      docker compose restart"
     echo ""
 }
 
