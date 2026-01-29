@@ -731,6 +731,9 @@ function App() {
               rewards={rewards || []}
               categoryPoints={childCategoryPoints}
               categories={categories || []}
+              assignments={assignments || []}
+              chores={migratedChores || []}
+              completions={completions || []}
               onSelect={setSelectedChild}
               onParentMode={handleOpenParentMode}
             />

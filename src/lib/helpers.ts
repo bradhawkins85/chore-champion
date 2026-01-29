@@ -668,3 +668,101 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
     description: 'Special chores for extra rewards',
   },
 ]
+
+export function getNextUpcomingChore(
+  childId: string,
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>,
+  completions: ChoreCompletion[]
+): { chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' } | null {
+  const currentMinutes = getCurrentTimeInMinutes()
+  const currentTimeOfDay = getCurrentTimeOfDay()
+  
+  const childAssignments = assignments.filter(
+    (a) => a.childId === childId && isChoreActive(a) && isChoreActiveToday(a)
+  )
+
+  const upcomingChores = childAssignments
+    .map((assignment) => {
+      const chore = choresMap.get(assignment.choreId)
+      if (!chore) return null
+
+      const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
+      const effectiveTimeWindow = assignment.timeWindow || chore.timeWindow
+
+      if (chore.completionType === 'once-per-day') {
+        const completedByAnyone = isChoreCompletedByAnyChildToday(completions, chore.id)
+        if (completedByAnyone) return null
+      }
+
+      if (effectiveTimeOfDay === 'both') {
+        const amCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'am')
+        const pmCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'pm')
+        
+        if (!amCompleted && currentTimeOfDay === 'am') {
+          return { chore, assignment, timeOfDay: 'am' as const, effectiveTimeWindow, sortTime: 0 }
+        }
+        if (!pmCompleted && currentTimeOfDay === 'pm') {
+          return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
+        }
+        if (!amCompleted && currentTimeOfDay === 'pm') {
+          return null
+        }
+        if (!pmCompleted && currentTimeOfDay === 'am') {
+          return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
+        }
+        return null
+      }
+
+      if (effectiveTimeOfDay === 'am') {
+        if (currentTimeOfDay === 'pm') return null
+        const completed = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'am')
+        if (completed) return null
+        return { chore, assignment, timeOfDay: 'am' as const, effectiveTimeWindow, sortTime: 0 }
+      }
+
+      if (effectiveTimeOfDay === 'pm') {
+        if (currentTimeOfDay === 'am') {
+          return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
+        }
+        const completed = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'pm')
+        if (completed) return null
+        return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
+      }
+
+      const completed = isChoreCompletedToday(completions, chore.id, childId, effectiveTimeOfDay)
+      if (completed) return null
+
+      let sortTime = currentMinutes
+      if (effectiveTimeWindow) {
+        const startMinutes = timeToMinutes(effectiveTimeWindow.startTime)
+        if (startMinutes !== Infinity) {
+          sortTime = startMinutes
+        }
+      } else if (chore.desiredTime) {
+        const desiredMinutes = timeToMinutes(chore.desiredTime)
+        if (desiredMinutes !== Infinity) {
+          sortTime = desiredMinutes
+        }
+      }
+
+      return { chore, assignment, effectiveTimeWindow, sortTime }
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+
+  upcomingChores.sort((a, b) => {
+    if (a.effectiveTimeWindow && !b.effectiveTimeWindow) return -1
+    if (!a.effectiveTimeWindow && b.effectiveTimeWindow) return 1
+    
+    return a.sortTime - b.sortTime
+  })
+
+  if (upcomingChores.length === 0) return null
+
+  const firstChore = upcomingChores[0]
+  return {
+    chore: firstChore.chore,
+    assignment: firstChore.assignment,
+    timeOfDay: firstChore.timeOfDay,
+  }
+}

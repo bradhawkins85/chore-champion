@@ -4,9 +4,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Gear, Trophy } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category } from '@/lib/types'
-import { getRewardCostForChild } from '@/lib/helpers'
+import { Gear, Trophy, Clock } from '@phosphor-icons/react'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion } from '@/lib/types'
+import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration } from '@/lib/helpers'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -18,6 +18,9 @@ interface ChildSelectorProps {
   rewards?: Reward[]
   categoryPoints?: Map<string, Map<string, number>>
   categories?: Category[]
+  assignments?: ChoreAssignment[]
+  chores?: Chore[]
+  completions?: ChoreCompletion[]
 }
 
 export function ChildSelector({ 
@@ -30,6 +33,9 @@ export function ChildSelector({
   rewards = [],
   categoryPoints,
   categories = [],
+  assignments = [],
+  chores = [],
+  completions = [],
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
 
@@ -89,6 +95,9 @@ export function ChildSelector({
             const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id) : 0
             const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
             const childCategoryPoints = categoryPoints?.get(child.id)
+            
+            const choresMap = new Map(chores.map(c => [c.id, c]))
+            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions)
 
             return (
               <motion.div
@@ -137,6 +146,33 @@ export function ChildSelector({
                             </Badge>
                           )
                         })}
+                      </div>
+                    )}
+                    
+                    {nextChore && (
+                      <div className="mt-4 pt-4 border-t space-y-1">
+                        <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
+                          <Clock className="h-4 w-4" weight="fill" />
+                          <span>Next Up:</span>
+                        </div>
+                        <p className="text-base font-fredoka font-semibold text-foreground">
+                          {nextChore.chore.name}
+                        </p>
+                        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                          {nextChore.timeOfDay && (
+                            <Badge variant="secondary" className="text-xs">
+                              {nextChore.timeOfDay.toUpperCase()}
+                            </Badge>
+                          )}
+                          {(nextChore.assignment.timeWindow || nextChore.chore.timeWindow) && (
+                            <span>
+                              {formatTime12Hour((nextChore.assignment.timeWindow || nextChore.chore.timeWindow)!.startTime)}
+                            </span>
+                          )}
+                          {nextChore.chore.estimatedDuration && (
+                            <span>• {formatDuration(nextChore.chore.estimatedDuration)}</span>
+                          )}
+                        </div>
                       </div>
                     )}
                     
