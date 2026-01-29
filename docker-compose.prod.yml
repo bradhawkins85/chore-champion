@@ -1,6 +1,86 @@
 version: '3.9'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: chorequest-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - chorequest-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.chorequest.service=database"
+      - "com.chorequest.environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  api:
+    image: ${DOCKER_API_IMAGE:-chorequest-api:latest}
+    container_name: chorequest-api
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - TZ=${TIMEZONE:-UTC}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - chorequest-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.chorequest.service=api"
+      - "com.chorequest.environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
   chorequest:
     image: ${DOCKER_IMAGE:-chorequest:latest}
     container_name: chorequest-app
@@ -10,10 +90,14 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=${TIMEZONE:-UTC}
+      - VITE_API_URL=http://api:3000/api
     volumes:
       - chorequest-data:/usr/share/nginx/html/data
       - chorequest-backups:/backups:ro
       - ./custom-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -89,3 +173,10 @@ volumes:
       type: none
       o: bind
       device: ${BACKUP_PATH:-./backups}
+  mysql-data:
+    name: mysql-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MYSQL_DATA_PATH:-./mysql-data}

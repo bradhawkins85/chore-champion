@@ -39,6 +39,7 @@ pids
 # Docker volumes and data
 data/
 backups/
+mysql-data/
 *.tar.gz
 
 # Docker and deployment
