@@ -89,6 +89,7 @@ export interface Child {
   avatarColor: string
   totalPoints: number
   createdAt: number
+  icsUrl?: string
 }
 
 export interface ChoreAssignment {

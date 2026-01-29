@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +25,15 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
   const [avatarColor, setAvatarColor] = useState(
     editChild?.avatarColor || AVATAR_COLORS[0]
   )
+  const [icsUrl, setIcsUrl] = useState(editChild?.icsUrl || '')
+
+  useEffect(() => {
+    if (open) {
+      setName(editChild?.name || '')
+      setAvatarColor(editChild?.avatarColor || AVATAR_COLORS[0])
+      setIcsUrl(editChild?.icsUrl || '')
+    }
+  }, [open, editChild])
 
   const handleSave = () => {
     if (!name.trim()) return
@@ -32,11 +41,13 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
     onSave({
       name: name.trim(),
       avatarColor,
+      icsUrl: icsUrl.trim() || undefined,
     })
 
     if (!editChild) {
       setName('')
       setAvatarColor(AVATAR_COLORS[0])
+      setIcsUrl('')
     }
     onOpenChange(false)
   }
@@ -73,6 +84,19 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
                 />
               ))}
             </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ics-url">Calendar Feed URL (Optional)</Label>
+            <Input
+              id="ics-url"
+              value={icsUrl}
+              onChange={(e) => setIcsUrl(e.target.value)}
+              placeholder="https://calendar.example.com/events.ics"
+              type="url"
+            />
+            <p className="text-xs text-muted-foreground">
+              Add an ICS calendar feed to display events on the child's main page
+            </p>
           </div>
         </div>
         <DialogFooter>

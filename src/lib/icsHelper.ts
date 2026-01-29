@@ -7,7 +7,160 @@ export interface CalendarEvent {
   date: Date
   points?: number
   categoryColors?: string[]
-  type: 'completion' | 'milestone'
+  type: 'completion' | 'milestone' | 'calendar'
+  location?: string
+  endDate?: Date
+}
+
+export interface ICSEvent {
+  uid: string
+  summary: string
+  description?: string
+  dtstart: Date
+  dtend?: Date
+  location?: string
+  rrule?: string
+}
+
+export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ICS feed: ${response.statusText}`)
+    }
+    const icsText = await response.text()
+    return parseICS(icsText)
+  } catch (error) {
+    console.error('Error fetching ICS feed:', error)
+    return []
+  }
+}
+
+export function parseICS(icsText: string): ICSEvent[] {
+  const events: ICSEvent[] = []
+  const lines = icsText.split(/\r?\n/)
+  
+  let inEvent = false
+  let currentEvent: Partial<ICSEvent> = {}
+  let currentField = ''
+  let currentValue = ''
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim()
+    
+    if (line.startsWith(' ') || line.startsWith('\t')) {
+      currentValue += line.substring(1)
+      continue
+    }
+    
+    if (currentField && currentValue) {
+      processField(currentEvent, currentField, currentValue)
+      currentField = ''
+      currentValue = ''
+    }
+    
+    if (line === 'BEGIN:VEVENT') {
+      inEvent = true
+      currentEvent = {}
+    } else if (line === 'END:VEVENT') {
+      if (currentEvent.uid && currentEvent.summary && currentEvent.dtstart) {
+        events.push(currentEvent as ICSEvent)
+      }
+      inEvent = false
+      currentEvent = {}
+    } else if (inEvent && line.includes(':')) {
+      const colonIndex = line.indexOf(':')
+      currentField = line.substring(0, colonIndex)
+      currentValue = line.substring(colonIndex + 1)
+    }
+  }
+  
+  return events
+}
+
+function processField(event: Partial<ICSEvent>, field: string, value: string) {
+  const fieldName = field.split(';')[0]
+  
+  switch (fieldName) {
+    case 'UID':
+      event.uid = value
+      break
+    case 'SUMMARY':
+      event.summary = value
+      break
+    case 'DESCRIPTION':
+      event.description = value.replace(/\\n/g, '\n').replace(/\\,/g, ',')
+      break
+    case 'DTSTART':
+      event.dtstart = parseICSDate(value, field)
+      break
+    case 'DTEND':
+      event.dtend = parseICSDate(value, field)
+      break
+    case 'LOCATION':
+      event.location = value
+      break
+    case 'RRULE':
+      event.rrule = value
+      break
+  }
+}
+
+function parseICSDate(value: string, field: string): Date {
+  const isDate = field.includes('VALUE=DATE')
+  
+  if (isDate) {
+    const year = parseInt(value.substring(0, 4))
+    const month = parseInt(value.substring(4, 6)) - 1
+    const day = parseInt(value.substring(6, 8))
+    return new Date(year, month, day)
+  }
+  
+  if (value.endsWith('Z')) {
+    const year = parseInt(value.substring(0, 4))
+    const month = parseInt(value.substring(4, 6)) - 1
+    const day = parseInt(value.substring(6, 8))
+    const hour = parseInt(value.substring(9, 11))
+    const minute = parseInt(value.substring(11, 13))
+    const second = parseInt(value.substring(13, 15))
+    return new Date(Date.UTC(year, month, day, hour, minute, second))
+  }
+  
+  const year = parseInt(value.substring(0, 4))
+  const month = parseInt(value.substring(4, 6)) - 1
+  const day = parseInt(value.substring(6, 8))
+  const hour = value.length > 8 ? parseInt(value.substring(9, 11)) : 0
+  const minute = value.length > 8 ? parseInt(value.substring(11, 13)) : 0
+  const second = value.length > 8 ? parseInt(value.substring(13, 15)) : 0
+  return new Date(year, month, day, hour, minute, second)
+}
+
+export function getICSEventsForToday(icsEvents: ICSEvent[]): CalendarEvent[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  const calendarEvents: CalendarEvent[] = []
+  
+  icsEvents.forEach(event => {
+    const eventDate = new Date(event.dtstart)
+    eventDate.setHours(0, 0, 0, 0)
+    
+    if (eventDate.getTime() === today.getTime()) {
+      calendarEvents.push({
+        id: event.uid,
+        title: event.summary,
+        description: event.description,
+        date: event.dtstart,
+        endDate: event.dtend,
+        location: event.location,
+        type: 'calendar'
+      })
+    }
+  })
+  
+  return calendarEvents
 }
 
 export function getEventsForDate(
