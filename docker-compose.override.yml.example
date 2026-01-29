@@ -1,0 +1,46 @@
+# Docker Compose Override Example
+# Copy this to docker-compose.override.yml and customize
+
+version: '3.9'
+
+services:
+  chorequest:
+    # Override port mapping
+    ports:
+      - "80:80"
+    
+    # Add custom environment variables
+    environment:
+      - CUSTOM_VAR=value
+    
+    # Add additional volume mounts
+    volumes:
+      - ./custom-config:/config
+    
+    # Override resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # Add custom labels
+    labels:
+      - "custom.label=value"
+
+  # Add custom services (e.g., monitoring)
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus-data:/prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - chorequest-network
+
+# volumes:
+#   prometheus-data:

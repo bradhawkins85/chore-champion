@@ -96,7 +96,9 @@
 
 ### 🐳 Docker Installation (Recommended)
 
-ChoreQuest includes a complete Docker setup with automated CI/CD pipelines.
+ChoreQuest is designed for easy deployment using Docker with full volume persistence and automated backups.
+
+#### **Quick Start (Development)**
 
 1. **Clone the repository**
    ```bash
@@ -104,44 +106,144 @@ ChoreQuest includes a complete Docker setup with automated CI/CD pipelines.
    cd chorequest
    ```
 
-2. **Quick Start with Docker Compose**
+2. **Start with Docker Compose**
    ```bash
-   # Build and start the application
    docker-compose up -d
-   
-   # Access the application
+   ```
+
+3. **Access the application**
+   ```bash
    open http://localhost:8080
    ```
 
-3. **Using the Deploy Script**
+#### **Production Deployment**
+
+1. **Initialize environment**
    ```bash
-   # Make script executable
-   chmod +x scripts/deploy.sh
-   
-   # Build and start
-   ./scripts/deploy.sh start
-   
-   # View logs
-   ./scripts/deploy.sh logs
-   
-   # Stop application
-   ./scripts/deploy.sh stop
+   make init
+   # Or manually:
+   cp .env.example .env
+   nano .env  # Configure your settings
    ```
 
-4. **Using Pre-built Images**
+2. **Deploy with backups**
    ```bash
-   # Pull from GitHub Container Registry
-   docker pull ghcr.io/OWNER/chorequest:latest
-   
-   # Run the container
-   docker run -d \
-     --name chorequest \
-     -p 8080:80 \
-     --restart unless-stopped \
-     ghcr.io/OWNER/chorequest:latest
+   make deploy
+   # Or manually:
+   ./scripts/deploy.sh
    ```
 
-### 🔧 Docker Commands
+3. **Production features include:**
+   - ✅ Persistent data storage with Docker volumes
+   - ✅ Automated daily backups
+   - ✅ Health monitoring
+   - ✅ Resource limits
+   - ✅ Logging configuration
+
+#### **Production with SSL (Traefik)**
+
+For public-facing deployments with automatic SSL certificates:
+
+1. **Configure DNS** - Point your domain to your server
+
+2. **Set environment variables**
+   ```bash
+   # In .env
+   DOMAIN=chorequest.example.com
+   ACME_EMAIL=admin@example.com
+   ```
+
+3. **Deploy with Traefik**
+   ```bash
+   make up-traefik
+   # Or:
+   docker-compose -f docker-compose.traefik.yml up -d
+   ```
+
+4. **Access securely**
+   ```
+   https://chorequest.example.com
+   ```
+
+#### **Using Pre-built Images**
+
+Pull and run pre-built images from GitHub Container Registry:
+
+```bash
+# Pull latest image
+docker pull ghcr.io/OWNER/chorequest:latest
+
+# Run with persistent storage
+docker run -d \
+  --name chorequest \
+  -p 8080:80 \
+  -v chorequest-data:/usr/share/nginx/html/data \
+  --restart unless-stopped \
+  ghcr.io/OWNER/chorequest:latest
+```
+
+### 📦 Volume Persistence
+
+ChoreQuest stores all data in Docker volumes for persistence:
+
+```bash
+# View volume location
+docker volume inspect chorequest-data
+
+# Backup data
+docker run --rm \
+  -v chorequest-data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar -czf /backup/chorequest-backup.tar.gz -C /data .
+
+# Restore data
+docker run --rm \
+  -v chorequest-data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar -xzf /backup/chorequest-backup.tar.gz -C /data
+```
+
+### 🔄 Automated Backups
+
+Production deployment includes automated backup service:
+
+```bash
+# View backup logs
+docker logs chorequest-backup
+
+# List backups
+ls -lh backups/
+
+# Manual backup
+make backup
+# Or:
+docker exec chorequest-backup /scripts/backup.sh
+
+# Restore from backup
+make restore BACKUP=chorequest_backup_20240101_020000.tar.gz
+```
+
+### 🛠️ Docker Management (Makefile)
+
+Use the included Makefile for common operations:
+
+```bash
+# Show available commands
+make help
+
+# Common commands
+make up          # Start development
+make up-prod     # Start production
+make up-traefik  # Start with SSL
+make logs        # View logs
+make health      # Health check
+make backup      # Create backup
+make update      # Update to latest version
+make restart     # Restart services
+make clean       # Clean up Docker resources
+```
+
+### 🔧 Manual Docker Commands
 
 ```bash
 # Build the image
@@ -159,9 +261,19 @@ docker-compose logs -f
 # Restart the container
 docker-compose restart
 
-# Remove everything including volumes
-docker-compose down -v
+# View resource usage
+docker stats chorequest-app
+
+# Shell access
+docker exec -it chorequest-app sh
 ```
+
+### 📚 Detailed Documentation
+
+For comprehensive deployment documentation, see:
+- **[DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md)** - Complete Docker deployment guide
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - CI/CD and production deployment
+- **[CI-CD.md](./CI-CD.md)** - GitHub Actions workflows
 
 ### 🔄 CI/CD Pipeline
 
@@ -174,28 +286,16 @@ ChoreQuest includes automated GitHub Actions workflows:
 
 #### 🔑 GitHub Secrets Setup
 
-To enable Docker Hub publishing (optional), you need to configure GitHub repository secrets:
+To enable Docker Hub publishing (optional), configure repository secrets:
 
 1. **Required Secrets:**
    - `DOCKERHUB_USERNAME` - Your Docker Hub username
    - `DOCKERHUB_TOKEN` - Docker Hub access token
 
 2. **Setup Instructions:**
-   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for detailed step-by-step guide
-   - Or follow the quick steps below
-
-**Quick Setup:**
-```bash
-# 1. Create Docker Hub access token at hub.docker.com
-# 2. Add secrets to GitHub repository:
-#    Settings → Secrets and variables → Actions → New repository secret
-#    - Name: DOCKERHUB_USERNAME, Value: your-dockerhub-username
-#    - Name: DOCKERHUB_TOKEN, Value: your-access-token
-```
+   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for detailed guide
 
 **Note:** If Docker Hub secrets are not configured, images will only be pushed to GitHub Container Registry (GHCR), which works automatically.
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed CI/CD and deployment documentation.
 
 ---
 

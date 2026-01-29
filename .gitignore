@@ -25,6 +25,9 @@ dist-ssr
 *.sw?
 
 .env
+.env.local
+.env.production
+docker-compose.override.yml
 **/agent-eval-report*
 packages
 pids
@@ -32,3 +35,11 @@ pids
 .devcontainer/
 
 .spark-workbench-id
+
+# Docker volumes and data
+data/
+backups/
+*.tar.gz
+
+# Docker and deployment
+.docker/

@@ -1,131 +1,67 @@
 #!/bin/bash
+# ChoreQuest Production Deployment Script
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+cd "$PROJECT_DIR"
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+echo "ChoreQuest Production Deployment"
+echo "================================="
+echo ""
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
+if [ ! -f .env ]; then
+    echo "ERROR: .env file not found!"
+    echo "Please copy .env.example to .env and configure it."
+    exit 1
+fi
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+source .env
 
-show_usage() {
-    cat << EOF
-Usage: $0 [OPTION]
+echo "Configuration loaded:"
+echo "  - Port: ${CHOREQUEST_PORT:-8080}"
+echo "  - Timezone: ${TIMEZONE:-UTC}"
+echo "  - Data Path: ${DATA_PATH:-./data}"
+echo "  - Backup Path: ${BACKUP_PATH:-./backups}"
+echo ""
 
-Deploy ChoreQuest application
+mkdir -p "${DATA_PATH:-./data}"
+mkdir -p "${BACKUP_PATH:-./backups}"
+chmod +x scripts/*.sh
 
-Options:
-    build           Build the application
-    docker          Build Docker image
-    start           Start Docker container
-    stop            Stop Docker container
-    restart         Restart Docker container
-    logs            Show Docker container logs
-    clean           Clean build artifacts and containers
-    help            Show this help message
+echo "Building Docker image..."
+docker-compose -f docker-compose.prod.yml build --no-cache
 
-Examples:
-    $0 build        # Build the application
-    $0 docker       # Build Docker image
-    $0 start        # Start the application
-    $0 logs         # View logs
+echo ""
+echo "Stopping existing containers..."
+docker-compose -f docker-compose.prod.yml down
 
-EOF
-}
+echo ""
+echo "Starting ChoreQuest..."
+docker-compose -f docker-compose.prod.yml up -d
 
-build_app() {
-    log_info "Building ChoreQuest application..."
-    cd "$PROJECT_ROOT"
-    npm ci
-    npm run build
-    log_info "Build completed successfully!"
-}
+echo ""
+echo "Waiting for services to become healthy..."
+sleep 10
 
-build_docker() {
-    log_info "Building Docker image..."
-    cd "$PROJECT_ROOT"
-    docker build -t chorequest:latest .
-    log_info "Docker image built successfully!"
-}
-
-start_app() {
-    log_info "Starting ChoreQuest with Docker Compose..."
-    cd "$PROJECT_ROOT"
-    docker-compose up -d
-    log_info "ChoreQuest is now running at http://localhost:8080"
-}
-
-stop_app() {
-    log_info "Stopping ChoreQuest..."
-    cd "$PROJECT_ROOT"
-    docker-compose down
-    log_info "ChoreQuest stopped"
-}
-
-restart_app() {
-    stop_app
-    start_app
-}
-
-show_logs() {
-    log_info "Showing logs (Ctrl+C to exit)..."
-    cd "$PROJECT_ROOT"
-    docker-compose logs -f
-}
-
-clean_all() {
-    log_warn "Cleaning build artifacts and containers..."
-    cd "$PROJECT_ROOT"
-    docker-compose down -v 2>/dev/null || true
-    docker rmi chorequest:latest 2>/dev/null || true
-    rm -rf dist node_modules/.vite
-    log_info "Cleanup completed"
-}
-
-case "${1:-help}" in
-    build)
-        build_app
-        ;;
-    docker)
-        build_docker
-        ;;
-    start)
-        start_app
-        ;;
-    stop)
-        stop_app
-        ;;
-    restart)
-        restart_app
-        ;;
-    logs)
-        show_logs
-        ;;
-    clean)
-        clean_all
-        ;;
-    help|--help|-h)
-        show_usage
-        ;;
-    *)
-        log_error "Unknown command: $1"
-        show_usage
-        exit 1
-        ;;
-esac
-
-exit 0
+if docker ps | grep -q chorequest-app; then
+    echo ""
+    echo "✓ Deployment successful!"
+    echo ""
+    echo "ChoreQuest is now running at:"
+    echo "  http://localhost:${CHOREQUEST_PORT:-8080}"
+    echo ""
+    echo "To view logs:"
+    echo "  docker-compose -f docker-compose.prod.yml logs -f"
+    echo ""
+    echo "To stop:"
+    echo "  docker-compose -f docker-compose.prod.yml down"
+    echo ""
+else
+    echo ""
+    echo "✗ Deployment failed. Check logs:"
+    echo "  docker-compose -f docker-compose.prod.yml logs"
+    exit 1
+fi
