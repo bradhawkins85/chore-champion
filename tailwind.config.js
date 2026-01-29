@@ -140,7 +140,4 @@ const defaultTheme = {
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: { ...defaultTheme, ...theme },
-  corePlugins: {
-    container: false,
-  },
 };
