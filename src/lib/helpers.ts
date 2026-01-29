@@ -1156,7 +1156,7 @@ export function generateDeviceFingerprint(): string {
     hash = hash & hash
   }
   
-  return `device_${Math.abs(hash).toString(36)}_${Date.now()}`
+  return `device_${Math.abs(hash).toString(36)}`
 }
 
 export async function getUserIPAddress(): Promise<string | null> {
