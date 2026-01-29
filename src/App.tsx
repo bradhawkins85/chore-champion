@@ -33,6 +33,7 @@ import {
   IPRestrictionSettings,
   IPAccessAttempt,
   WeeklyReportSettings,
+  ReportTemplate,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { WelcomePage } from '@/components/WelcomePage'
@@ -94,6 +95,7 @@ function App() {
     sendTime: '18:00',
     lastSent: null,
   })
+  const [reportTemplates, setReportTemplates] = useKV<ReportTemplate[]>('report-templates', [])
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -149,6 +151,18 @@ function App() {
       })
       setCategories(defaultCategories)
       hasInitializedCategories.current = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (reportTemplates && reportTemplates.length === 0) {
+      const { DEFAULT_REPORT_TEMPLATES } = require('@/lib/reportHelpers')
+      const defaultTemplates = DEFAULT_REPORT_TEMPLATES.map((template: any, index: number) => ({
+        ...template,
+        id: `template_default_${index}`,
+        createdAt: Date.now(),
+      }))
+      setReportTemplates(defaultTemplates)
     }
   }, [])
 
@@ -931,6 +945,33 @@ function App() {
     setIPRestrictions(settings)
   }
 
+  const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
+    const newTemplate: ReportTemplate = {
+      ...templateData,
+      id: `template_${Date.now()}_${Math.random()}`,
+      createdAt: Date.now(),
+    }
+    setReportTemplates((current) => [...(current || []), newTemplate])
+    toast.success(`Report template "${newTemplate.name}" created!`)
+  }
+
+  const handleEditReportTemplate = (
+    id: string,
+    templateData: Omit<ReportTemplate, 'id' | 'createdAt'>
+  ) => {
+    setReportTemplates((current) =>
+      (current || []).map((t) =>
+        t.id === id ? { ...t, ...templateData } : t
+      )
+    )
+    toast.success('Report template updated!')
+  }
+
+  const handleDeleteReportTemplate = (id: string) => {
+    setReportTemplates((current) => (current || []).filter((t) => t.id !== id))
+    toast.success('Report template deleted')
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -992,6 +1033,7 @@ function App() {
           currentIP={currentIP}
           accessHistory={accessHistory || []}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
+          reportTemplates={reportTemplates || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1020,6 +1062,9 @@ function App() {
           onUndoCompletion={handleUndoCompletion}
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
+          onAddReportTemplate={handleAddReportTemplate}
+          onEditReportTemplate={handleEditReportTemplate}
+          onDeleteReportTemplate={handleDeleteReportTemplate}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

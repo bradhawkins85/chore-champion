@@ -316,3 +316,100 @@ export interface WeeklyReportData {
   totalPointsEarned: number
   mostActiveChild: string | null
 }
+
+export type ReportMetric = 
+  | 'chores-completed'
+  | 'chores-completion-rate'
+  | 'points-earned'
+  | 'rewards-purchased'
+  | 'category-breakdown'
+  | 'top-chores'
+  | 'streak-days'
+  | 'most-active-child'
+  | 'completion-by-day'
+  | 'completion-by-time'
+  | 'missed-chores'
+  | 'pending-approvals'
+  | 'average-completion-time'
+
+export type ReportPeriod = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'custom'
+
+export interface ReportTemplate {
+  id: string
+  name: string
+  description?: string
+  period: ReportPeriod
+  metrics: ReportMetric[]
+  includeCharts: boolean
+  includeChildComparison: boolean
+  includeCategoryBreakdown: boolean
+  createdAt: number
+  isDefault?: boolean
+}
+
+export interface GeneratedReport {
+  id: string
+  templateId: string
+  templateName: string
+  generatedAt: number
+  periodStart: number
+  periodEnd: number
+  data: ReportData
+}
+
+export interface ReportData {
+  period: {
+    start: number
+    end: number
+  }
+  children: ChildReportData[]
+  summary: ReportSummary
+}
+
+export interface ChildReportData {
+  childId: string
+  childName: string
+  metrics: {
+    choresCompleted: number
+    choresAssigned: number
+    completionRate: number
+    pointsEarned: number
+    rewardsPurchased: number
+    missedChores: number
+    pendingApprovals: number
+    streakDays: number
+    averageCompletionTime?: number
+  }
+  categoryBreakdown: {
+    categoryId: string
+    categoryName: string
+    pointsEarned: number
+    choresCompleted: number
+    completionRate: number
+  }[]
+  topChores: {
+    choreId: string
+    choreName: string
+    completionCount: number
+    pointsEarned: number
+  }[]
+  completionByDay: {
+    date: number
+    count: number
+  }[]
+  completionByTime: {
+    timeOfDay: 'am' | 'pm' | 'anytime'
+    count: number
+  }[]
+}
+
+export interface ReportSummary {
+  totalChoresCompleted: number
+  totalChoresAssigned: number
+  totalPointsEarned: number
+  totalRewardsPurchased: number
+  averageCompletionRate: number
+  mostActiveChild: string | null
+  mostCompletedChore: string | null
+  mostEarnedCategory: string | null
+}

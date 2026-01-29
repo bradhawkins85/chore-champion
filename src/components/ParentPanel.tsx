@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -40,6 +40,7 @@ import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 import { IPRestrictions } from './IPRestrictions'
 import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
+import { ReportTemplatesManager } from './ReportTemplatesManager'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -61,6 +62,7 @@ interface ParentPanelProps {
   currentIP: string | null
   accessHistory: IPAccessAttempt[]
   weeklyReportSettings: WeeklyReportSettings
+  reportTemplates: ReportTemplate[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -97,6 +99,9 @@ interface ParentPanelProps {
   onUndoCompletion: (completionId: string) => void
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
+  onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
+  onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
+  onDeleteReportTemplate: (id: string) => void
   onExitParentMode: () => void
 }
 
@@ -116,6 +121,7 @@ export function ParentPanel({
   categories,
   childCategoryPoints,
   bonusCompletions,
+  reportTemplates,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -148,6 +154,9 @@ export function ParentPanel({
   onUpdateIPRestrictions,
   weeklyReportSettings,
   onUpdateWeeklyReportSettings,
+  onAddReportTemplate,
+  onEditReportTemplate,
+  onDeleteReportTemplate,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -358,6 +367,10 @@ export function ParentPanel({
           <TabsTrigger value="history">
             <ClockCounterClockwise className="h-4 w-4 mr-2" />
             History
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            <FileText className="h-4 w-4 mr-2" />
+            Reports
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Gear className="h-4 w-4 mr-2" />
@@ -697,6 +710,21 @@ export function ParentPanel({
             history={history}
             childrenList={childrenList}
             chores={chores}
+          />
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <ReportTemplatesManager
+            templates={reportTemplates}
+            children={childrenList}
+            chores={chores}
+            assignments={assignments}
+            completions={completions}
+            purchases={purchases}
+            categories={categories}
+            onAddTemplate={onAddReportTemplate}
+            onEditTemplate={onEditReportTemplate}
+            onDeleteTemplate={onDeleteReportTemplate}
           />
         </TabsContent>
 
