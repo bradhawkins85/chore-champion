@@ -1168,7 +1168,8 @@ export function generateDeviceFingerprint(): string {
     hash = hash & hash
   }
   
-  const fingerprint = `device_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`
+  const randomSuffix = Math.random().toString(36).substring(2, 15)
+  const fingerprint = `device_${Math.abs(hash).toString(36)}_${randomSuffix}`
   
   localStorage.setItem(STORAGE_KEY, fingerprint)
   
