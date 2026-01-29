@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar as CalendarIcon, Clock } from '@phosphor-icons/react'
+import { ArrowLeft, Calendar as CalendarIcon, Clock, ArrowClockwise } from '@phosphor-icons/react'
 import { Child } from '@/lib/types'
 import { fetchICSFeed, ICSEvent } from '@/lib/icsHelper'
 import { format, startOfDay, addDays, isSameDay } from 'date-fns'
+import { toast } from 'sonner'
 
 interface CalendarViewProps {
   child: Child
@@ -15,29 +16,43 @@ export function CalendarView({ child, onBack }: CalendarViewProps) {
   const [events, setEvents] = useState<ICSEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      if (!child.icsUrl) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-        const parsedEvents = await fetchICSFeed(child.icsUrl)
-        setEvents(parsedEvents)
-      } catch (err) {
-        setError('Failed to load calendar events')
-        console.error('Error fetching calendar:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchEvents = async () => {
+    if (!child.icsUrl) {
+      setLoading(false)
+      return
     }
 
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Fetching ICS feed from:', child.icsUrl)
+      const parsedEvents = await fetchICSFeed(child.icsUrl)
+      console.log('Successfully loaded events:', parsedEvents.length)
+      setEvents(parsedEvents)
+      if (parsedEvents.length > 0) {
+        toast.success(`Loaded ${parsedEvents.length} calendar events`)
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load calendar events'
+      setError(errorMessage)
+      console.error('Error fetching calendar:', err)
+      toast.error('Failed to load calendar', {
+        description: errorMessage,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEvents()
-  }, [child.icsUrl])
+  }, [child.icsUrl, refreshKey])
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+  }
 
   const next7Days = useMemo(() => {
     const days: Date[] = []
@@ -84,18 +99,30 @@ export function CalendarView({ child, onBack }: CalendarViewProps) {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-fredoka font-bold">Calendar</h1>
-            <p className="text-muted-foreground">Next 7 days for {child.name}</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-fredoka font-bold">Calendar</h1>
+              <p className="text-muted-foreground">Next 7 days for {child.name}</p>
+            </div>
           </div>
+          {child.icsUrl && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <ArrowClockwise className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
         </div>
 
         {loading ? (
@@ -106,8 +133,23 @@ export function CalendarView({ child, onBack }: CalendarViewProps) {
           </Card>
         ) : error ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-destructive">{error}</p>
+            <CardContent className="p-8">
+              <div className="text-center mb-4">
+                <p className="text-destructive font-medium mb-2">Failed to load calendar events</p>
+                <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                {child.icsUrl && (
+                  <div className="text-xs text-muted-foreground mb-4 p-3 bg-muted rounded-md break-all">
+                    <strong>Calendar URL:</strong><br />
+                    {child.icsUrl}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={handleRefresh} disabled={loading}>
+                  <ArrowClockwise className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : !child.icsUrl ? (

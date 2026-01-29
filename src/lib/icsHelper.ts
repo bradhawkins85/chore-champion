@@ -24,15 +24,31 @@ export interface ICSEvent {
 
 export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'text/calendar, text/plain, */*',
-      },
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ICS feed: ${response.statusText}`)
+    let response: Response
+    
+    try {
+      response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'text/calendar, text/plain, */*',
+        },
+      })
+    } catch (corsError) {
+      console.warn('Direct fetch failed, trying CORS proxy:', corsError)
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`
+      response = await fetch(proxyUrl, {
+        headers: {
+          'Accept': 'text/calendar, text/plain, */*',
+        },
+      })
     }
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ICS feed: ${response.status} ${response.statusText}`)
+    }
+    
     const icsText = await response.text()
+    console.log('ICS feed raw text length:', icsText.length)
     
     if (!icsText || icsText.trim().length === 0) {
       console.warn('ICS feed is empty')
@@ -41,6 +57,7 @@ export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
     
     if (!icsText.includes('BEGIN:VCALENDAR')) {
       console.warn('Invalid ICS format: missing VCALENDAR')
+      console.log('First 200 chars:', icsText.substring(0, 200))
       return []
     }
     
