@@ -66,6 +66,23 @@ export interface ApprovalConfig {
   requiresApproval: boolean
 }
 
+export type WeatherConditionFilter = 
+  | 'any'
+  | 'clear'
+  | 'cloudy'
+  | 'rainy'
+  | 'snowy'
+  | 'hot'
+  | 'cold'
+  | 'mild'
+
+export interface WeatherConditionRequirement {
+  conditions?: WeatherConditionFilter[]
+  minTemp?: number
+  maxTemp?: number
+  unit?: 'celsius' | 'fahrenheit'
+}
+
 export interface Chore {
   id: string
   name: string
@@ -82,6 +99,7 @@ export interface Chore {
   estimatedDuration?: number
   approvalConfigs?: ApprovalConfig[]
   maxCompletions?: number
+  weatherConditions?: WeatherConditionRequirement
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'

@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore } from '@/lib/helpers'
+import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -32,6 +33,7 @@ interface ChildChoreViewProps {
   availableCategoryPoints?: Map<string, number>
   onSwapPoints?: (fromCategoryId: string, toCategoryId: string, fromAmount: number, toAmount: number) => void
   onUpdateCalendarRefresh?: (timestamp: number) => void
+  currentWeather?: WeatherData | null
 }
 
 export function ChildChoreView({
@@ -54,6 +56,7 @@ export function ChildChoreView({
   availableCategoryPoints,
   onSwapPoints,
   onUpdateCalendarRefresh,
+  currentWeather,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -62,7 +65,9 @@ export function ChildChoreView({
   )
   
   const childAssignments = assignments.filter((a) => a.childId === child.id && isChoreActive(a) && isChoreActiveToday(a))
-  const childChores = chores.filter((c) => childAssignments.some((a) => a.choreId === c.id))
+  const childChores = chores
+    .filter((c) => childAssignments.some((a) => a.choreId === c.id))
+    .filter((c) => shouldShowChore(c, currentWeather || null))
 
   const currentTimeOfDay = getCurrentTimeOfDay()
 

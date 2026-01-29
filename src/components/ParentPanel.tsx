@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -42,6 +42,7 @@ import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
 import { EmailSettings } from './EmailSettings'
+import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -68,6 +69,7 @@ interface ParentPanelProps {
   weeklyReportSettings: WeeklyReportSettings
   reportTemplates: ReportTemplate[]
   weatherSettings: WeatherSettings
+  currentWeather: WeatherData | null
   smtpSettings: SMTPSettings
   emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
@@ -136,6 +138,7 @@ export function ParentPanel({
   pointSwaps,
   reportTemplates,
   weatherSettings,
+  currentWeather,
   smtpSettings,
   emailAlertSettings,
   pendingDigestItems,
@@ -600,6 +603,14 @@ export function ParentPanel({
               </Button>
             </div>
           </div>
+
+          <WeatherChoreSuggestions
+            currentWeather={currentWeather}
+            existingChores={chores}
+            categories={categories}
+            weatherEnabled={weatherSettings?.enabled || false}
+            onAddChore={onAddChore}
+          />
 
           {chores.length === 0 ? (
             <Card>

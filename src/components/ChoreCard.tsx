@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock, Timer } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock, Timer, CloudSun } from '@phosphor-icons/react'
 import { Chore, DayOfWeek, Category } from '@/lib/types'
 import { isChoreActive, formatTime12Hour, formatDuration } from '@/lib/helpers'
+import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
 
 interface ChoreCardProps {
   chore: Chore
@@ -79,6 +80,21 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
       <Badge variant="outline" className="flex items-center gap-1">
         <Clock className="h-3 w-3" />
         {formatTime12Hour(chore.timeWindow.startTime)} - {formatTime12Hour(chore.timeWindow.endTime)}
+      </Badge>
+    )
+  }
+
+  const getWeatherBadge = () => {
+    if (!chore.weatherConditions || !chore.weatherConditions.conditions || chore.weatherConditions.conditions.length === 0) {
+      return null
+    }
+    
+    const label = getWeatherConditionLabel(chore.weatherConditions.conditions)
+    
+    return (
+      <Badge variant="outline" className="flex items-center gap-1">
+        <CloudSun className="h-3 w-3" />
+        {label}
       </Badge>
     )
   }
@@ -178,6 +194,7 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
             )}
             {getTimeOfDayBadge()}
             {getTimeWindowBadge()}
+            {getWeatherBadge()}
             {getCompletionTypeBadge()}
           </div>
         </div>

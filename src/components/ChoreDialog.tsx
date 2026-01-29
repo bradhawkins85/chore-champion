@@ -22,8 +22,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Check } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig } from '@/lib/types'
+import { Sparkle, User, Info, Check, CloudSun } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -70,6 +70,19 @@ export function ChoreDialog({
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
   const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
   const [maxCompletions, setMaxCompletions] = useState(editChore?.maxCompletions?.toString() || '')
+  const [weatherEnabled, setWeatherEnabled] = useState(!!editChore?.weatherConditions)
+  const [weatherConditions, setWeatherConditions] = useState<WeatherConditionFilter[]>(
+    editChore?.weatherConditions?.conditions || []
+  )
+  const [weatherMinTemp, setWeatherMinTemp] = useState(
+    editChore?.weatherConditions?.minTemp?.toString() || ''
+  )
+  const [weatherMaxTemp, setWeatherMaxTemp] = useState(
+    editChore?.weatherConditions?.maxTemp?.toString() || ''
+  )
+  const [weatherTempUnit, setWeatherTempUnit] = useState<'celsius' | 'fahrenheit'>(
+    editChore?.weatherConditions?.unit || 'fahrenheit'
+  )
 
   useEffect(() => {
     if (editChore) {
@@ -88,6 +101,11 @@ export function ChoreDialog({
       setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
       setApprovalConfigs(editChore.approvalConfigs || [])
       setMaxCompletions(editChore.maxCompletions?.toString() || '')
+      setWeatherEnabled(!!editChore.weatherConditions)
+      setWeatherConditions(editChore.weatherConditions?.conditions || [])
+      setWeatherMinTemp(editChore.weatherConditions?.minTemp?.toString() || '')
+      setWeatherMaxTemp(editChore.weatherConditions?.maxTemp?.toString() || '')
+      setWeatherTempUnit(editChore.weatherConditions?.unit || 'fahrenheit')
     }
   }, [editChore])
 
@@ -116,6 +134,16 @@ export function ChoreDialog({
       } else {
         setCategoryPoints((currentPoints) => [...currentPoints, { categoryId: id, points: 10 }])
         return [...current, id]
+      }
+    })
+  }
+
+  const toggleWeatherCondition = (condition: WeatherConditionFilter) => {
+    setWeatherConditions((current) => {
+      if (current.includes(condition)) {
+        return current.filter((c) => c !== condition)
+      } else {
+        return [...current.filter(c => c !== 'any'), condition]
       }
     })
   }
@@ -157,6 +185,24 @@ export function ChoreDialog({
       choreData.maxCompletions = parseInt(maxCompletions)
     }
 
+    if (weatherEnabled && weatherConditions.length > 0) {
+      const weatherReq: WeatherConditionRequirement = {
+        conditions: weatherConditions,
+      }
+      
+      if (weatherMinTemp && parseInt(weatherMinTemp)) {
+        weatherReq.minTemp = parseInt(weatherMinTemp)
+        weatherReq.unit = weatherTempUnit
+      }
+      
+      if (weatherMaxTemp && parseInt(weatherMaxTemp)) {
+        weatherReq.maxTemp = parseInt(weatherMaxTemp)
+        weatherReq.unit = weatherTempUnit
+      }
+      
+      choreData.weatherConditions = weatherReq
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -175,6 +221,11 @@ export function ChoreDialog({
       setEstimatedDuration('')
       setApprovalConfigs([])
       setMaxCompletions('')
+      setWeatherEnabled(false)
+      setWeatherConditions([])
+      setWeatherMinTemp('')
+      setWeatherMaxTemp('')
+      setWeatherTempUnit('fahrenheit')
     }
     onOpenChange(false)
   }
@@ -540,6 +591,112 @@ export function ChoreDialog({
                     </p>
                   </div>
                 )}
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <CloudSun className="h-5 w-5 text-muted-foreground" />
+                        <Label htmlFor="weather-enabled" className="text-base font-fredoka font-semibold">
+                          Weather-Based Visibility
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Only show this chore when weather conditions are met
+                      </p>
+                    </div>
+                    <Switch
+                      id="weather-enabled"
+                      checked={weatherEnabled}
+                      onCheckedChange={(checked) => {
+                        setWeatherEnabled(checked)
+                        if (!checked) {
+                          setWeatherConditions([])
+                          setWeatherMinTemp('')
+                          setWeatherMaxTemp('')
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  {weatherEnabled && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary">
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          This chore will only appear when weather conditions match. Requires weather settings to be enabled.
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="grid gap-2">
+                        <Label>Weather Conditions</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['clear', 'cloudy', 'rainy', 'snowy', 'hot', 'cold', 'mild', 'any'] as WeatherConditionFilter[]).map((condition) => (
+                            <Badge
+                              key={condition}
+                              variant={weatherConditions.includes(condition) ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => toggleWeatherCondition(condition)}
+                            >
+                              {condition === 'clear' && '☀️ Clear'}
+                              {condition === 'cloudy' && '☁️ Cloudy'}
+                              {condition === 'rainy' && '🌧️ Rainy'}
+                              {condition === 'snowy' && '❄️ Snowy'}
+                              {condition === 'hot' && '🔥 Hot'}
+                              {condition === 'cold' && '🥶 Cold'}
+                              {condition === 'mild' && '😊 Mild'}
+                              {condition === 'any' && '🌈 Any'}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Select weather conditions when this chore should be visible. Select "Any" for all weather.
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm">Temperature Range (optional)</Label>
+                          <Select value={weatherTempUnit} onValueChange={(v) => setWeatherTempUnit(v as 'celsius' | 'fahrenheit')}>
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="fahrenheit">°F</SelectItem>
+                              <SelectItem value="celsius">°C</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="weather-min-temp">Min Temperature</Label>
+                            <Input
+                              id="weather-min-temp"
+                              type="number"
+                              value={weatherMinTemp}
+                              onChange={(e) => setWeatherMinTemp(e.target.value)}
+                              placeholder="e.g., 50"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="weather-max-temp">Max Temperature</Label>
+                            <Input
+                              id="weather-max-temp"
+                              type="number"
+                              value={weatherMaxTemp}
+                              onChange={(e) => setWeatherMaxTemp(e.target.value)}
+                              placeholder="e.g., 85"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Optionally restrict by temperature range (leave blank for no restriction)
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -799,6 +956,112 @@ export function ChoreDialog({
                 </p>
               </div>
             )}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <CloudSun className="h-5 w-5 text-muted-foreground" />
+                    <Label htmlFor="weather-enabled-edit" className="text-base font-fredoka font-semibold">
+                      Weather-Based Visibility
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Only show this chore when weather conditions are met
+                  </p>
+                </div>
+                <Switch
+                  id="weather-enabled-edit"
+                  checked={weatherEnabled}
+                  onCheckedChange={(checked) => {
+                    setWeatherEnabled(checked)
+                    if (!checked) {
+                      setWeatherConditions([])
+                      setWeatherMinTemp('')
+                      setWeatherMaxTemp('')
+                    }
+                  }}
+                />
+              </div>
+              
+              {weatherEnabled && (
+                <div className="space-y-4 pl-4 border-l-2 border-primary">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      This chore will only appear when weather conditions match. Requires weather settings to be enabled.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid gap-2">
+                    <Label>Weather Conditions</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {(['clear', 'cloudy', 'rainy', 'snowy', 'hot', 'cold', 'mild', 'any'] as WeatherConditionFilter[]).map((condition) => (
+                        <Badge
+                          key={condition}
+                          variant={weatherConditions.includes(condition) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => toggleWeatherCondition(condition)}
+                        >
+                          {condition === 'clear' && '☀️ Clear'}
+                          {condition === 'cloudy' && '☁️ Cloudy'}
+                          {condition === 'rainy' && '🌧️ Rainy'}
+                          {condition === 'snowy' && '❄️ Snowy'}
+                          {condition === 'hot' && '🔥 Hot'}
+                          {condition === 'cold' && '🥶 Cold'}
+                          {condition === 'mild' && '😊 Mild'}
+                          {condition === 'any' && '🌈 Any'}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select weather conditions when this chore should be visible. Select "Any" for all weather.
+                    </p>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm">Temperature Range (optional)</Label>
+                      <Select value={weatherTempUnit} onValueChange={(v) => setWeatherTempUnit(v as 'celsius' | 'fahrenheit')}>
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fahrenheit">°F</SelectItem>
+                          <SelectItem value="celsius">°C</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="weather-min-temp-edit">Min Temperature</Label>
+                        <Input
+                          id="weather-min-temp-edit"
+                          type="number"
+                          value={weatherMinTemp}
+                          onChange={(e) => setWeatherMinTemp(e.target.value)}
+                          placeholder="e.g., 50"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="weather-max-temp-edit">Max Temperature</Label>
+                        <Input
+                          id="weather-max-temp-edit"
+                          type="number"
+                          value={weatherMaxTemp}
+                          onChange={(e) => setWeatherMaxTemp(e.target.value)}
+                          placeholder="e.g., 85"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Optionally restrict by temperature range (leave blank for no restriction)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
