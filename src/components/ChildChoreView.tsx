@@ -10,6 +10,7 @@ import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, ge
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { OnThisDay } from './OnThisDay'
 
 interface ChildChoreViewProps {
   child: Child
@@ -418,116 +419,129 @@ export function ChildChoreView({
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid gap-4">
                   {pendingChores.map(({ chore, assignment, timeOfDay }, index) => (
-                    <motion.div
-                      key={`${chore.id}-${timeOfDay || 'anytime'}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Card
-                        className="cursor-pointer hover:scale-102 transition-all hover:shadow-xl"
-                        onClick={() => handleComplete(chore, assignment, timeOfDay)}
+                    <div key={`${chore.id}-${timeOfDay || 'anytime'}`}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-4">
-                            <motion.div whileTap={{ scale: 0.9 }}>
-                              <Circle className="h-12 w-12 text-muted-foreground flex-shrink-0" />
-                            </motion.div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="text-2xl font-fredoka font-bold">
-                                  {chore.name}
-                                </h3>
-                                {getTimeOfDayLabel(timeOfDay)}
-                                {chore.completionType === 'shareable' && (
-                                  <Badge variant="secondary" className="flex items-center gap-1">
-                                    <Users className="h-3 w-3" />
-                                    Shareable
-                                  </Badge>
-                                )}
-                                {chore.completionType === 'once-per-day' && (
-                                  <Badge variant="secondary" className="flex items-center gap-1">
-                                    <Trophy className="h-3 w-3" />
-                                    First Only
-                                  </Badge>
-                                )}
-                              </div>
-                              {chore.categoryIds && chore.categoryIds.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {chore.categoryIds.map((categoryId) => {
-                                    const category = categories.find(c => c.id === categoryId)
-                                    if (!category) return null
-                                    return (
-                                      <Badge
-                                        key={categoryId}
-                                        variant="outline"
-                                        className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
-                                        style={{
-                                          backgroundColor: `${category.color}20`,
-                                          borderColor: category.color,
-                                          color: category.color,
-                                        }}
-                                      >
-                                        {category.name}
-                                      </Badge>
-                                    )
-                                  })}
+                        <Card
+                          className="cursor-pointer hover:scale-102 transition-all hover:shadow-xl"
+                          onClick={() => handleComplete(chore, assignment, timeOfDay)}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-4">
+                              <motion.div whileTap={{ scale: 0.9 }}>
+                                <Circle className="h-12 w-12 text-muted-foreground flex-shrink-0" />
+                              </motion.div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-2xl font-fredoka font-bold">
+                                    {chore.name}
+                                  </h3>
+                                  {getTimeOfDayLabel(timeOfDay)}
+                                  {chore.completionType === 'shareable' && (
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      Shareable
+                                    </Badge>
+                                  )}
+                                  {chore.completionType === 'once-per-day' && (
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Trophy className="h-3 w-3" />
+                                      First Only
+                                    </Badge>
+                                  )}
                                 </div>
-                              )}
-                              {chore.description && (
-                                <p className="text-lg text-muted-foreground mt-1">
-                                  {chore.description}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-3 mt-3 flex-wrap">
-                                {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
-                                  chore.categoryPoints.map((cp) => {
-                                    const category = categories.find(c => c.id === cp.categoryId)
-                                    if (!category) return null
-                                    const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
-                                    return (
-                                      <Badge
-                                        key={cp.categoryId}
-                                        className="font-fredoka text-base px-3 py-1"
-                                        style={{
-                                          backgroundColor: category.color,
-                                          color: 'white',
-                                        }}
-                                      >
-                                        <Star weight="fill" className="h-4 w-4 mr-1" />
-                                        {chore.completionType === 'shareable' 
-                                          ? `Up to ${categoryPoints} ${category.name} pts (shared)`
-                                          : `${categoryPoints} ${category.name} pts`}
-                                      </Badge>
-                                    )
-                                  })
-                                ) : (
-                                  <Badge
-                                    variant="secondary"
-                                    className="font-fredoka text-lg px-3 py-1"
-                                  >
-                                    <Star weight="fill" className="h-4 w-4 mr-1" />
-                                    {chore.completionType === 'shareable' 
-                                      ? `Up to ${getChorePointsForChild(chore, assignment, child.id)} pts (shared)`
-                                      : `${getChorePointsForChild(chore, assignment, child.id)} pts`}
-                                  </Badge>
-                                )}
-                                <div className="flex items-center gap-1 text-muted-foreground">
-                                  <Calendar className="h-5 w-5" />
-                                  <span className="capitalize text-base">{chore.frequency}</span>
-                                </div>
-                                {chore.estimatedDuration && (
-                                  <div className="flex items-center gap-1 text-muted-foreground">
-                                    <Timer className="h-5 w-5" />
-                                    <span className="text-base">{formatDuration(chore.estimatedDuration)}</span>
+                                {chore.categoryIds && chore.categoryIds.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {chore.categoryIds.map((categoryId) => {
+                                      const category = categories.find(c => c.id === categoryId)
+                                      if (!category) return null
+                                      return (
+                                        <Badge
+                                          key={categoryId}
+                                          variant="outline"
+                                          className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                          style={{
+                                            backgroundColor: `${category.color}20`,
+                                            borderColor: category.color,
+                                            color: category.color,
+                                          }}
+                                        >
+                                          {category.name}
+                                        </Badge>
+                                      )
+                                    })}
                                   </div>
                                 )}
+                                {chore.description && (
+                                  <p className="text-lg text-muted-foreground mt-1">
+                                    {chore.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                                  {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
+                                    chore.categoryPoints.map((cp) => {
+                                      const category = categories.find(c => c.id === cp.categoryId)
+                                      if (!category) return null
+                                      const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
+                                      return (
+                                        <Badge
+                                          key={cp.categoryId}
+                                          className="font-fredoka text-base px-3 py-1"
+                                          style={{
+                                            backgroundColor: category.color,
+                                            color: 'white',
+                                          }}
+                                        >
+                                          <Star weight="fill" className="h-4 w-4 mr-1" />
+                                          {chore.completionType === 'shareable' 
+                                            ? `Up to ${categoryPoints} ${category.name} pts (shared)`
+                                            : `${categoryPoints} ${category.name} pts`}
+                                        </Badge>
+                                      )
+                                    })
+                                  ) : (
+                                    <Badge
+                                      variant="secondary"
+                                      className="font-fredoka text-lg px-3 py-1"
+                                    >
+                                      <Star weight="fill" className="h-4 w-4 mr-1" />
+                                      {chore.completionType === 'shareable' 
+                                        ? `Up to ${getChorePointsForChild(chore, assignment, child.id)} pts (shared)`
+                                        : `${getChorePointsForChild(chore, assignment, child.id)} pts`}
+                                    </Badge>
+                                  )}
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <Calendar className="h-5 w-5" />
+                                    <span className="capitalize text-base">{chore.frequency}</span>
+                                  </div>
+                                  {chore.estimatedDuration && (
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                      <Timer className="h-5 w-5" />
+                                      <span className="text-base">{formatDuration(chore.estimatedDuration)}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                      
+                      {index === 0 && (
+                        <div className="mt-4">
+                          <OnThisDay
+                            child={child}
+                            chores={chores}
+                            completions={completions}
+                            assignments={assignments}
+                            categories={categories}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

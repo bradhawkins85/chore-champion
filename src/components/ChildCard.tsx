@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Star, ListChecks } from '@phosphor-icons/react'
+import { Pencil, Trash, Star, ListChecks, CalendarBlank } from '@phosphor-icons/react'
 import { Child, Category } from '@/lib/types'
 
 interface ChildCardProps {
@@ -11,11 +11,12 @@ interface ChildCardProps {
   onEdit: (child: Child) => void
   onDelete: (childId: string) => void
   onClick: (child: Child) => void
+  onDownloadICS?: (child: Child) => void
   categoryPoints?: Map<string, number>
   categories?: Category[]
 }
 
-export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, categoryPoints, categories = [] }: ChildCardProps) {
+export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, onDownloadICS, categoryPoints, categories = [] }: ChildCardProps) {
   const initials = child.name
     .split(' ')
     .map((n) => n[0])
@@ -36,6 +37,17 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, categ
             <CardTitle className="text-xl font-fredoka">{child.name}</CardTitle>
           </div>
           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+            {onDownloadICS && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onDownloadICS(child)}
+                title="Download ICS Calendar Feed"
+              >
+                <CalendarBlank className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

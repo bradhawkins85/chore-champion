@@ -41,6 +41,8 @@ import { BiometricSettings as BiometricSettingsComponent } from './BiometricSett
 import { IPRestrictions } from './IPRestrictions'
 import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
+import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
+import { toast } from 'sonner'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -277,6 +279,14 @@ export function ParentPanel({
     setSelectedChild(child)
   }
 
+  const handleDownloadICS = (child: Child) => {
+    const icsContent = generateICSFeed(child, completions, chores, assignments)
+    downloadICSFile(child, icsContent)
+    toast.success(`Calendar downloaded for ${child.name}`, {
+      description: 'Import this file into your calendar app to view chore history',
+    })
+  }
+
   if (selectedChild) {
     return (
       <AssignChoresView
@@ -498,6 +508,7 @@ export function ParentPanel({
                   onEdit={handleEditChild}
                   onDelete={setDeleteChildId}
                   onClick={handleChildCardClick}
+                  onDownloadICS={handleDownloadICS}
                 />
               ))}
             </div>
