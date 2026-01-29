@@ -147,6 +147,13 @@ export interface Reward {
   disabled?: boolean
   startDate?: number
   expiryDate?: number
+  isPointSwap?: boolean
+  swapConfig?: {
+    fromCategoryId: string
+    toCategoryId: string
+    fromAmount: number
+    toAmount: number
+  }
 }
 
 export interface RewardPurchase {

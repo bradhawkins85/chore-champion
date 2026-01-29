@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
+import { Star, ShoppingCart, ArrowLeft, LockKey, Timer, ArrowsLeftRight } from '@phosphor-icons/react'
 import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category, PointSwap } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory, isRewardActive } from '@/lib/helpers'
@@ -131,7 +131,24 @@ export function RewardShop({
               const customCost = getRewardCostForChild(reward, child.id)
               const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
               const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)
-              const canAfford = availablePoints >= customCost
+              
+              let canAfford = false
+              let affordabilityMessage = ''
+              
+              if (reward.isPointSwap && reward.swapConfig) {
+                const fromCategory = categoriesMap.get(reward.swapConfig.fromCategoryId)
+                const availableFromPoints = categoryPoints.get(reward.swapConfig.fromCategoryId) || 0
+                canAfford = availableFromPoints >= reward.swapConfig.fromAmount
+                if (!canAfford) {
+                  affordabilityMessage = `Need ${reward.swapConfig.fromAmount - availableFromPoints} more ${fromCategory?.name} points`
+                }
+              } else {
+                canAfford = availablePoints >= customCost
+                if (!canAfford) {
+                  affordabilityMessage = `Need ${customCost - availablePoints} more points`
+                }
+              }
+              
               const canPurchase = canAfford && requirementsMet && purchaseLimitCheck.canPurchase
               const requirement = reward.requirements?.find(r => r.childId === child.id)
               const isTracked = trackedGoal?.rewardId === reward.id
@@ -147,11 +164,11 @@ export function RewardShop({
                       canPurchase
                         ? 'hover:shadow-xl cursor-pointer'
                         : 'opacity-60'
-                    } ${isTracked ? 'ring-2 ring-accent' : ''}`}
+                    } ${isTracked ? 'ring-2 ring-accent' : ''} ${reward.isPointSwap ? 'border-2 border-primary/30' : ''}`}
                   >
                     <div className="flex flex-col h-full">
                       <div className="text-center mb-4 relative">
-                        {onToggleGoalTracking && (
+                        {onToggleGoalTracking && !reward.isPointSwap && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -175,28 +192,62 @@ export function RewardShop({
                             {reward.description}
                           </p>
                         )}
-                        {Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2 justify-center">
-                            {reward.categoryIds.map((catId) => {
-                              const category = categoriesMap.get(catId)
-                              if (!category) return null
+                        
+                        {reward.isPointSwap && reward.swapConfig ? (
+                          <div className="mt-4 flex items-center justify-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                            {(() => {
+                              const fromCategory = categoriesMap.get(reward.swapConfig.fromCategoryId)
+                              const toCategory = categoriesMap.get(reward.swapConfig.toCategoryId)
                               return (
-                                <Badge
-                                  key={catId}
-                                  variant="outline"
-                                  className="font-fredoka font-semibold px-3 py-1.5 text-sm border-2"
-                                  style={{
-                                    backgroundColor: `${category.color}20`,
-                                    borderColor: category.color,
-                                    color: category.color,
-                                  }}
-                                >
-                                  {category.name}
-                                </Badge>
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                      style={{ backgroundColor: fromCategory?.color }}
+                                    >
+                                      {reward.swapConfig.fromAmount}
+                                    </div>
+                                    <span className="text-sm font-medium">{fromCategory?.name}</span>
+                                  </div>
+                                  <ArrowsLeftRight className="text-primary" size={24} weight="bold" />
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                      style={{ backgroundColor: toCategory?.color }}
+                                    >
+                                      {reward.swapConfig.toAmount}
+                                    </div>
+                                    <span className="text-sm font-medium">{toCategory?.name}</span>
+                                  </div>
+                                </>
                               )
-                            })}
+                            })()}
                           </div>
+                        ) : (
+                          Array.isArray(reward.categoryIds) && reward.categoryIds.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                              {reward.categoryIds.map((catId) => {
+                                const category = categoriesMap.get(catId)
+                                if (!category) return null
+                                return (
+                                  <Badge
+                                    key={catId}
+                                    variant="outline"
+                                    className="font-fredoka font-semibold px-3 py-1.5 text-sm border-2"
+                                    style={{
+                                      backgroundColor: `${category.color}20`,
+                                      borderColor: category.color,
+                                      color: category.color,
+                                    }}
+                                  >
+                                    {category.name}
+                                  </Badge>
+                                )
+                              })}
+                            </div>
+                          )
                         )}
+                        
                         <div className="mt-3 space-y-2">
                           {requirement && requirement.requiredChoreIds.length > 0 && (
                             <Badge variant={requirementsMet ? "default" : "destructive"} className="flex items-center gap-1 w-fit mx-auto">
@@ -219,15 +270,17 @@ export function RewardShop({
                         </div>
                       </div>
                       <div className="mt-auto">
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge
-                            variant={canPurchase ? 'default' : 'secondary'}
-                            className="flex items-center gap-1 font-fredoka text-base px-4 py-1"
-                          >
-                            <Star weight="fill" />
-                            {customCost} points
-                          </Badge>
-                        </div>
+                        {!reward.isPointSwap && (
+                          <div className="flex items-center justify-between mb-3">
+                            <Badge
+                              variant={canPurchase ? 'default' : 'secondary'}
+                              className="flex items-center gap-1 font-fredoka text-base px-4 py-1"
+                            >
+                              <Star weight="fill" />
+                              {customCost} points
+                            </Badge>
+                          </div>
+                        )}
                         <Button
                           className="w-full font-fredoka text-lg h-14"
                           disabled={!canPurchase}
@@ -244,12 +297,19 @@ export function RewardShop({
                               Limit Reached
                             </>
                           ) : canAfford ? (
-                            <>
-                              <ShoppingCart className="mr-2" />
-                              Get This Reward!
-                            </>
+                            reward.isPointSwap ? (
+                              <>
+                                <ArrowsLeftRight className="mr-2" />
+                                Swap Points
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="mr-2" />
+                                Get This Reward!
+                              </>
+                            )
                           ) : (
-                            `Need ${customCost - availablePoints} more points`
+                            affordabilityMessage
                           )}
                         </Button>
                       </div>

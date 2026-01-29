@@ -485,6 +485,17 @@ function App() {
       return
     }
 
+    if (reward.isPointSwap && reward.swapConfig) {
+      handleSwapPoints(
+        childId,
+        reward.swapConfig.fromCategoryId,
+        reward.swapConfig.toCategoryId,
+        reward.swapConfig.fromAmount,
+        reward.swapConfig.toAmount
+      )
+      return
+    }
+
     const newPurchase: RewardPurchase = {
       id: `purchase_${Date.now()}_${Math.random()}`,
       childId,

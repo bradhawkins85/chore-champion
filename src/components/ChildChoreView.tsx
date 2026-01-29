@@ -4,13 +4,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ArrowsLeftRight } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getAvailableExchangeRates } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PointSwapDialog } from './PointSwapDialog'
 
 interface ChildChoreViewProps {
   child: Child
@@ -50,7 +49,6 @@ export function ChildChoreView({
   onSwapPoints,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
-  const [showSwapDialog, setShowSwapDialog] = useState(false)
 
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
@@ -208,20 +206,6 @@ export function ChildChoreView({
     return rewards.find(r => r.id === trackedGoal.rewardId)
   }, [trackedGoal, rewards])
 
-  const hasAvailableSwaps = useMemo(() => {
-    return categories.some(category => {
-      const rates = getAvailableExchangeRates(category, categories)
-      return rates.length > 0 && rates.some(rate => {
-        const available = availableCategoryPoints?.get(category.id) || 0
-        return available >= rate.fromAmount
-      })
-    })
-  }, [categories, availableCategoryPoints])
-
-  const handleSwap = (fromCategoryId: string, toCategoryId: string, fromAmount: number, toAmount: number) => {
-    onSwapPoints?.(fromCategoryId, toCategoryId, fromAmount, toAmount)
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -260,17 +244,6 @@ export function ChildChoreView({
             </div>
           </div>
           <div className="flex gap-3">
-            {hasAvailableSwaps && onSwapPoints && (
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => setShowSwapDialog(true)}
-                className="text-lg px-6 py-6 font-fredoka"
-              >
-                <ArrowsLeftRight className="mr-2 h-5 w-5" />
-                Swap
-              </Button>
-            )}
             <Button 
               size="lg"
               onClick={onShopClick} 
@@ -647,17 +620,6 @@ export function ChildChoreView({
           />
         )}
       </AnimatePresence>
-
-      {onSwapPoints && availableCategoryPoints && (
-        <PointSwapDialog
-          open={showSwapDialog}
-          onClose={() => setShowSwapDialog(false)}
-          childName={child.name}
-          categories={categories}
-          categoryPoints={availableCategoryPoints}
-          onSwap={handleSwap}
-        />
-      )}
     </div>
   )
 }

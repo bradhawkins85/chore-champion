@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, LockKey, Timer, CalendarBlank, CalendarX } from '@phosphor-icons/react'
+import { Plus, Star, LockKey, Timer, CalendarBlank, CalendarX, ArrowsLeftRight } from '@phosphor-icons/react'
 import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { getAvailableExchangeRates } from '@/lib/helpers'
 
 interface RewardDialogProps {
   reward?: Reward
@@ -33,6 +34,7 @@ interface RewardDialogProps {
 
 export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [], categories }: RewardDialogProps) {
   const [open, setOpen] = useState(false)
+  const [isPointSwap, setIsPointSwap] = useState(reward?.isPointSwap || false)
   const [name, setName] = useState(reward?.name || '')
   const [description, setDescription] = useState(reward?.description || '')
   const [cost, setCost] = useState(reward?.cost?.toString() || '')
@@ -46,10 +48,16 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [limitScope, setLimitScope] = useState<PurchaseLimitScope>(reward?.purchaseLimit?.scope || 'per-child')
   const [startDate, setStartDate] = useState(reward?.startDate ? new Date(reward.startDate).toISOString().split('T')[0] : '')
   const [expiryDate, setExpiryDate] = useState(reward?.expiryDate ? new Date(reward.expiryDate).toISOString().split('T')[0] : '')
+  
+  const [swapFromCategoryId, setSwapFromCategoryId] = useState(reward?.swapConfig?.fromCategoryId || '')
+  const [swapToCategoryId, setSwapToCategoryId] = useState(reward?.swapConfig?.toCategoryId || '')
+  const [swapFromAmount, setSwapFromAmount] = useState(reward?.swapConfig?.fromAmount?.toString() || '')
+  const [swapToAmount, setSwapToAmount] = useState(reward?.swapConfig?.toAmount?.toString() || '')
 
   useEffect(() => {
     if (open) {
       if (reward) {
+        setIsPointSwap(reward.isPointSwap || false)
         setName(reward.name)
         setDescription(reward.description)
         setCost(reward.cost.toString())
@@ -64,7 +72,12 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setLimitScope(reward.purchaseLimit?.scope || 'per-child')
         setStartDate(reward.startDate ? new Date(reward.startDate).toISOString().split('T')[0] : '')
         setExpiryDate(reward.expiryDate ? new Date(reward.expiryDate).toISOString().split('T')[0] : '')
+        setSwapFromCategoryId(reward.swapConfig?.fromCategoryId || '')
+        setSwapToCategoryId(reward.swapConfig?.toCategoryId || '')
+        setSwapFromAmount(reward.swapConfig?.fromAmount?.toString() || '')
+        setSwapToAmount(reward.swapConfig?.toAmount?.toString() || '')
       } else {
+        setIsPointSwap(false)
         setName('')
         setDescription('')
         setCost('')
@@ -78,6 +91,10 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setLimitScope('per-child')
         setStartDate('')
         setExpiryDate('')
+        setSwapFromCategoryId('')
+        setSwapToCategoryId('')
+        setSwapFromAmount('')
+        setSwapToAmount('')
       }
     }
   }, [open, reward, reward?.categoryIds])
@@ -94,7 +111,13 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !cost) return
+    if (!name.trim()) return
+    
+    if (isPointSwap) {
+      if (!swapFromCategoryId || !swapToCategoryId || !swapFromAmount || !swapToAmount) return
+    } else {
+      if (!cost) return
+    }
 
     const purchaseLimit: PurchaseLimit | undefined = hasLimit
       ? {
@@ -106,20 +129,30 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
 
     const categoryIdsToSave = Array.isArray(categoryIds) ? [...categoryIds] : []
 
-    onSave({
+    const rewardData: Omit<Reward, 'id' | 'createdAt'> = {
       name: name.trim(),
       description: description.trim(),
-      cost: parseInt(cost, 10),
+      cost: isPointSwap ? 0 : parseInt(cost, 10),
       imageEmoji,
       categoryIds: categoryIdsToSave,
-      costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
-      requirements: requirements.length > 0 ? requirements : undefined,
+      costOverrides: isPointSwap ? undefined : (costOverrides.length > 0 ? costOverrides : undefined),
+      requirements: isPointSwap ? undefined : (requirements.length > 0 ? requirements : undefined),
       purchaseLimit,
       startDate: startDate ? new Date(startDate).getTime() : undefined,
       expiryDate: expiryDate ? new Date(expiryDate + 'T23:59:59').getTime() : undefined,
-    })
+      isPointSwap,
+      swapConfig: isPointSwap ? {
+        fromCategoryId: swapFromCategoryId,
+        toCategoryId: swapToCategoryId,
+        fromAmount: parseInt(swapFromAmount, 10),
+        toAmount: parseInt(swapToAmount, 10),
+      } : undefined,
+    }
+
+    onSave(rewardData)
 
     if (!reward) {
+      setIsPointSwap(false)
       setName('')
       setDescription('')
       setCost('')
@@ -133,6 +166,10 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setLimitScope('per-child')
       setStartDate('')
       setExpiryDate('')
+      setSwapFromCategoryId('')
+      setSwapToCategoryId('')
+      setSwapFromAmount('')
+      setSwapToAmount('')
     }
     setOpen(false)
   }
@@ -183,6 +220,149 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowsLeftRight className="h-5 w-5 text-primary" />
+                <Label className="text-base font-fredoka font-semibold">Point Swap Reward</Label>
+              </div>
+              <Switch
+                checked={isPointSwap}
+                onCheckedChange={(checked) => {
+                  setIsPointSwap(checked)
+                  if (checked) {
+                    setImageEmoji('🔄')
+                    if (!name) setName('Point Swap')
+                  } else {
+                    setImageEmoji('🎁')
+                  }
+                }}
+              />
+            </div>
+            {isPointSwap && (
+              <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  Point swap rewards allow children to exchange points between categories. Configure the exchange rate below.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <Separator />
+          
+          {isPointSwap ? (
+            <>
+              <div>
+                <Label htmlFor="reward-emoji">Emoji</Label>
+                <Input
+                  id="reward-emoji"
+                  value={imageEmoji}
+                  onChange={(e) => setImageEmoji(e.target.value)}
+                  placeholder="🔄"
+                  maxLength={4}
+                  className="text-3xl text-center"
+                />
+              </div>
+              <div>
+                <Label htmlFor="reward-name">Swap Name</Label>
+                <Input
+                  id="reward-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Regular to Extra Swap"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="reward-description">Description</Label>
+                <Textarea
+                  id="reward-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Explain what this swap does"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <Label className="text-base">Exchange Rate</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="swap-from-category" className="text-sm">From Category</Label>
+                    <Select value={swapFromCategoryId} onValueChange={setSwapFromCategoryId}>
+                      <SelectTrigger id="swap-from-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="swap-from-amount" className="text-sm">Amount</Label>
+                    <Input
+                      id="swap-from-amount"
+                      type="number"
+                      min="1"
+                      value={swapFromAmount}
+                      onChange={(e) => setSwapFromAmount(e.target.value)}
+                      placeholder="e.g., 100"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-center">
+                  <ArrowsLeftRight className="h-6 w-6 text-primary" weight="bold" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="swap-to-category" className="text-sm">To Category</Label>
+                    <Select value={swapToCategoryId} onValueChange={setSwapToCategoryId}>
+                      <SelectTrigger id="swap-to-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="swap-to-amount" className="text-sm">Amount</Label>
+                    <Input
+                      id="swap-to-amount"
+                      type="number"
+                      min="1"
+                      value={swapToAmount}
+                      onChange={(e) => setSwapToAmount(e.target.value)}
+                      placeholder="e.g., 10"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                {swapFromCategoryId && swapToCategoryId && swapFromAmount && swapToAmount && (
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <p className="text-sm">
+                      <span className="font-semibold">Preview: </span>
+                      Spend {swapFromAmount} {categories.find(c => c.id === swapFromCategoryId)?.name} points to get {swapToAmount} {categories.find(c => c.id === swapToCategoryId)?.name} points
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
           <div>
             <Label htmlFor="reward-emoji">Emoji</Label>
             <Input
@@ -226,6 +406,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               required
             />
           </div>
+          </>
+          )}
           
           <Separator />
           <div className="space-y-3">
@@ -234,7 +416,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               <Label className="text-base font-fredoka font-semibold">Availability Dates</Label>
             </div>
             <p className="text-sm text-muted-foreground">
-              Set optional start and expiry dates for this reward
+              Set optional start and expiry dates for this {isPointSwap ? 'swap' : 'reward'}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -282,6 +464,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
             )}
           </div>
           
+          {!isPointSwap && (
+            <>
           <div>
             <Label>Categories</Label>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -311,6 +495,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               Select one or more categories. Rewards can use points from multiple categories.
             </p>
           </div>
+          </>
+          )}
 
           <Separator />
           <div className="space-y-3">
@@ -380,7 +566,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
             )}
           </div>
 
-          {childrenList.length > 0 && (
+          {!isPointSwap && childrenList.length > 0 && (
             <>
               <Separator />
               <div className="space-y-3">
