@@ -18,14 +18,9 @@ COPY package*.json ./
 
 # Install dependencies
 # Work around npm 10.x exit handler bug in Docker
-# Ensure optional dependencies are installed (critical for native modules like Rollup on ARM)
-RUN timeout 300 npm ci --legacy-peer-deps --include=optional || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
-
-# Verify and explicitly install platform-specific optional dependencies if missing
-# This fixes MODULE_NOT_FOUND errors when building for ARM64 under QEMU emulation
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-      npm install --no-save --legacy-peer-deps @rollup/rollup-linux-arm64-gnu lightningcss-linux-arm64-gnu; \
-    fi
+# Remove package-lock.json to work around npm ci issues with optional dependencies
+# as documented in https://github.com/npm/cli/issues/4828
+RUN rm -f package-lock.json && timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 COPY . .
 
