@@ -425,6 +425,7 @@ export interface WeatherSettings {
   longitude: number | null
   temperatureUnit: TemperatureUnit
   autoDetectedUnit?: 'celsius' | 'fahrenheit'
+  seasonalThemesEnabled?: boolean
 }
 
 export interface WeatherData {

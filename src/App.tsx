@@ -39,6 +39,9 @@ import {
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
+import { fetchWeatherData } from '@/lib/weatherHelper'
+import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
+import { WeatherData } from '@/lib/types'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -104,10 +107,12 @@ function App() {
     latitude: null,
     longitude: null,
     temperatureUnit: 'auto',
+    seasonalThemesEnabled: false,
   })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
+  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null)
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
@@ -1013,6 +1018,53 @@ function App() {
       }
     }
   }, [rewards, categories, setRewards])
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (!weatherSettings?.enabled || !weatherSettings.latitude || !weatherSettings.longitude) {
+        setCurrentWeather(null)
+        return
+      }
+
+      const effectiveUnit = weatherSettings.temperatureUnit === 'auto' 
+        ? (weatherSettings.autoDetectedUnit || 'fahrenheit')
+        : weatherSettings.temperatureUnit
+
+      try {
+        const weatherData = await fetchWeatherData(
+          weatherSettings.latitude,
+          weatherSettings.longitude,
+          effectiveUnit
+        )
+        setCurrentWeather(weatherData)
+      } catch (error) {
+        console.error('Failed to fetch weather:', error)
+        setCurrentWeather(null)
+      }
+    }
+
+    fetchWeather()
+    const interval = setInterval(fetchWeather, 15 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [weatherSettings?.enabled, weatherSettings?.latitude, weatherSettings?.longitude, weatherSettings?.temperatureUnit, weatherSettings?.autoDetectedUnit])
+
+  useEffect(() => {
+    if (weatherSettings?.seasonalThemesEnabled && currentWeather) {
+      const theme = getSeasonalTheme(currentWeather)
+      applyThemeToDOM(theme)
+      
+      if (mode === 'child' && !selectedChild) {
+        toast.info(`🎨 Theme: ${theme.name}`, {
+          description: `Colors updated based on ${currentWeather.condition.toLowerCase()} weather`,
+          duration: 3000,
+        })
+      }
+    } else {
+      const defaultTheme = getSeasonalTheme(null)
+      applyThemeToDOM(defaultTheme)
+    }
+  }, [weatherSettings?.seasonalThemesEnabled, currentWeather, mode, selectedChild])
 
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length

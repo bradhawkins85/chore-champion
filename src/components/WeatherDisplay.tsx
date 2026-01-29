@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { WeatherData, WeatherSettings } from '@/lib/types'
 import { fetchWeatherData, getTemperatureFeeling, getWeatherEmoji } from '@/lib/weatherHelper'
+import { getSeasonalTheme } from '@/lib/themeHelper'
 import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Palette } from '@phosphor-icons/react'
 
 interface WeatherDisplayProps {
   settings: WeatherSettings
@@ -52,6 +55,7 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
   const tempFeeling = getTemperatureFeeling(weather.temperature, weather.unit)
   const weatherEmoji = getWeatherEmoji(weather.conditionCode)
   const unitSymbol = weather.unit === 'celsius' ? 'C' : 'F'
+  const currentTheme = settings.seasonalThemesEnabled ? getSeasonalTheme(weather) : null
 
   return (
     <Card className="p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200">
@@ -76,6 +80,14 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
           </div>
         </div>
       </div>
+      {currentTheme && (
+        <div className="mt-3 pt-3 border-t border-sky-200">
+          <Badge variant="secondary" className="w-full justify-center gap-1.5">
+            <Palette className="h-3 w-3" />
+            <span className="text-xs">{currentTheme.name} Theme Active</span>
+          </Badge>
+        </div>
+      )}
     </Card>
   )
 }

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WeatherSettings, TemperatureUnit } from '@/lib/types'
 import { geocodeLocation, detectTemperatureUnit } from '@/lib/weatherHelper'
 import { toast } from 'sonner'
-import { MagnifyingGlass, MapPin, ThermometerSimple } from '@phosphor-icons/react'
+import { MagnifyingGlass, MapPin, ThermometerSimple, Palette } from '@phosphor-icons/react'
 
 interface WeatherSettingsComponentProps {
   settings: WeatherSettings
@@ -168,6 +168,22 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
               Auto-detected: {getEffectiveUnit() === 'celsius' ? 'Celsius' : 'Fahrenheit'} based on {settings.location}
             </p>
           )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Seasonal Themes
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Change app colors based on weather conditions
+            </p>
+          </div>
+          <Switch
+            checked={settings.seasonalThemesEnabled ?? false}
+            onCheckedChange={(enabled) => onUpdate({ ...settings, seasonalThemesEnabled: enabled })}
+          />
         </div>
       </CardContent>
     </Card>
