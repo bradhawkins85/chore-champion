@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, LockKey, Timer } from '@phosphor-icons/react'
+import { Plus, Star, LockKey, Timer, CalendarBlank, CalendarX } from '@phosphor-icons/react'
 import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -44,6 +44,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [limitMax, setLimitMax] = useState(reward?.purchaseLimit?.maxPurchases?.toString() || '1')
   const [limitInterval, setLimitInterval] = useState<PurchaseLimitInterval>(reward?.purchaseLimit?.interval || 'day')
   const [limitScope, setLimitScope] = useState<PurchaseLimitScope>(reward?.purchaseLimit?.scope || 'per-child')
+  const [startDate, setStartDate] = useState(reward?.startDate ? new Date(reward.startDate).toISOString().split('T')[0] : '')
+  const [expiryDate, setExpiryDate] = useState(reward?.expiryDate ? new Date(reward.expiryDate).toISOString().split('T')[0] : '')
 
   useEffect(() => {
     if (open) {
@@ -60,6 +62,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
         setLimitInterval(reward.purchaseLimit?.interval || 'day')
         setLimitScope(reward.purchaseLimit?.scope || 'per-child')
+        setStartDate(reward.startDate ? new Date(reward.startDate).toISOString().split('T')[0] : '')
+        setExpiryDate(reward.expiryDate ? new Date(reward.expiryDate).toISOString().split('T')[0] : '')
       } else {
         setName('')
         setDescription('')
@@ -72,6 +76,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setLimitMax('1')
         setLimitInterval('day')
         setLimitScope('per-child')
+        setStartDate('')
+        setExpiryDate('')
       }
     }
   }, [open, reward, reward?.categoryIds])
@@ -109,6 +115,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       costOverrides: costOverrides.length > 0 ? costOverrides : undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
       purchaseLimit,
+      startDate: startDate ? new Date(startDate).getTime() : undefined,
+      expiryDate: expiryDate ? new Date(expiryDate + 'T23:59:59').getTime() : undefined,
     })
 
     if (!reward) {
@@ -123,6 +131,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setLimitMax('1')
       setLimitInterval('day')
       setLimitScope('per-child')
+      setStartDate('')
+      setExpiryDate('')
     }
     setOpen(false)
   }
@@ -215,6 +225,61 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
               placeholder="e.g., 50"
               required
             />
+          </div>
+          
+          <Separator />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CalendarBlank className="h-5 w-5 text-muted-foreground" />
+              <Label className="text-base font-fredoka font-semibold">Availability Dates</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Set optional start and expiry dates for this reward
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="start-date" className="text-sm">Start Date (Optional)</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reward unavailable before this date
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="expiry-date" className="text-sm">Expiry Date (Optional)</Label>
+                <Input
+                  id="expiry-date"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="mt-1"
+                  min={startDate || undefined}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reward automatically disabled after this date
+                </p>
+              </div>
+            </div>
+            {(startDate || expiryDate) && (
+              <div className="bg-muted/50 p-3 rounded-md">
+                <p className="text-sm">
+                  {startDate && expiryDate && (
+                    <>Available from <span className="font-semibold">{new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span> until <span className="font-semibold">{new Date(expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>
+                  )}
+                  {startDate && !expiryDate && (
+                    <>Available starting <span className="font-semibold">{new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>
+                  )}
+                  {!startDate && expiryDate && (
+                    <>Available until <span className="font-semibold">{new Date(expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
           
           <div>

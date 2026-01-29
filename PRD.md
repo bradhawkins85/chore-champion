@@ -90,11 +90,18 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Success criteria**: Chores reset at appropriate intervals, completion history maintained, inactive chores are hidden from child view but visible (marked as inactive) in parent view
 
 ### Rewards Shop
-- **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points. Rewards can have purchase limits that restrict how often they can be purchased (per day, week, month, or total) with limits applying per child or to all children combined.
-- **Purpose**: Give children tangible goals to work toward and motivation to complete chores, while allowing parents to control reward frequency and prevent overconsumption of certain rewards
+- **Functionality**: Parents create rewards with point costs, children can browse and purchase rewards using earned points. Rewards can have purchase limits that restrict how often they can be purchased (per day, week, month, or total) with limits applying per child or to all children combined. Rewards can have optional start dates (when they become available) and expiry dates (when they automatically disable).
+- **Purpose**: Give children tangible goals to work toward and motivation to complete chores, while allowing parents to control reward frequency and prevent overconsumption of certain rewards. Time-limited rewards create urgency and enable seasonal/special occasion rewards (e.g., "Summer Ice Cream Days" or "Holiday Movie Night").
 - **Trigger**: Child clicks "Shop" button from their chore view
-- **Progression**: View rewards → See limit badges on rewards (e.g., "2/3 this week") → Select desired reward → If limit not reached and points sufficient → Confirm purchase → Points deducted → Parent notified → Limit counter updates
-- **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators, limits enforced at purchase time, limit status clearly visible in shop
+- **Progression**: View rewards → See limit badges on rewards (e.g., "2/3 this week") → Select desired reward → If limit not reached, dates are active, and points sufficient → Confirm purchase → Points deducted → Parent notified → Limit counter updates
+- **Success criteria**: Points correctly deducted, purchase history tracked, rewards display with clear affordability indicators, limits enforced at purchase time, limit status clearly visible in shop, expired rewards automatically disabled and hidden from shop, rewards with future start dates hidden from shop until active
+
+### Reward Expiry and Start Dates
+- **Functionality**: Set optional start dates (when reward becomes available) and expiry dates (when reward automatically disables) for rewards. System automatically disables rewards after their expiry date passes.
+- **Purpose**: Enable time-limited promotions, seasonal rewards (e.g., "Summer Pool Day"), special occasion rewards (e.g., "Birthday Special"), or rewards that should only be available during specific periods. Create urgency and excitement around limited-time opportunities.
+- **Trigger**: Edit reward → Navigate to "Availability Dates" section → Set optional start and/or expiry dates
+- **Progression**: Open reward editor → Set start date (optional) → Set expiry date (optional) → Save reward → Reward becomes available on start date (if set) → Reward automatically disables on expiry date (if set) → Parent view shows date badges → Child view filters out inactive rewards
+- **Success criteria**: Rewards with future start dates are hidden from shop until that date, expired rewards automatically disable and disappear from shop, parent view clearly shows start/expiry status with badges, date information displayed in reward cards, expired rewards marked with "Expired" badge in parent view, system checks and auto-disables on app load
 
 ### Purchase Limits (Rewards)
 - **Functionality**: Configure optional purchase limits for rewards with flexible intervals (per day, week, month, ever) and scopes (per child or total across all children). Examples: "once per day per child", "twice per week total", "3 times per month per child", "one time ever total".
@@ -168,6 +175,11 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Approaching Limit in Shop**: Shop displays current usage count (e.g., "2/3 this week") so children know how many purchases remain
 - **Limit Change Impact**: If parent changes limit settings, the new limits apply immediately using existing purchase history
 - **Limit with Zero Remaining**: Shows as "0/3 this week" with red badge and cannot be purchased
+- **Reward Start Date (Future)**: Rewards with start dates in the future are hidden from child shop view and show "Not Started" badge in parent view
+- **Reward Expiry (Past)**: Rewards past their expiry date automatically disable, show "Expired" badge in parent view, and are hidden from child shop
+- **Reward Date Range**: Rewards can have both start and expiry dates for specific availability windows
+- **Auto-Disable on Expiry**: System automatically checks and disables expired rewards when app loads or when viewing rewards
+- **Date Display**: Parent view shows formatted dates (e.g., "Jan 15, 2024") with calendar icons for clarity
 
 ## Design Direction
 
@@ -272,6 +284,8 @@ Animations should celebrate achievements and provide smooth transitions, especia
   - Calendar (Phosphor) for day-of-week indicators
   - Timer (Phosphor) for purchase limits and limit status displays
   - LockKey (Phosphor) for locked/unavailable rewards due to requirements or limits
+  - CalendarBlank (Phosphor) for start date indicators on rewards
+  - CalendarX (Phosphor) for expiry date indicators on rewards
   
 - **Spacing**: 
   - Child interface: Generous spacing with gap-6 between chore cards, p-8 on main container

@@ -766,3 +766,26 @@ export function getNextUpcomingChore(
     timeOfDay: firstChore.timeOfDay,
   }
 }
+
+export function isRewardActive(reward: { startDate?: number; expiryDate?: number }): boolean {
+  const now = Date.now()
+  
+  if (reward.startDate && now < reward.startDate) {
+    return false
+  }
+  
+  if (reward.expiryDate && now > reward.expiryDate) {
+    return false
+  }
+  
+  return true
+}
+
+export function formatDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+}

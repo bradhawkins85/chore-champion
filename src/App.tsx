@@ -26,7 +26,7 @@ import {
   DayOfWeek,
   RepeatPattern,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -73,6 +73,25 @@ function App() {
       hasInitializedCategories.current = true
     }
   }, [])
+
+  useEffect(() => {
+    if (rewards && rewards.length > 0) {
+      const needsUpdate = rewards.some(r => 
+        r.expiryDate && Date.now() > r.expiryDate && !r.disabled
+      )
+      
+      if (needsUpdate) {
+        setRewards(currentRewards =>
+          (currentRewards || []).map(reward => {
+            if (reward.expiryDate && Date.now() > reward.expiryDate && !reward.disabled) {
+              return { ...reward, disabled: true }
+            }
+            return reward
+          })
+        )
+      }
+    }
+  }, [rewards, setRewards])
 
   const migratedChores = useMemo(() => {
     if (!chores || chores.length === 0) return chores || []

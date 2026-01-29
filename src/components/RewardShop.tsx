@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
 import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category } from '@/lib/types'
 import { motion } from 'framer-motion'
-import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory } from '@/lib/helpers'
+import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory, isRewardActive } from '@/lib/helpers'
 import { useMemo } from 'react'
 
 interface RewardShopProps {
@@ -111,7 +111,7 @@ export function RewardShop({
           </div>
         </div>
 
-        {rewards.filter(r => !r.disabled).length === 0 ? (
+        {rewards.filter(r => !r.disabled && isRewardActive(r)).length === 0 ? (
           <Card className="p-12 text-center">
             <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-2xl font-fredoka font-semibold mb-2">
@@ -123,7 +123,7 @@ export function RewardShop({
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {rewards.filter(r => !r.disabled).map((reward) => {
+            {rewards.filter(r => !r.disabled && isRewardActive(r)).map((reward) => {
               const customCost = getRewardCostForChild(reward, child.id)
               const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
               const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)

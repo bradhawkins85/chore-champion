@@ -1,9 +1,10 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, Trash, Star, Timer, EyeSlash, Eye } from '@phosphor-icons/react'
+import { Pencil, Trash, Star, Timer, EyeSlash, Eye, CalendarBlank, CalendarX } from '@phosphor-icons/react'
 import { Reward, Child, Chore, Category } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
+import { isRewardActive, formatDate } from '@/lib/helpers'
 
 interface RewardCardProps {
   reward: Reward
@@ -28,17 +29,27 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
     return `${maxPurchases}× ${intervalText} (${scopeText})`
   }
 
+  const isActive = isRewardActive(reward)
+  const isExpired = reward.expiryDate && Date.now() > reward.expiryDate
+  const isNotStarted = reward.startDate && Date.now() < reward.startDate
+
   return (
-    <Card className={`p-4 hover:shadow-lg transition-shadow ${reward.disabled ? 'opacity-60 bg-muted/50' : ''}`}>
+    <Card className={`p-4 hover:shadow-lg transition-shadow ${reward.disabled || !isActive ? 'opacity-60 bg-muted/50' : ''}`}>
       <div className="flex gap-4">
         <div className="text-6xl flex-shrink-0">{reward.imageEmoji}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-fredoka font-semibold text-lg">{reward.name}</h3>
                 {reward.disabled && (
                   <Badge variant="secondary" className="text-xs">Disabled</Badge>
+                )}
+                {isExpired && (
+                  <Badge variant="destructive" className="text-xs">Expired</Badge>
+                )}
+                {isNotStarted && (
+                  <Badge variant="secondary" className="text-xs">Not Started</Badge>
                 )}
               </div>
               {reward.description && (
@@ -66,7 +77,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                   })}
                 </div>
               )}
-              {(hasCustomizations || reward.purchaseLimit) && (
+              {(hasCustomizations || reward.purchaseLimit || reward.startDate || reward.expiryDate) && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {reward.costOverrides && reward.costOverrides.length > 0 && (
                     <Badge variant="outline" className="text-xs">
@@ -82,6 +93,18 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                     <Badge variant="secondary" className="text-xs flex items-center gap-1">
                       <Timer className="h-3 w-3" />
                       {getLimitText()}
+                    </Badge>
+                  )}
+                  {reward.startDate && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <CalendarBlank className="h-3 w-3" />
+                      Starts {formatDate(reward.startDate)}
+                    </Badge>
+                  )}
+                  {reward.expiryDate && (
+                    <Badge variant={isExpired ? "destructive" : "outline"} className="text-xs flex items-center gap-1">
+                      <CalendarX className="h-3 w-3" />
+                      {isExpired ? 'Expired' : 'Expires'} {formatDate(reward.expiryDate)}
                     </Badge>
                   )}
                 </div>

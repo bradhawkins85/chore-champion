@@ -137,6 +137,8 @@ export interface Reward {
   requirements?: RewardRequirement[]
   purchaseLimit?: PurchaseLimit
   disabled?: boolean
+  startDate?: number
+  expiryDate?: number
 }
 
 export interface RewardPurchase {
