@@ -1,12 +1,20 @@
 # Multi-stage build for ChoreQuest
 # Stage 1: Build the application
-FROM node:20-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
+# Build argument to disable SSL verification if needed for corporate proxies
+# Set to "true" during build if encountering SSL certificate issues
+ARG DISABLE_SSL_VERIFY=false
+
 COPY package*.json ./
 
-RUN npm ci
+# Install dependencies
+# Note: Using npm install with --legacy-peer-deps due to peer dependency conflicts
+# npm ci is preferred but may have issues with npm 10.x in some Docker environments
+RUN if [ "$DISABLE_SSL_VERIFY" = "true" ]; then npm config set strict-ssl false; fi && \
+    npm install --legacy-peer-deps
 
 COPY . .
 

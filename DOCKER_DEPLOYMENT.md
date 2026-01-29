@@ -21,6 +21,38 @@ This guide provides comprehensive instructions for deploying ChoreQuest in produ
 - At least 1GB of available RAM
 - At least 2GB of available disk space
 
+## Building the Docker Image
+
+ChoreQuest uses a multi-stage Docker build process. The image can be built with:
+
+```bash
+docker build -t chorequest .
+```
+
+### Build Arguments
+
+#### DISABLE_SSL_VERIFY
+
+By default, the build process uses SSL verification when downloading npm packages. In some corporate environments behind proxies with SSL inspection, you may encounter certificate validation errors.
+
+**Only if needed**, you can disable SSL verification:
+
+```bash
+docker build --build-arg DISABLE_SSL_VERIFY=true -t chorequest .
+```
+
+⚠️ **Security Warning:** Disabling SSL verification reduces security and should only be used as a last resort in controlled environments. The proper solution is to:
+
+1. Add your corporate CA certificates to the Docker image
+2. Configure your proxy to use valid certificates
+3. Use a Docker registry mirror that doesn't require SSL inspection
+
+**Default:** SSL verification is enabled (`DISABLE_SSL_VERIFY=false`)
+
+### Base Image
+
+The build uses `node:22-bookworm-slim` for compatibility with modern npm versions. The final production image uses `nginx:alpine` to keep the deployed size small.
+
 ## Quick Start
 
 ### 1. Clone the Repository
