@@ -553,18 +553,6 @@ export function ChildChoreView({
                           </CardContent>
                         </Card>
                       </motion.div>
-                      
-                      {index === 0 && (
-                        <div className="mt-4">
-                          <OnThisDay
-                            child={child}
-                            chores={chores}
-                            completions={completions}
-                            assignments={assignments}
-                            categories={categories}
-                          />
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

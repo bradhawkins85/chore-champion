@@ -201,14 +201,14 @@ export function OnThisDay({
 
   if (isLoadingICS && !isRefreshing) {
     return (
-      <div className="mb-8">
-        <h2 className="text-2xl font-fredoka font-bold mb-4 flex items-center gap-2">
-          <Sparkle className="h-6 w-6 text-accent" weight="fill" />
+      <div className="mb-6">
+        <h2 className="text-xl font-fredoka font-bold mb-3 flex items-center gap-2">
+          <Sparkle className="h-5 w-5 text-accent" weight="fill" />
           On This Day
         </h2>
         <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
-          <CardContent className="p-6">
-            <div className="text-center text-muted-foreground">
+          <CardContent className="p-4">
+            <div className="text-center text-sm text-muted-foreground">
               Loading calendar events...
             </div>
           </CardContent>
@@ -264,16 +264,16 @@ export function OnThisDay({
   }
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-fredoka font-bold flex items-center gap-2">
-          <Sparkle className="h-6 w-6 text-accent" weight="fill" />
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xl font-fredoka font-bold flex items-center gap-2">
+          <Sparkle className="h-5 w-5 text-accent" weight="fill" />
           On This Day
         </h2>
         {child.icsUrl && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {lastRefreshTime && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Updated {formatLastRefreshTime()}
               </span>
             )}
@@ -282,10 +282,10 @@ export function OnThisDay({
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="gap-2"
+              className="gap-1 h-7 px-2 text-xs"
             >
               <ArrowClockwise 
-                className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+                className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
                 weight="bold" 
               />
               Refresh
@@ -294,19 +294,19 @@ export function OnThisDay({
         )}
       </div>
       <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
             {events.length > 1 && (
               <button
                 onClick={handlePrevious}
-                className="flex-shrink-0 p-2 rounded-full hover:bg-accent/10 transition-colors"
+                className="flex-shrink-0 p-1.5 rounded-full hover:bg-accent/10 transition-colors"
                 aria-label="Previous event"
               >
-                <CaretLeft className="h-6 w-6 text-accent" weight="bold" />
+                <CaretLeft className="h-5 w-5 text-accent" weight="bold" />
               </button>
             )}
             
-            <div className="flex-1 min-w-0 relative" style={{ minHeight: '120px' }}>
+            <div className="flex-1 min-w-0 relative" style={{ minHeight: '80px' }}>
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div
                   key={currentEventIndex}
@@ -321,21 +321,21 @@ export function OnThisDay({
                   }}
                   className="absolute inset-0"
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
                     <div className="flex-shrink-0">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-                        <CalendarCheck className="h-8 w-8 text-white" weight="bold" />
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                        <CalendarCheck className="h-6 w-6 text-white" weight="bold" />
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-1">
                         {yearsAgo !== undefined ? (
                           <>
-                            <Badge variant="secondary" className="font-fredoka text-sm">
+                            <Badge variant="secondary" className="font-fredoka text-xs h-5">
                               {yearsAgo} {yearsAgo === 1 ? 'year' : 'years'} ago
                             </Badge>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               {new Date(currentEvent.date).toLocaleDateString('en-US', { 
                                 month: 'long', 
                                 day: 'numeric',
@@ -344,31 +344,31 @@ export function OnThisDay({
                             </span>
                           </>
                         ) : (
-                          <Badge variant="secondary" className="font-fredoka text-sm">
+                          <Badge variant="secondary" className="font-fredoka text-xs h-5">
                             Today
                           </Badge>
                         )}
                       </div>
                       
-                      <h3 className="text-2xl font-fredoka font-bold mb-2 text-foreground">
+                      <h3 className="text-lg font-fredoka font-bold mb-1 text-foreground">
                         {currentEvent.title}
                       </h3>
                       
                       {currentEvent.description && (
-                        <p className="text-base text-muted-foreground mb-3">
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                           {currentEvent.description}
                         </p>
                       )}
                       
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {currentEvent.type === 'calendar' && (
                           <>
-                            <Badge variant="outline" className="font-fredoka">
+                            <Badge variant="outline" className="font-fredoka text-xs h-5">
                               <Clock className="h-3 w-3 mr-1" />
                               {formatEventTime(currentEvent.date, currentEvent.endDate)}
                             </Badge>
                             {currentEvent.location && (
-                              <Badge variant="outline" className="font-fredoka">
+                              <Badge variant="outline" className="font-fredoka text-xs h-5">
                                 <MapPin className="h-3 w-3 mr-1" />
                                 {currentEvent.location}
                               </Badge>
@@ -377,7 +377,7 @@ export function OnThisDay({
                         )}
                         
                         {currentEvent.points !== undefined && (
-                          <Badge className="font-fredoka bg-accent text-white">
+                          <Badge className="font-fredoka bg-accent text-white text-xs h-5">
                             <Star weight="fill" className="h-3 w-3 mr-1" />
                             {currentEvent.points} points earned
                           </Badge>
@@ -387,7 +387,7 @@ export function OnThisDay({
                           <Badge
                             key={category.id}
                             variant="outline"
-                            className="font-fredoka font-semibold border-2"
+                            className="font-fredoka font-semibold border text-xs h-5"
                             style={{
                               backgroundColor: `${category.color}20`,
                               borderColor: category.color,
@@ -407,16 +407,16 @@ export function OnThisDay({
             {events.length > 1 && (
               <button
                 onClick={handleNext}
-                className="flex-shrink-0 p-2 rounded-full hover:bg-accent/10 transition-colors"
+                className="flex-shrink-0 p-1.5 rounded-full hover:bg-accent/10 transition-colors"
                 aria-label="Next event"
               >
-                <CaretRight className="h-6 w-6 text-accent" weight="bold" />
+                <CaretRight className="h-5 w-5 text-accent" weight="bold" />
               </button>
             )}
           </div>
           
           {events.length > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
+            <div className="flex justify-center gap-1.5 mt-3">
               {events.map((_, index) => (
                 <button
                   key={index}
@@ -424,9 +424,9 @@ export function OnThisDay({
                     setDirection(index > currentEventIndex ? 1 : -1)
                     setCurrentEventIndex(index)
                   }}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
                     index === currentEventIndex
-                      ? 'bg-accent w-6'
+                      ? 'bg-accent w-4'
                       : 'bg-accent/30 hover:bg-accent/50'
                   }`}
                   aria-label={`Go to event ${index + 1}`}
