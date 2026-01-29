@@ -1170,6 +1170,59 @@ export async function getUserIPAddress(): Promise<string | null> {
   }
 }
 
+function ipToNumber(ip: string): number {
+  const parts = ip.split('.')
+  return parts.reduce((acc, part) => (acc << 8) + parseInt(part, 10), 0) >>> 0
+}
+
+function parseCIDR(cidr: string): { network: number; mask: number } | null {
+  const parts = cidr.split('/')
+  if (parts.length !== 2) {
+    return null
+  }
+
+  const [ipPart, prefixPart] = parts
+  const prefix = parseInt(prefixPart, 10)
+
+  if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+    return null
+  }
+
+  if (!isValidSingleIPAddress(ipPart)) {
+    return null
+  }
+
+  const ip = ipToNumber(ipPart)
+  const mask = (0xffffffff << (32 - prefix)) >>> 0
+  const network = (ip & mask) >>> 0
+
+  return { network, mask }
+}
+
+function isIPInCIDR(ip: string, cidr: string): boolean {
+  const parsed = parseCIDR(cidr)
+  if (!parsed) {
+    return false
+  }
+
+  const ipNum = ipToNumber(ip)
+  return ((ipNum & parsed.mask) >>> 0) === parsed.network
+}
+
+function isValidSingleIPAddress(ip: string): boolean {
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/
+  
+  if (!ipv4Pattern.test(ip)) {
+    return false
+  }
+  
+  const parts = ip.split('.')
+  return parts.every(part => {
+    const num = parseInt(part, 10)
+    return num >= 0 && num <= 255
+  })
+}
+
 export function isIPAllowed(
   currentIP: string | null,
   settings: { enabled: boolean; allowedIPs: string[] }
@@ -1187,30 +1240,23 @@ export function isIPAllowed(
   }
   
   return settings.allowedIPs.some(allowedIP => {
-    if (allowedIP.includes('*')) {
-      const pattern = allowedIP.replace(/\./g, '\\.').replace(/\*/g, '.*')
-      const regex = new RegExp(`^${pattern}$`)
-      return regex.test(currentIP)
+    if (allowedIP.includes('/')) {
+      return isIPInCIDR(currentIP, allowedIP)
     }
     return allowedIP === currentIP
   })
 }
 
 export function isValidIPAddress(ip: string): boolean {
-  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/
   const ipv6Pattern = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/
   
-  if (ip.includes('*')) {
-    const testIP = ip.replace(/\*/g, '0')
-    return ipv4Pattern.test(testIP)
+  if (ip.includes('/')) {
+    const parsed = parseCIDR(ip)
+    return parsed !== null
   }
   
-  if (ipv4Pattern.test(ip)) {
-    const parts = ip.split('.')
-    return parts.every(part => {
-      const num = parseInt(part, 10)
-      return num >= 0 && num <= 255
-    })
+  if (isValidSingleIPAddress(ip)) {
+    return true
   }
   
   return ipv6Pattern.test(ip)

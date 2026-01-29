@@ -157,7 +157,7 @@ export function IPRestrictions({
               <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Info className="h-4 w-4" />
-                  <p>Use wildcards (*) for IP ranges: 192.168.1.*</p>
+                  <p>Use CIDR notation for IP ranges: 192.168.0.0/24</p>
                 </div>
 
                 <div className="space-y-2">
@@ -180,13 +180,13 @@ export function IPRestrictions({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="new-ip">Add IP Address</Label>
+                  <Label htmlFor="new-ip">Add IP Address or Range</Label>
                   <div className="flex gap-2">
                     <Input
                       id="new-ip"
                       value={newIP}
                       onChange={(e) => setNewIP(e.target.value)}
-                      placeholder="192.168.1.100 or 192.168.1.*"
+                      placeholder="192.168.1.100 or 192.168.0.0/24"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleAddIP()
