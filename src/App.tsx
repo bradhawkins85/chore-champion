@@ -9,6 +9,7 @@ import { ChildSelector } from '@/components/ChildSelector'
 import { ChildChoreView } from '@/components/ChildChoreView'
 import { RewardShop } from '@/components/RewardShop'
 import { ParentPinDialog } from '@/components/ParentPinDialog'
+import { QuickUnlockPrompt } from '@/components/QuickUnlockPrompt'
 import { PointsHistoryView } from '@/components/PointsHistoryView'
 import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
@@ -68,6 +69,7 @@ function App() {
     enabled: false,
     credentials: [],
     requirePinFallback: true,
+    quickUnlockOnPWA: true,
   })
 
   const [chores, setChores] = useKV<Chore[]>('chores', [])
@@ -1337,7 +1339,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
-          biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
+          biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
           bonusCompletions={bonusCompletions || []}
@@ -1528,7 +1530,15 @@ Please log in to ChoreQuest to approve or reject this completion.
         onSetPin={handleSetPin}
         pinSecurity={pinSecurity || { attempts: [], lockedUntil: null, failedAttempts: 0 }}
         onUpdatePinSecurity={(security) => setPinSecurity(security)}
-        biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
+        biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
+        onUpdateBiometricSettings={(settings) => setBiometricSettings(settings)}
+      />
+
+      <QuickUnlockPrompt
+        biometricSettings={biometricSettings || null}
+        pinSecurity={pinSecurity || { attempts: [], lockedUntil: null, failedAttempts: 0 }}
+        onSuccess={handlePinSuccess}
+        onUpdatePinSecurity={(security) => setPinSecurity(security)}
         onUpdateBiometricSettings={(settings) => setBiometricSettings(settings)}
       />
 

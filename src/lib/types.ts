@@ -263,6 +263,7 @@ export interface BiometricSettings {
   enabled: boolean
   credentials: BiometricCredential[]
   requirePinFallback: boolean
+  quickUnlockOnPWA: boolean
 }
 
 export interface PointSwap {

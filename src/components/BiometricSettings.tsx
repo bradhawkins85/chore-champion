@@ -109,6 +109,19 @@ export function BiometricSettings({ settings, onChange }: BiometricSettingsProps
     })
   }
 
+  const handleToggleQuickUnlock = (quickUnlockOnPWA: boolean) => {
+    onChange({
+      ...settings,
+      quickUnlockOnPWA,
+    })
+
+    if (quickUnlockOnPWA) {
+      toast.success('Quick unlock enabled for installed PWA')
+    } else {
+      toast.info('Quick unlock disabled')
+    }
+  }
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -182,6 +195,22 @@ export function BiometricSettings({ settings, onChange }: BiometricSettingsProps
                   id="pin-fallback"
                   checked={settings.requirePinFallback}
                   onCheckedChange={handleTogglePinFallback}
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="quick-unlock" className="text-base">
+                    Quick Unlock on PWA Launch
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically prompt for biometric when opening installed app
+                  </p>
+                </div>
+                <Switch
+                  id="quick-unlock"
+                  checked={settings.quickUnlockOnPWA}
+                  onCheckedChange={handleToggleQuickUnlock}
                 />
               </div>
 
