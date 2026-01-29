@@ -1105,23 +1105,22 @@ Please log in to ChoreQuest to approve or reject this completion.
 
   useEffect(() => {
     if (hasMigratedRewards.current) return
+    if (!rewards || !categories) return
     
-    if (rewards && rewards.length > 0 && categories && categories.length > 0) {
-      const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
-      if (needsMigration) {
-        const firstCategoryId = categories[0]?.id
-        const migrated = rewards.map((reward) => {
-          const rewardCategoryIds = reward.categoryIds
-          const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
-          
-          return {
-            ...reward,
-            categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
-          }
-        })
-        setRewards(migrated)
-        hasMigratedRewards.current = true
-      }
+    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
+    if (needsMigration) {
+      const firstCategoryId = categories[0]?.id
+      const migrated = rewards.map((reward) => {
+        const rewardCategoryIds = reward.categoryIds
+        const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
+        
+        return {
+          ...reward,
+          categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
+        }
+      })
+      setRewards(migrated)
+      hasMigratedRewards.current = true
     }
   }, [rewards, categories, setRewards])
 
@@ -1254,7 +1253,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             setMode('child')
             setSelectedChild(null)
             setShowRewardShop(false)
-            setShowPointsHistory(false)
+            setShowRewardShop(false)
             setShowCalendar(false)
           }}
         />
