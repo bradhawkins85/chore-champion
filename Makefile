@@ -16,40 +16,40 @@ help: ## Show this help message
 	@echo "  make up-traefik           # Production with SSL"
 
 build: ## Build Docker images
-	docker-compose -f $(COMPOSE_FILE) build --no-cache
+	docker compose -f $(COMPOSE_FILE) build --no-cache
 
 up: ## Start services (development)
-	docker-compose up -d
+	docker compose up -d
 
 up-prod: ## Start services (production)
-	docker-compose -f docker-compose.prod.yml up -d
+	docker compose -f docker-compose.prod.yml up -d
 
 up-traefik: ## Start services (production with Traefik)
-	docker-compose -f docker-compose.traefik.yml up -d
+	docker compose -f docker-compose.traefik.yml up -d
 
 down: ## Stop and remove services
-	docker-compose -f $(COMPOSE_FILE) down
+	docker compose -f $(COMPOSE_FILE) down
 
 down-prod: ## Stop production services
-	docker-compose -f docker-compose.prod.yml down
+	docker compose -f docker-compose.prod.yml down
 
 down-traefik: ## Stop Traefik services
-	docker-compose -f docker-compose.traefik.yml down
+	docker compose -f docker-compose.traefik.yml down
 
 restart: ## Restart services
-	docker-compose -f $(COMPOSE_FILE) restart
+	docker compose -f $(COMPOSE_FILE) restart
 
 restart-prod: ## Restart production services
-	docker-compose -f docker-compose.prod.yml restart
+	docker compose -f docker-compose.prod.yml restart
 
 logs: ## View logs (follow)
-	docker-compose -f $(COMPOSE_FILE) logs -f
+	docker compose -f $(COMPOSE_FILE) logs -f
 
 logs-prod: ## View production logs
-	docker-compose -f docker-compose.prod.yml logs -f
+	docker compose -f docker-compose.prod.yml logs -f
 
 ps: ## Show running containers
-	docker-compose ps
+	docker compose ps
 
 health: ## Run health check
 	@./scripts/health-check.sh
@@ -70,7 +70,7 @@ clean: ## Clean up unused Docker resources
 	docker system prune -f
 
 clean-all: ## Clean everything including volumes (⚠️  DELETES DATA)
-	docker-compose down -v
+	docker compose down -v
 	docker system prune -a -f
 
 init: ## Initialize production environment
@@ -109,10 +109,10 @@ backup-list: ## List available backups
 	@ls -lh backups/*.tar.gz 2>/dev/null || echo "No backups found"
 
 config: ## Validate and show Docker Compose config
-	docker-compose config
+	docker compose config
 
 config-prod: ## Validate and show production config
-	docker-compose -f docker-compose.prod.yml config
+	docker compose -f docker-compose.prod.yml config
 
 config-traefik: ## Validate and show Traefik config
-	docker-compose -f docker-compose.traefik.yml config
+	docker compose -f docker-compose.traefik.yml config

@@ -32,15 +32,15 @@ mkdir -p "${BACKUP_PATH:-./backups}"
 chmod +x scripts/*.sh
 
 echo "Building Docker image..."
-docker-compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml build --no-cache
 
 echo ""
 echo "Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 
 echo ""
 echo "Starting ChoreQuest..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 echo ""
 echo "Waiting for services to become healthy..."
@@ -54,14 +54,14 @@ if docker ps | grep -q chorequest-app; then
     echo "  http://localhost:${CHOREQUEST_PORT:-8080}"
     echo ""
     echo "To view logs:"
-    echo "  docker-compose -f docker-compose.prod.yml logs -f"
+    echo "  docker compose -f docker-compose.prod.yml logs -f"
     echo ""
     echo "To stop:"
-    echo "  docker-compose -f docker-compose.prod.yml down"
+    echo "  docker compose -f docker-compose.prod.yml down"
     echo ""
 else
     echo ""
     echo "✗ Deployment failed. Check logs:"
-    echo "  docker-compose -f docker-compose.prod.yml logs"
+    echo "  docker compose -f docker-compose.prod.yml logs"
     exit 1
 fi
