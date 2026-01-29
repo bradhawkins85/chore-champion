@@ -116,6 +116,8 @@ ChoreQuest is designed for easy deployment using Docker with full volume persist
    open http://localhost:8080
    ```
 
+> **Note:** By default, ChoreQuest uses browser localStorage for data storage. For centralized data storage across multiple devices and users, see [MySQL Backend Setup](#-mysql-backend-persistent-storage) below.
+
 #### **Production Deployment**
 
 1. **Initialize environment**
@@ -181,6 +183,56 @@ docker run -d \
   --restart unless-stopped \
   ghcr.io/OWNER/chorequest:latest
 ```
+
+### 🗄️ MySQL Backend (Persistent Storage)
+
+ChoreQuest now supports MySQL database backend for centralized data storage across multiple devices and users. This is particularly useful for:
+- **Shared family access** - Multiple devices accessing the same data
+- **Data persistence** - Database backups independent of browser storage
+- **Production deployments** - Scalable and reliable storage
+
+#### **Quick Setup with MySQL**
+
+1. **Run the setup script**
+   ```bash
+   ./setup-mysql.sh
+   ```
+   
+   This will:
+   - Create `.env` file if needed
+   - Validate Docker configuration
+   - Set up MySQL, API, and frontend services
+
+2. **Or manually configure:**
+   ```bash
+   cp .env.example .env
+   nano .env  # Set MySQL passwords
+   docker compose up -d
+   ```
+
+3. **Verify services**
+   ```bash
+   docker compose ps
+   # All services should show "healthy"
+   ```
+
+#### **Services Included**
+
+- **MySQL 8.0** - Database backend with persistent storage
+- **API Server** - Node.js/Express REST API
+- **Frontend** - React application with nginx
+
+#### **Data Migration**
+
+If you have existing data in localStorage, you can migrate it to MySQL:
+
+```javascript
+// In browser console
+import { migrateToApi } from './hooks/use-api-kv';
+await migrateToApi();
+```
+
+For detailed MySQL backend documentation, see [MYSQL_BACKEND.md](MYSQL_BACKEND.md).
 
 ### 📦 Volume Persistence
 

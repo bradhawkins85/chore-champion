@@ -1,6 +1,67 @@
-version: '3.9'
-
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: chorequest-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - chorequest-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.chorequest.service=database"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: chorequest-api:latest
+    container_name: chorequest-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - TZ=${TIMEZONE:-UTC}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - chorequest-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.chorequest.service=api"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   chorequest:
     build:
       context: .
@@ -15,9 +76,13 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=${TIMEZONE:-UTC}
+      - VITE_API_URL=http://api:3000/api
     volumes:
       - chorequest-data:/usr/share/nginx/html/data
       - chorequest-backups:/backups:ro
+    depends_on:
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -47,4 +112,7 @@ volumes:
     driver: local
   chorequest-backups:
     name: chorequest-backups
+    driver: local
+  mysql-data:
+    name: mysql-data
     driver: local
