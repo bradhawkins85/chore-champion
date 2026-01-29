@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy } from '@phosphor-icons/react'
 import { Category } from '@/lib/types'
 import { CategoryDialog } from './CategoryDialog'
 import {
@@ -94,6 +94,26 @@ export function CategoryManager({
                         {category.description}
                       </CardDescription>
                     )}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {category.pointsExpiry?.enabled && category.pointsExpiry.interval !== 'never' && (
+                        <Badge variant="secondary" className="text-xs">
+                          <HourglassHigh className="h-3 w-3 mr-1" />
+                          Expires {category.pointsExpiry.interval}
+                        </Badge>
+                      )}
+                      {category.exchangeRates && category.exchangeRates.length > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          <ArrowsLeftRight className="h-3 w-3 mr-1" />
+                          {category.exchangeRates.length} exchange{category.exchangeRates.length !== 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                      {category.completionBonus && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Trophy className="h-3 w-3 mr-1" />
+                          Completion bonus
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">

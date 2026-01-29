@@ -94,6 +94,7 @@ function App() {
           id: categoryId,
           createdAt: 0,
           exchangeRates,
+          pointsExpiry: cat.pointsExpiry || { enabled: false, interval: 'never' as const },
         }
       })
       setCategories(defaultCategories)
@@ -234,7 +235,8 @@ function App() {
           child.id,
           category.id,
           assignments || [],
-          bonusCompletions || []
+          bonusCompletions || [],
+          category
         )
         childCatPoints.set(category.id, points)
       })

@@ -614,7 +614,8 @@ export function getChildPointsByCategory(
   childId: string,
   categoryId: string,
   assignments?: ChoreAssignment[],
-  bonusCompletions?: Array<{ childId: string; targetCategoryId: string; bonusPoints: number }>
+  bonusCompletions?: Array<{ childId: string; targetCategoryId: string; bonusPoints: number; completedAt: number }>,
+  category?: { pointsExpiry?: { enabled: boolean; interval: 'daily' | 'weekly' | 'monthly' | 'never' } }
 ): number {
   const chorePoints = completions
     .filter((c) => c.childId === childId && isCompletionApproved(c))
@@ -653,7 +654,22 @@ export function getChildPointsByCategory(
         .reduce((sum, bc) => sum + bc.bonusPoints, 0)
     : 0
 
-  return chorePoints + bonusPoints
+  const totalPoints = chorePoints + bonusPoints
+
+  if (category) {
+    const expiredPoints = getExpiredPointsByCategory(
+      completions,
+      choresMap,
+      childId,
+      categoryId,
+      category,
+      assignments,
+      bonusCompletions
+    )
+    return Math.max(0, totalPoints - expiredPoints)
+  }
+
+  return totalPoints
 }
 
 export function getChildAvailablePointsByCategory(
@@ -715,13 +731,21 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
         fromAmount: 100,
         toAmount: 10,
       }
-    ]
+    ],
+    pointsExpiry: {
+      enabled: true,
+      interval: 'daily',
+    }
   },
   {
     name: 'Extra',
     color: 'oklch(0.72 0.18 45)',
     description: 'Special chores for extra rewards',
-    exchangeRates: []
+    exchangeRates: [],
+    pointsExpiry: {
+      enabled: false,
+      interval: 'never',
+    }
   },
 ]
 
@@ -1024,4 +1048,92 @@ export function hasBonusBeenClaimedToday(
       bc.categoryId === categoryId &&
       bc.completedAt >= todayTimestamp
   )
+}
+
+export function getExpiryStartTime(interval: 'daily' | 'weekly' | 'monthly' | 'never'): number {
+  if (interval === 'never') {
+    return 0
+  }
+
+  const now = new Date()
+  
+  switch (interval) {
+    case 'daily':
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+    
+    case 'weekly':
+      now.setDate(now.getDate() - now.getDay())
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+    
+    case 'monthly':
+      now.setDate(1)
+      now.setHours(0, 0, 0, 0)
+      return now.getTime()
+  }
+}
+
+export function getExpiredPointsByCategory(
+  completions: ChoreCompletion[],
+  choresMap: Map<string, { 
+    points: number
+    completionType?: string
+    categoryIds: string[]
+    categoryPoints?: { categoryId: string; points: number }[]
+  }>,
+  childId: string,
+  categoryId: string,
+  category: { pointsExpiry?: { enabled: boolean; interval: 'daily' | 'weekly' | 'monthly' | 'never' } },
+  assignments?: ChoreAssignment[],
+  bonusCompletions?: Array<{ childId: string; targetCategoryId: string; bonusPoints: number; completedAt: number }>
+): number {
+  if (!category.pointsExpiry || !category.pointsExpiry.enabled || category.pointsExpiry.interval === 'never') {
+    return 0
+  }
+
+  const expiryStartTime = getExpiryStartTime(category.pointsExpiry.interval)
+  
+  const expiredChorePoints = completions
+    .filter((c) => c.childId === childId && isCompletionApproved(c) && c.completedAt < expiryStartTime)
+    .reduce((sum, c) => {
+      const chore = choresMap.get(c.choreId)
+      if (!chore || !chore.categoryIds.includes(categoryId)) return sum
+      
+      const assignment = assignments?.find(a => a.childId === childId && a.choreId === c.choreId)
+      const chorePoints = getChoreCategoryPointsForChild(chore, assignment, childId, categoryId)
+      
+      if (chore.completionType === 'shareable' && assignments) {
+        const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
+        if (assignedChildren > 1) {
+          const completionDay = new Date(c.completedAt)
+          completionDay.setHours(0, 0, 0, 0)
+          const completionDayTimestamp = completionDay.getTime()
+          
+          const completionsThatDay = completions.filter(comp => {
+            const compDay = new Date(comp.completedAt)
+            compDay.setHours(0, 0, 0, 0)
+            return comp.choreId === c.choreId && 
+              compDay.getTime() === completionDayTimestamp &&
+              (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
+              isCompletionApproved(comp)
+          })
+          
+          const childrenWhoCompleted = new Set(completionsThatDay.map(comp => comp.childId)).size
+          if (childrenWhoCompleted > 0) {
+            return sum + (chorePoints / childrenWhoCompleted)
+          }
+        }
+      }
+      
+      return sum + chorePoints
+    }, 0)
+
+  const expiredBonusPoints = bonusCompletions
+    ? bonusCompletions
+        .filter((bc) => bc.childId === childId && bc.targetCategoryId === categoryId && bc.completedAt < expiryStartTime)
+        .reduce((sum, bc) => sum + bc.bonusPoints, 0)
+    : 0
+
+  return expiredChorePoints + expiredBonusPoints
 }

@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Category, ExchangeRate, CategoryCompletionBonus } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight, Trophy } from '@phosphor-icons/react'
+import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval } from '@/lib/types'
+import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 
@@ -48,6 +48,8 @@ export function CategoryDialog({
   const [enableBonus, setEnableBonus] = useState(false)
   const [bonusPoints, setBonusPoints] = useState(10)
   const [bonusTargetCategoryId, setBonusTargetCategoryId] = useState('')
+  const [enableExpiry, setEnableExpiry] = useState(false)
+  const [expiryInterval, setExpiryInterval] = useState<PointsExpiryInterval>('daily')
 
   useEffect(() => {
     if (category) {
@@ -58,6 +60,8 @@ export function CategoryDialog({
       setEnableBonus(!!category.completionBonus)
       setBonusPoints(category.completionBonus?.bonusPoints || 10)
       setBonusTargetCategoryId(category.completionBonus?.targetCategoryId || '')
+      setEnableExpiry(category.pointsExpiry?.enabled || false)
+      setExpiryInterval(category.pointsExpiry?.interval || 'daily')
     } else {
       setName('')
       setDescription('')
@@ -66,6 +70,8 @@ export function CategoryDialog({
       setEnableBonus(false)
       setBonusPoints(10)
       setBonusTargetCategoryId('')
+      setEnableExpiry(false)
+      setExpiryInterval('daily')
     }
   }, [category, open])
 
@@ -94,6 +100,10 @@ export function CategoryDialog({
       color,
       exchangeRates,
       completionBonus,
+      pointsExpiry: {
+        enabled: enableExpiry,
+        interval: expiryInterval,
+      },
     })
     onClose()
   }
@@ -328,6 +338,49 @@ export function CategoryDialog({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   When a child completes all {name || 'this category'} chores today, they'll earn {bonusPoints} bonus {allCategories.find(c => c.id === bonusTargetCategoryId)?.name || 'points'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HourglassHigh className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Points Expiry</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically expire unused points after a set period
+                  </p>
+                </div>
+              </div>
+              <Switch checked={enableExpiry} onCheckedChange={setEnableExpiry} />
+            </div>
+
+            {enableExpiry && (
+              <div className="space-y-3 pt-2">
+                <div>
+                  <Label htmlFor="expiry-interval">Expiry Interval</Label>
+                  <Select
+                    value={expiryInterval}
+                    onValueChange={(value) => setExpiryInterval(value as PointsExpiryInterval)}
+                  >
+                    <SelectTrigger id="expiry-interval">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="never">Never</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {expiryInterval === 'daily' && `Points earned before today will expire and won't count toward totals.`}
+                  {expiryInterval === 'weekly' && `Points earned before this week will expire and won't count toward totals.`}
+                  {expiryInterval === 'monthly' && `Points earned before this month will expire and won't count toward totals.`}
+                  {expiryInterval === 'never' && `Points will never expire. This setting is effectively the same as disabling expiry.`}
                 </p>
               </div>
             )}

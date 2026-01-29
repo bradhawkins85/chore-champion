@@ -15,6 +15,13 @@ export interface CategoryCompletionBonus {
   bonusPoints: number
 }
 
+export type PointsExpiryInterval = 'daily' | 'weekly' | 'monthly' | 'never'
+
+export interface PointsExpiryConfig {
+  enabled: boolean
+  interval: PointsExpiryInterval
+}
+
 export interface Category {
   id: string
   name: string
@@ -23,6 +30,7 @@ export interface Category {
   createdAt: number
   exchangeRates?: ExchangeRate[]
   completionBonus?: CategoryCompletionBonus
+  pointsExpiry?: PointsExpiryConfig
 }
 
 export interface RepeatPattern {

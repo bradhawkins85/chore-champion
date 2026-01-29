@@ -12,6 +12,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Points Expiry Per Category
+- **Functionality**: Configure different point expiry rules for each category. Parents can enable automatic expiry of unused points on a daily, weekly, monthly, or never basis per category. For example, Regular chore points might expire daily (encouraging daily completion), while Extra points can be set to never expire (allowing accumulation for big rewards).
+- **Purpose**: Create urgency and motivation for children to use their points regularly in certain categories while allowing flexibility in others. Prevents point hoarding in routine categories while permitting long-term saving for special rewards. Encourages consistent daily engagement with regular chores.
+- **Trigger**: Parent Mode → Categories tab → Edit category → Enable Points Expiry → Select interval
+- **Progression**: Navigate to category settings → Toggle "Points Expiry" switch → Select expiry interval (daily/weekly/monthly/never) → Save category → Points earned before the current interval period are automatically excluded from point totals → Expired points don't count toward available balance → Child view shows only current, non-expired points
+- **Success criteria**: Expiry configuration available in category edit dialog with clear interval options, points calculation correctly excludes expired points based on category settings, daily expiry resets at midnight (only today's points count), weekly expiry resets at start of week (only current week's points count), monthly expiry resets at start of month (only current month's points count), "never" option disables expiry, child views show accurate current point balances reflecting expiry rules, reward purchases only use non-expired points.
+
 ### Category Completion Bonuses
 - **Functionality**: Award optional bonus points when a child completes all chores in a specific category for the day. Parents configure completion bonuses per category, specifying the bonus point amount and the target category where bonus points are awarded (which can be different from the source category). For example, completing all "Regular" chores might award 10 "Extra" bonus points.
 - **Purpose**: Encourage children to complete all tasks in a category rather than cherry-picking easy chores. Creates additional motivation through milestone achievements. Allows flexible bonus structures - regular chores can earn premium bonus points, creating an alternative path to special rewards.
