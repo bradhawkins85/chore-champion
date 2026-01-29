@@ -2,9 +2,6 @@
 # Stage 1: Build the application
 FROM node:20-bookworm-slim AS builder
 
-# Get target architecture for conditional package installation
-ARG TARGETARCH
-
 WORKDIR /app
 
 # Build argument to disable SSL verification if needed for corporate proxies
@@ -18,14 +15,11 @@ COPY package*.json ./
 
 # Install dependencies
 # Work around npm 10.x exit handler bug in Docker
-# Ensure optional dependencies are installed (critical for native modules like Rollup on ARM)
-RUN timeout 300 npm ci --legacy-peer-deps --include=optional || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
-
-# Verify and explicitly install platform-specific optional dependencies if missing
-# This fixes MODULE_NOT_FOUND errors when building for ARM64 under QEMU emulation
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-      npm install --no-save --legacy-peer-deps @rollup/rollup-linux-arm64-gnu lightningcss-linux-arm64-gnu; \
-    fi
+# For multi-arch builds, optional dependencies must be explicitly included
+# Using npm install (not npm ci) to avoid the npm optional dependencies bug
+# documented in https://github.com/npm/cli/issues/4828
+# Note: package-lock.json is used when available to maintain reproducibility
+RUN timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 COPY . .
 
