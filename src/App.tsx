@@ -67,6 +67,7 @@ function App() {
       bubbles: true,
       hearts: true,
     },
+    showUndoButton: true,
   })
   const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
   const [categories, setCategories] = useKV<Category[]>('categories', [])
@@ -826,7 +827,7 @@ function App() {
           history={history || []}
           dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
-          celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
+          celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
@@ -901,7 +902,7 @@ function App() {
             assignments={assignments || []}
             completions={completions || []}
             totalPoints={childPoints.get(selectedChild.id) || 0}
-            celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
+            celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
             trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
             rewards={rewards || []}
             categories={categories || []}

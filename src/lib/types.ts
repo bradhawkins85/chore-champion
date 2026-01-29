@@ -190,6 +190,7 @@ export interface CelebrationSettings {
   animations: {
     [key in CelebrationAnimation]: boolean
   }
+  showUndoButton?: boolean
 }
 
 export interface GoalTracker {

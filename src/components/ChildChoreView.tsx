@@ -605,18 +605,20 @@ export function ChildChoreView({
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onUndo(chore.id, timeOfDay)
-                            }}
-                            className="flex-shrink-0"
-                          >
-                            <ArrowCounterClockwise className="h-5 w-5 mr-2" />
-                            Undo
-                          </Button>
+                          {celebrationSettings.showUndoButton !== false && (
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onUndo(chore.id, timeOfDay)
+                              }}
+                              className="flex-shrink-0"
+                            >
+                              <ArrowCounterClockwise className="h-5 w-5 mr-2" />
+                              Undo
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

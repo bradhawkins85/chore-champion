@@ -82,6 +82,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Progression**: Select profile → View current time period's chores (AM chores before noon, PM chores after noon, Anytime chores always visible, Shareable chores show "Up to X points (shared)" label, Once Per Day chores show "First Only" badge) → Tap chore → Confirm completion → Points animate and add to total (shared points split equally among all children who complete) → See missed AM chores section if applicable (missed AM chores don't block PM completion) → Once-per-day chores disappear from view after any child completes them
 - **Success criteria**: Completed chores are marked with time of day, points increment correctly (full for individual, shared for shareable), visual celebration on completion, AM chores marked as missed if not completed before noon, Both AM/PM chores appear separately in morning and evening as independent tasks, missed AM chores don't prevent PM completion, shareable chores clearly indicate point sharing, once-per-day chores disappear from other children's lists after first completion
 
+### Undo Button Visibility Setting
+- **Functionality**: Parents can control whether children see the "Undo" button on completed chores. When disabled, children cannot undo their chore completions, preventing accidental or intentional reversals.
+- **Purpose**: Give parents control over child autonomy - some families may want children to think carefully before marking chores complete, while others prefer allowing mistakes to be corrected easily. Prevents children from gaming the system by repeatedly completing and undoing chores.
+- **Trigger**: Parent Mode → Settings tab → Toggle "Show Undo Button" switch
+- **Progression**: Navigate to Settings → Find "Show Undo Button" toggle under celebration settings → Toggle on (children can undo) or off (children cannot undo) → Setting saves automatically → Child view immediately reflects the change (undo button appears/disappears on completed chores)
+- **Success criteria**: Setting persists between sessions, defaults to enabled (undo button shown) for backward compatibility, child view respects the setting in real-time, parents can still undo completions from Parent Mode regardless of setting, setting is clearly labeled with helpful description
+
 ### Points Tracking
 - **Functionality**: Track cumulative points per child, display prominently, calculate shared points for shareable chores
 - **Purpose**: Gamify chores and provide measurable progress toward rewards with fair point distribution for collaborative tasks
@@ -137,6 +144,8 @@ This app manages chores, points, and user roles but doesn't require complex mult
 - **Insufficient Points**: Disable purchase button and show how many more points are needed
 - **Point Adjustment**: Parents can manually adjust points (add/subtract) for corrections
 - **Accidental Completion**: Parents can uncheck completed chores in parent mode
+- **Undo Button Disabled**: When the "Show Undo Button" setting is disabled, children cannot undo chore completions from child view, but parents can still undo completions from Parent Mode using the Chore History feature
+- **Undo Button Setting Default**: Existing users who upgrade will have the undo button enabled by default to maintain current behavior
 - **Multiple Children Using Simultaneously**: Each child has separate profile selection to prevent conflicts
 - **Reward Purchase History**: Track all purchases with timestamps, allow parents to mark as fulfilled or unfulfilled
 - **Multiple Pending Purchases**: Bulk fulfill option to mark all pending purchases as complete at once

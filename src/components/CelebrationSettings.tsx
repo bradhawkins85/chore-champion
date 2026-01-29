@@ -3,7 +3,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { CelebrationSettings, CelebrationAnimation } from '@/lib/types'
-import { Sparkle } from '@phosphor-icons/react'
+import { Sparkle, ArrowCounterClockwise } from '@phosphor-icons/react'
 
 interface CelebrationSettingsProps {
   settings: CelebrationSettings
@@ -61,6 +61,13 @@ export function CelebrationSettingsComponent({ settings, onUpdate }: Celebration
     })
   }
 
+  const handleToggleUndo = () => {
+    onUpdate({
+      ...settings,
+      showUndoButton: !settings.showUndoButton,
+    })
+  }
+
   const enabledAnimationsCount = Object.values(settings.animations).filter(Boolean).length
 
   return (
@@ -85,6 +92,23 @@ export function CelebrationSettingsComponent({ settings, onUpdate }: Celebration
             id="celebration-enabled"
             checked={settings.enabled}
             onCheckedChange={handleToggleEnabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between border-t pt-6">
+          <div className="space-y-1">
+            <Label htmlFor="undo-button-enabled" className="text-base font-medium flex items-center gap-2">
+              <ArrowCounterClockwise className="h-4 w-4" />
+              Show Undo Button
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Allow children to undo completed chores
+            </p>
+          </div>
+          <Switch
+            id="undo-button-enabled"
+            checked={settings.showUndoButton !== false}
+            onCheckedChange={handleToggleUndo}
           />
         </div>
 
