@@ -1103,6 +1103,7 @@ function App() {
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
           bonusCompletions={bonusCompletions || []}
+          pointSwaps={pointSwaps || []}
           ipRestrictions={ipRestrictions || { enabled: false, allowedIPs: [], overridePin: null, requirePinForUnapproved: false }}
           currentIP={currentIP}
           accessHistory={accessHistory || []}

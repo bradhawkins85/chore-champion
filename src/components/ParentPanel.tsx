@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -31,8 +31,7 @@ import { RewardCard } from './RewardCard'
 import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 import { WeeklySummary } from './WeeklySummary'
 import { ChangePinDialog } from './ChangePinDialog'
-import { UndoHistory } from './UndoHistory'
-import { ChoreCompletionHistory } from './ChoreCompletionHistory'
+import { ActivityView } from './ActivityView'
 import { MissedChoresManager } from './MissedChoresManager'
 import { CelebrationSettingsComponent } from './CelebrationSettings'
 import { CategoryManager } from './CategoryManager'
@@ -61,6 +60,7 @@ interface ParentPanelProps {
   categories: Category[]
   childCategoryPoints?: Map<string, Map<string, number>>
   bonusCompletions: CategoryBonusCompletion[]
+  pointSwaps: PointSwap[]
   ipRestrictions: IPRestrictionSettings
   currentIP: string | null
   accessHistory: IPAccessAttempt[]
@@ -126,6 +126,7 @@ export function ParentPanel({
   categories,
   childCategoryPoints,
   bonusCompletions,
+  pointSwaps,
   reportTemplates,
   weatherSettings,
   onAddChore,
@@ -350,9 +351,9 @@ export function ParentPanel({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="completions">
+          <TabsTrigger value="activity">
             <ClipboardText className="h-4 w-4 mr-2" />
-            Completions
+            Activity
           </TabsTrigger>
           <TabsTrigger value="children">
             <Users className="h-4 w-4 mr-2" />
@@ -378,10 +379,6 @@ export function ParentPanel({
                 {purchases.filter((p) => !p.fulfilled).length}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="history">
-            <ClockCounterClockwise className="h-4 w-4 mr-2" />
-            History
           </TabsTrigger>
           <TabsTrigger value="reports">
             <FileText className="h-4 w-4 mr-2" />
@@ -466,11 +463,18 @@ export function ParentPanel({
           />
         </TabsContent>
 
-        <TabsContent value="completions" className="space-y-4">
-          <ChoreCompletionHistory
+        <TabsContent value="activity" className="space-y-4">
+          <ActivityView
             completions={completions}
             childrenList={childrenList}
             chores={chores}
+            categories={categories}
+            assignments={assignments}
+            bonusCompletions={bonusCompletions}
+            purchases={purchases}
+            rewards={rewards}
+            swaps={pointSwaps || []}
+            history={history}
             onUndoCompletion={onUndoCompletion}
           />
         </TabsContent>
@@ -710,23 +714,6 @@ export function ParentPanel({
                 })}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="history" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Activity History</h2>
-              <p className="text-sm text-muted-foreground">
-                View all chore completions and undo actions
-              </p>
-            </div>
-          </div>
-
-          <UndoHistory
-            history={history}
-            childrenList={childrenList}
-            chores={chores}
-          />
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
