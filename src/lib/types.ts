@@ -95,6 +95,7 @@ export interface Child {
   calendarLastRefresh?: number
   calendarAutoRefresh?: boolean
   calendarRefreshInterval?: CalendarRefreshInterval
+  calendarShowTimes?: boolean
 }
 
 export interface ChoreAssignment {

@@ -24,6 +24,7 @@ interface ChildChoreViewProps {
   onBack: () => void
   onShopClick: () => void
   onHistoryClick?: () => void
+  onCalendarClick?: () => void
   trackedGoal?: GoalTracker | null
   rewards?: Reward[]
   categories?: Category[]
@@ -45,6 +46,7 @@ export function ChildChoreView({
   onBack,
   onShopClick,
   onHistoryClick,
+  onCalendarClick,
   trackedGoal,
   rewards = [],
   categories = [],
@@ -294,6 +296,17 @@ export function ChildChoreView({
               >
                 <ChartLine className="mr-2 h-5 w-5" />
                 History
+              </Button>
+            )}
+            {onCalendarClick && child.icsUrl && (
+              <Button 
+                size="lg"
+                variant="outline"
+                onClick={onCalendarClick} 
+                className="text-lg px-6 py-6 font-fredoka"
+              >
+                <Calendar className="mr-2 h-5 w-5" />
+                Calendar
               </Button>
             )}
             <Button variant="outline" onClick={onBack} className="text-lg px-6 py-6">

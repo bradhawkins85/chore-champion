@@ -40,6 +40,9 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
   const [calendarRefreshInterval, setCalendarRefreshInterval] = useState<CalendarRefreshInterval>(
     editChild?.calendarRefreshInterval || '15min'
   )
+  const [calendarShowTimes, setCalendarShowTimes] = useState(
+    editChild?.calendarShowTimes ?? true
+  )
 
   useEffect(() => {
     if (open) {
@@ -48,6 +51,7 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
       setIcsUrl(editChild?.icsUrl || '')
       setCalendarAutoRefresh(editChild?.calendarAutoRefresh ?? false)
       setCalendarRefreshInterval(editChild?.calendarRefreshInterval || '15min')
+      setCalendarShowTimes(editChild?.calendarShowTimes ?? true)
     }
   }, [open, editChild])
 
@@ -60,6 +64,7 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
       icsUrl: icsUrl.trim() || undefined,
       calendarAutoRefresh,
       calendarRefreshInterval,
+      calendarShowTimes,
     })
 
     if (!editChild) {
@@ -68,6 +73,7 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
       setIcsUrl('')
       setCalendarAutoRefresh(false)
       setCalendarRefreshInterval('15min')
+      setCalendarShowTimes(true)
     }
     onOpenChange(false)
   }
@@ -158,6 +164,19 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
                   </p>
                 </div>
               )}
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-times">Show event times in calendar</Label>
+                  <Switch
+                    id="show-times"
+                    checked={calendarShowTimes}
+                    onCheckedChange={setCalendarShowTimes}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Display event times in the calendar view, or group by date only
+                </p>
+              </div>
             </>
           )}
         </div>

@@ -10,6 +10,7 @@ import { ChildChoreView } from '@/components/ChildChoreView'
 import { RewardShop } from '@/components/RewardShop'
 import { ParentPinDialog } from '@/components/ParentPinDialog'
 import { PointsHistoryView } from '@/components/PointsHistoryView'
+import { CalendarView } from '@/components/CalendarView'
 import {
   AppMode,
   Child,
@@ -48,6 +49,7 @@ function App() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
   const [showPointsHistory, setShowPointsHistory] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', null)
@@ -1144,10 +1146,16 @@ function App() {
             setSelectedChild(null)
             setShowRewardShop(false)
             setShowPointsHistory(false)
+            setShowCalendar(false)
           }}
         />
       ) : selectedChild ? (
-        showPointsHistory ? (
+        showCalendar ? (
+          <CalendarView
+            child={selectedChild}
+            onBack={() => setShowCalendar(false)}
+          />
+        ) : showPointsHistory ? (
           <PointsHistoryView
             child={selectedChild}
             chores={migratedChores || []}
@@ -1210,9 +1218,11 @@ function App() {
               setSelectedChild(null)
               setShowPointsHistory(false)
               setShowRewardShop(false)
+              setShowCalendar(false)
             }}
             onShopClick={() => setShowRewardShop(true)}
             onHistoryClick={() => setShowPointsHistory(true)}
+            onCalendarClick={() => setShowCalendar(true)}
             onSwapPoints={(fromCategoryId, toCategoryId, fromAmount, toAmount) =>
               handleSwapPoints(selectedChild.id, fromCategoryId, toCategoryId, fromAmount, toAmount)
             }
