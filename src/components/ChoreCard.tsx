@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock, Timer } from '@phosphor-icons/react'
 import { Chore, DayOfWeek, Category } from '@/lib/types'
-import { isChoreActive, formatTime12Hour } from '@/lib/helpers'
+import { isChoreActive, formatTime12Hour, formatDuration } from '@/lib/helpers'
 
 interface ChoreCardProps {
   chore: Chore
@@ -169,6 +169,12 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
               <Calendar className="h-4 w-4" />
               <span className="capitalize">{chore.frequency}</span>
             </div>
+            {chore.estimatedDuration && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Timer className="h-4 w-4" />
+                <span>{formatDuration(chore.estimatedDuration)}</span>
+              </div>
+            )}
             {getTimeOfDayBadge()}
             {getTimeWindowBadge()}
             {getCompletionTypeBadge()}

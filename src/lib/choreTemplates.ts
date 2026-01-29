@@ -8,6 +8,7 @@ export interface ChoreTemplate {
   timeOfDay: ChoreTimeOfDay
   category: string
   icon: string
+  estimatedDuration?: number
 }
 
 export const choreTemplates: ChoreTemplate[] = [
@@ -19,6 +20,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'am',
     category: 'Bedroom',
     icon: '🛏️',
+    estimatedDuration: 5,
   },
   {
     name: 'Clean Your Room',
@@ -28,6 +30,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Bedroom',
     icon: '🧹',
+    estimatedDuration: 20,
   },
   {
     name: 'Brush Teeth',
@@ -37,6 +40,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'both',
     category: 'Personal Hygiene',
     icon: '🪥',
+    estimatedDuration: 3,
   },
   {
     name: 'Brush Teeth (Morning)',
@@ -46,6 +50,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'am',
     category: 'Personal Hygiene',
     icon: '🪥',
+    estimatedDuration: 3,
   },
   {
     name: 'Brush Teeth (Night)',
@@ -55,6 +60,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Personal Hygiene',
     icon: '🦷',
+    estimatedDuration: 3,
   },
   {
     name: 'Set the Table',
@@ -64,6 +70,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Kitchen',
     icon: '🍽️',
+    estimatedDuration: 5,
   },
   {
     name: 'Clear the Table',
@@ -73,6 +80,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Kitchen',
     icon: '✨',
+    estimatedDuration: 10,
   },
   {
     name: 'Load Dishwasher',
@@ -82,6 +90,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Kitchen',
     icon: '🫧',
+    estimatedDuration: 10,
   },
   {
     name: 'Unload Dishwasher',
@@ -91,6 +100,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'am',
     category: 'Kitchen',
     icon: '📦',
+    estimatedDuration: 10,
   },
   {
     name: 'Wash Dishes',
@@ -100,6 +110,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Kitchen',
     icon: '🧽',
+    estimatedDuration: 15,
   },
   {
     name: 'Take Out Trash',
@@ -109,6 +120,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Cleaning',
     icon: '🗑️',
+    estimatedDuration: 5,
   },
   {
     name: 'Take Out Recycling',
@@ -118,6 +130,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '♻️',
+    estimatedDuration: 10,
   },
   {
     name: 'Vacuum Living Room',
@@ -127,6 +140,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '🧹',
+    estimatedDuration: 20,
   },
   {
     name: 'Sweep Kitchen Floor',
@@ -136,6 +150,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Cleaning',
     icon: '🧹',
+    estimatedDuration: 10,
   },
   {
     name: 'Mop Floors',
@@ -145,6 +160,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '🪣',
+    estimatedDuration: 30,
   },
   {
     name: 'Dust Furniture',
@@ -154,6 +170,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '🧹',
+    estimatedDuration: 15,
   },
   {
     name: 'Clean Bathroom',
@@ -163,6 +180,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Bathroom',
     icon: '🚿',
+    estimatedDuration: 25,
   },
   {
     name: 'Clean Mirrors',
@@ -172,6 +190,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Bathroom',
     icon: '🪞',
+    estimatedDuration: 10,
   },
   {
     name: 'Fold Laundry',
@@ -181,6 +200,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Laundry',
     icon: '👕',
+    estimatedDuration: 20,
   },
   {
     name: 'Sort Laundry',
@@ -190,6 +210,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Laundry',
     icon: '🧺',
+    estimatedDuration: 10,
   },
   {
     name: 'Put Away Laundry',
@@ -199,6 +220,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Laundry',
     icon: '👔',
+    estimatedDuration: 10,
   },
   {
     name: 'Feed Pets',
@@ -208,6 +230,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'both',
     category: 'Pet Care',
     icon: '🐕',
+    estimatedDuration: 5,
   },
   {
     name: 'Walk the Dog',
@@ -217,6 +240,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Pet Care',
     icon: '🦮',
+    estimatedDuration: 20,
   },
   {
     name: 'Clean Litter Box',
@@ -226,6 +250,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Pet Care',
     icon: '🐱',
+    estimatedDuration: 5,
   },
   {
     name: 'Water Plants',
@@ -235,6 +260,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Outdoor',
     icon: '🪴',
+    estimatedDuration: 10,
   },
   {
     name: 'Rake Leaves',
@@ -244,6 +270,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Outdoor',
     icon: '🍂',
+    estimatedDuration: 45,
   },
   {
     name: 'Mow Lawn',
@@ -253,6 +280,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Outdoor',
     icon: '🌱',
+    estimatedDuration: 60,
   },
   {
     name: 'Pull Weeds',
@@ -262,6 +290,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Outdoor',
     icon: '🌿',
+    estimatedDuration: 30,
   },
   {
     name: 'Organize Toys',
@@ -271,6 +300,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Bedroom',
     icon: '🧸',
+    estimatedDuration: 15,
   },
   {
     name: 'Organize Backpack',
@@ -280,6 +310,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'School',
     icon: '🎒',
+    estimatedDuration: 5,
   },
   {
     name: 'Complete Homework',
@@ -289,6 +320,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'School',
     icon: '📚',
+    estimatedDuration: 45,
   },
   {
     name: 'Practice Instrument',
@@ -298,6 +330,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Activities',
     icon: '🎵',
+    estimatedDuration: 20,
   },
   {
     name: 'Read for 20 Minutes',
@@ -307,6 +340,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Activities',
     icon: '📖',
+    estimatedDuration: 20,
   },
   {
     name: 'Help with Groceries',
@@ -316,6 +350,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Errands',
     icon: '🛒',
+    estimatedDuration: 15,
   },
   {
     name: 'Wash the Car',
@@ -325,6 +360,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Outdoor',
     icon: '🚗',
+    estimatedDuration: 45,
   },
   {
     name: 'Clean Windows',
@@ -334,6 +370,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '🪟',
+    estimatedDuration: 30,
   },
   {
     name: 'Organize Garage',
@@ -343,6 +380,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Organizing',
     icon: '🏠',
+    estimatedDuration: 60,
   },
   {
     name: 'Change Bed Sheets',
@@ -352,6 +390,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Bedroom',
     icon: '🛏️',
+    estimatedDuration: 15,
   },
   {
     name: 'Empty Bathroom Trash',
@@ -361,6 +400,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Bathroom',
     icon: '🗑️',
+    estimatedDuration: 3,
   },
   {
     name: 'Wipe Door Handles',
@@ -370,6 +410,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'anytime',
     category: 'Cleaning',
     icon: '🚪',
+    estimatedDuration: 10,
   },
   {
     name: 'Sort Mail',
@@ -379,6 +420,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'pm',
     category: 'Organizing',
     icon: '📬',
+    estimatedDuration: 5,
   },
   {
     name: 'Set Up for Breakfast',
@@ -388,6 +430,7 @@ export const choreTemplates: ChoreTemplate[] = [
     timeOfDay: 'am',
     category: 'Kitchen',
     icon: '🥣',
+    estimatedDuration: 5,
   },
 ]
 

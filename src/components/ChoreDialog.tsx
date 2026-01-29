@@ -67,6 +67,7 @@ export function ChoreDialog({
   const [useTimeWindow, setUseTimeWindow] = useState(!!editChore?.timeWindow)
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
+  const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
 
 
 
@@ -84,6 +85,7 @@ export function ChoreDialog({
       setUseTimeWindow(!!editChore.timeWindow)
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
+      setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
     }
   }, [editChore])
 
@@ -99,6 +101,9 @@ export function ChoreDialog({
     setPoints(template.points.toString())
     setFrequency(template.frequency)
     setTimeOfDay(template.timeOfDay || 'anytime')
+    if (template.estimatedDuration) {
+      setEstimatedDuration(template.estimatedDuration.toString())
+    }
   }
 
   const toggleCategoryId = (id: string) => {
@@ -138,6 +143,10 @@ export function ChoreDialog({
       }
     }
 
+    if (estimatedDuration && parseInt(estimatedDuration) > 0) {
+      choreData.estimatedDuration = parseInt(estimatedDuration)
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -153,6 +162,7 @@ export function ChoreDialog({
       setUseTimeWindow(false)
       setTimeWindowStart('')
       setTimeWindowEnd('')
+      setEstimatedDuration('')
     }
     onOpenChange(false)
   }
@@ -294,6 +304,24 @@ export function ChoreDialog({
                     onChange={(e) => setPoints(e.target.value)}
                     min="1"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="estimated-duration">Estimated Duration (optional)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="estimated-duration"
+                      type="number"
+                      value={estimatedDuration}
+                      onChange={(e) => setEstimatedDuration(e.target.value)}
+                      min="1"
+                      placeholder="15"
+                      className="flex-1"
+                    />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">minutes</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    How long does this chore typically take to complete?
+                  </p>
                 </div>
                 
                 <div className="grid gap-2">
@@ -519,6 +547,24 @@ export function ChoreDialog({
                 onChange={(e) => setPoints(e.target.value)}
                 min="1"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="estimated-duration-edit">Estimated Duration (optional)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="estimated-duration-edit"
+                  type="number"
+                  value={estimatedDuration}
+                  onChange={(e) => setEstimatedDuration(e.target.value)}
+                  min="1"
+                  placeholder="15"
+                  className="flex-1"
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">minutes</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                How long does this chore typically take to complete?
+              </p>
             </div>
             
             <div className="grid gap-2">

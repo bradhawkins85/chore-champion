@@ -52,6 +52,7 @@ export interface Chore {
   desiredTime?: string
   timeOfDay?: ChoreTimeOfDay
   timeWindow?: TimeWindow
+  estimatedDuration?: number
 }
 
 export interface Child {
