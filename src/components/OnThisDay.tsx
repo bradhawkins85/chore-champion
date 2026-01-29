@@ -224,7 +224,7 @@ export function OnThisDay({
   const today = new Date()
   const yearsAgo = currentEvent.year ? today.getFullYear() - currentEvent.year : undefined
 
-  const categoryBadges = currentEvent.categoryColors?.map(catId => {
+  const categoryBadges = (currentEvent.categoryColors || []).map(catId => {
     const category = categories.find(c => c.id === catId)
     return category
   }).filter(Boolean) as Category[]
