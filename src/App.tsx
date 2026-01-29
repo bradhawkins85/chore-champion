@@ -25,6 +25,7 @@ import {
   Category,
   DayOfWeek,
   RepeatPattern,
+  PinSecurity,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive } from '@/lib/helpers'
 
@@ -35,6 +36,11 @@ function App() {
   const [showPinDialog, setShowPinDialog] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', null)
+  const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
+    attempts: [],
+    lockedUntil: null,
+    failedAttempts: 0,
+  })
 
   const [chores, setChores] = useKV<Chore[]>('chores', [])
   const [childrenList, setChildrenList] = useKV<Child[]>('children', [])
@@ -766,6 +772,8 @@ function App() {
         onSuccess={handlePinSuccess}
         storedPin={parentPin ?? null}
         onSetPin={handleSetPin}
+        pinSecurity={pinSecurity || { attempts: [], lockedUntil: null, failedAttempts: 0 }}
+        onUpdatePinSecurity={(security) => setPinSecurity(security)}
       />
 
       <Toaster />

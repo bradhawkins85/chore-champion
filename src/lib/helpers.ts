@@ -789,3 +789,58 @@ export function formatDate(timestamp: number): string {
     day: 'numeric' 
   })
 }
+
+const MAX_FAILED_ATTEMPTS = 5
+const BASE_LOCKOUT_DURATION = 30000
+const MAX_LOCKOUT_DURATION = 3600000
+
+export function calculateLockoutDuration(failedAttempts: number): number {
+  if (failedAttempts < MAX_FAILED_ATTEMPTS) {
+    return 0
+  }
+  
+  const attemptsOverLimit = failedAttempts - MAX_FAILED_ATTEMPTS + 1
+  const duration = Math.min(
+    BASE_LOCKOUT_DURATION * Math.pow(2, attemptsOverLimit - 1),
+    MAX_LOCKOUT_DURATION
+  )
+  
+  return duration
+}
+
+export function isAccountLocked(pinSecurity: { lockedUntil: number | null; failedAttempts: number }): {
+  isLocked: boolean
+  remainingTime?: number
+} {
+  if (!pinSecurity.lockedUntil) {
+    return { isLocked: false }
+  }
+  
+  const now = Date.now()
+  
+  if (now < pinSecurity.lockedUntil) {
+    return {
+      isLocked: true,
+      remainingTime: pinSecurity.lockedUntil - now,
+    }
+  }
+  
+  return { isLocked: false }
+}
+
+export function formatLockoutTime(milliseconds: number): string {
+  const seconds = Math.ceil(milliseconds / 1000)
+  
+  if (seconds < 60) {
+    return `${seconds} second${seconds !== 1 ? 's' : ''}`
+  }
+  
+  const minutes = Math.ceil(seconds / 60)
+  
+  if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`
+  }
+  
+  const hours = Math.ceil(minutes / 60)
+  return `${hours} hour${hours !== 1 ? 's' : ''}`
+}

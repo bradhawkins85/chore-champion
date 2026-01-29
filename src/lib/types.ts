@@ -170,3 +170,14 @@ export interface GoalTracker {
   childId: string
   rewardId: string
 }
+
+export interface PinAttempt {
+  timestamp: number
+  success: boolean
+}
+
+export interface PinSecurity {
+  attempts: PinAttempt[]
+  lockedUntil: number | null
+  failedAttempts: number
+}
