@@ -287,7 +287,7 @@ export function ParentPanel({
       </div>
 
       <Tabs defaultValue="summary" className="space-y-6">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="summary">
             <ChartBar className="h-4 w-4 mr-2" />
             Weekly Summary
