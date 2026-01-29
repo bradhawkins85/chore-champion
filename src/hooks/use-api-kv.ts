@@ -97,26 +97,33 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
 
   // Update function
   const updateValue = useCallback(async (newValue: T) => {
+    const previousValue = value;
     setValue(newValue);
 
     if (useApi) {
       // Save to API
       try {
-        await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+        const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ value: newValue }),
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save to API');
+        }
       } catch (error) {
         console.error('Error saving to API:', error);
-        // Fallback to localStorage
+        // Rollback state and fallback to localStorage
+        setValue(previousValue);
         localStorage.setItem(key, JSON.stringify(newValue));
+        console.warn('Saved to localStorage as fallback');
       }
     } else {
       // Save to localStorage
       localStorage.setItem(key, JSON.stringify(newValue));
     }
-  }, [key, useApi]);
+  }, [key, useApi, value]);
 
   return [value, updateValue];
 }
@@ -132,6 +139,8 @@ export async function migrateToApi(): Promise<boolean> {
   try {
     // Get all localStorage data
     const data: Record<string, any> = {};
+    const skipped: string[] = [];
+    
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) {
@@ -141,9 +150,14 @@ export async function migrateToApi(): Promise<boolean> {
             data[key] = JSON.parse(value);
           } catch {
             // Skip non-JSON values
+            skipped.push(key);
           }
         }
       }
+    }
+
+    if (skipped.length > 0) {
+      console.warn('Migration: Skipped non-JSON values for keys:', skipped);
     }
 
     // Send to API

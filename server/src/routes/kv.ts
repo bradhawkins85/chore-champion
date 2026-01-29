@@ -88,6 +88,11 @@ router.post('/kv', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid data format' });
     }
     
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      return res.status(400).json({ error: 'No data provided' });
+    }
+    
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -102,7 +107,7 @@ router.post('/kv', async (req: Request, res: Response) => {
       }
       
       await connection.commit();
-      res.json({ success: true, count: Object.keys(data).length });
+      res.json({ success: true, count: keys.length });
     } catch (error) {
       await connection.rollback();
       throw error;

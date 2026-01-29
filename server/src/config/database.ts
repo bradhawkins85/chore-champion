@@ -1,5 +1,14 @@
 import mysql from 'mysql2/promise';
 
+// Validate required environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const requiredVars = ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'];
+  const missing = requiredVars.filter(v => !process.env[v]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
 const dbConfig = {
   host: process.env.MYSQL_HOST || 'mysql',
   port: parseInt(process.env.MYSQL_PORT || '3306'),
