@@ -655,7 +655,7 @@ function App() {
     if (reward) {
       toast.success(`🎉 You got ${reward.name}!`, {
         description: `${cost} points spent. Ask your parents for your reward!`,
-      })
+    }
     }
   }
 
