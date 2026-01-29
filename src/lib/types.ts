@@ -442,3 +442,21 @@ export interface WeatherData {
   description: string
   unit: 'celsius' | 'fahrenheit'
 }
+
+export interface SMTPSettings {
+  enabled: boolean
+  host: string
+  port: number
+  secure: boolean
+  username: string
+  password: string
+  fromEmail: string
+  fromName: string
+}
+
+export interface EmailAlertSettings {
+  rewardPurchaseAlerts: boolean
+  choreCompletionAlerts: boolean
+  weeklyReportAlerts: boolean
+  recipientEmails: string[]
+}

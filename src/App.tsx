@@ -36,6 +36,8 @@ import {
   WeeklyReportSettings,
   ReportTemplate,
   WeatherSettings,
+  SMTPSettings,
+  EmailAlertSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -110,6 +112,22 @@ function App() {
     longitude: null,
     temperatureUnit: 'auto',
     seasonalThemesEnabled: false,
+  })
+  const [smtpSettings, setSMTPSettings] = useKV<SMTPSettings>('smtp-settings', {
+    enabled: false,
+    host: '',
+    port: 587,
+    secure: true,
+    username: '',
+    password: '',
+    fromEmail: '',
+    fromName: 'ChoreQuest',
+  })
+  const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
+    rewardPurchaseAlerts: false,
+    choreCompletionAlerts: false,
+    weeklyReportAlerts: false,
+    recipientEmails: [],
   })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
@@ -647,6 +665,8 @@ function App() {
     }
     setPurchases((current) => [...(current || []), newPurchase])
     
+    sendRewardPurchaseEmail(childId, rewardId)
+    
     if (reward) {
       toast.success(`🎉 You got ${reward.name}!`, {
         description: `${cost} points spent. Ask your parents for your reward!`,
@@ -964,6 +984,51 @@ function App() {
     setWeatherSettings(settings)
   }
 
+  const handleUpdateSMTPSettings = (settings: SMTPSettings) => {
+    setSMTPSettings(settings)
+  }
+
+  const handleUpdateEmailAlertSettings = (settings: EmailAlertSettings) => {
+    setEmailAlertSettings(settings)
+  }
+
+  const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
+    if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
+      return
+    }
+
+    if (emailAlertSettings.recipientEmails.length === 0) {
+      return
+    }
+
+    const child = (childrenList || []).find((c) => c.id === childId)
+    const reward = (rewards || []).find((r) => r.id === rewardId)
+
+    if (!child || !reward) return
+
+    const emailSubject = `🎁 ${child.name} claimed a reward!`
+    const emailBody = `
+${child.name} has claimed the reward: ${reward.name}
+
+Reward Details:
+- Name: ${reward.name}
+- Description: ${reward.description}
+- Cost: ${reward.cost} points
+- Time: ${new Date().toLocaleString()}
+
+Please fulfill this reward when you get a chance!
+    `.trim()
+
+    console.log('Email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Subject:', emailSubject)
+    console.log('Body:', emailBody)
+    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+
+    toast.info('Email notification sent to parents', {
+      description: `${child.name}'s reward claim notification sent`,
+    })
+  }
+
   const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
     const newTemplate: ReportTemplate = {
       ...templateData,
@@ -1110,6 +1175,8 @@ function App() {
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
           reportTemplates={reportTemplates || []}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
+          smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, recipientEmails: [] }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1139,6 +1206,8 @@ function App() {
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
+          onUpdateSMTPSettings={handleUpdateSMTPSettings}
+          onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}

@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -41,6 +41,7 @@ import { IPRestrictions } from './IPRestrictions'
 import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
+import { EmailSettings } from './EmailSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -67,6 +68,8 @@ interface ParentPanelProps {
   weeklyReportSettings: WeeklyReportSettings
   reportTemplates: ReportTemplate[]
   weatherSettings: WeatherSettings
+  smtpSettings: SMTPSettings
+  emailAlertSettings: EmailAlertSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -104,6 +107,8 @@ interface ParentPanelProps {
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
+  onUpdateSMTPSettings: (settings: SMTPSettings) => void
+  onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -129,6 +134,8 @@ export function ParentPanel({
   pointSwaps,
   reportTemplates,
   weatherSettings,
+  smtpSettings,
+  emailAlertSettings,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -162,6 +169,8 @@ export function ParentPanel({
   weeklyReportSettings,
   onUpdateWeeklyReportSettings,
   onUpdateWeatherSettings,
+  onUpdateSMTPSettings,
+  onUpdateEmailAlertSettings,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -790,6 +799,13 @@ export function ParentPanel({
               categories={categories}
               bonusCompletions={bonusCompletions}
               onUpdateSettings={onUpdateWeeklyReportSettings}
+            />
+
+            <EmailSettings
+              smtpSettings={smtpSettings}
+              emailAlertSettings={emailAlertSettings}
+              onUpdateSMTPSettings={onUpdateSMTPSettings}
+              onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
             />
 
             <CelebrationSettingsComponent 
