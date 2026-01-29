@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Devices } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, DeviceConfig } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Devices, Shield } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, DeviceConfig, IPRestrictionSettings, IPAccessAttempt } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -39,6 +39,7 @@ import { CategoryManager } from './CategoryManager'
 import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 import { DeviceManager } from './DeviceManager'
+import { IPRestrictions } from './IPRestrictions'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -57,6 +58,9 @@ interface ParentPanelProps {
   childCategoryPoints?: Map<string, Map<string, number>>
   devices: DeviceConfig[]
   currentDeviceId: string
+  ipRestrictions: IPRestrictionSettings
+  currentIP: string | null
+  accessHistory: IPAccessAttempt[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -93,6 +97,7 @@ interface ParentPanelProps {
   onUndoCompletion: (completionId: string) => void
   onUpdateDevice: (deviceId: string, updates: Partial<DeviceConfig>) => void
   onDeleteDevice: (deviceId: string) => void
+  onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onExitParentMode: () => void
 }
 
@@ -141,6 +146,10 @@ export function ParentPanel({
   onUndoCompletion,
   onUpdateDevice,
   onDeleteDevice,
+  ipRestrictions,
+  currentIP,
+  accessHistory,
+  onUpdateIPRestrictions,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -359,6 +368,10 @@ export function ParentPanel({
           <TabsTrigger value="devices">
             <Devices className="h-4 w-4 mr-2" />
             Devices
+          </TabsTrigger>
+          <TabsTrigger value="security">
+            <Shield className="h-4 w-4 mr-2" />
+            Security
           </TabsTrigger>
         </TabsList>
 
@@ -747,6 +760,24 @@ export function ParentPanel({
             currentDeviceId={currentDeviceId}
             onUpdateDevice={onUpdateDevice}
             onDeleteDevice={onDeleteDevice}
+          />
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-4">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Security Settings</h2>
+              <p className="text-sm text-muted-foreground">
+                Control access to the application with IP restrictions
+              </p>
+            </div>
+          </div>
+
+          <IPRestrictions
+            settings={ipRestrictions}
+            currentIP={currentIP}
+            accessHistory={accessHistory}
+            onUpdateSettings={onUpdateIPRestrictions}
           />
         </TabsContent>
       </Tabs>

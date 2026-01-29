@@ -31,8 +31,11 @@ import {
   PointSwap,
   CategoryBonusCompletion,
   DeviceConfig,
+  IPRestrictionSettings,
+  IPAccessAttempt,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, generateDeviceFingerprint } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, generateDeviceFingerprint, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
+import { WelcomePage } from '@/components/WelcomePage'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -79,6 +82,16 @@ function App() {
   const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
   const [devices, setDevices] = useKV<DeviceConfig[]>('devices', [])
   const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
+  const [ipRestrictions, setIPRestrictions] = useKV<IPRestrictionSettings>('ip-restrictions', {
+    enabled: false,
+    allowedIPs: [],
+    overridePin: null,
+    requirePinForUnapproved: false,
+  })
+  const [accessHistory, setAccessHistory] = useKV<IPAccessAttempt[]>('access-history', [])
+  const [currentIP, setCurrentIP] = useState<string | null>(null)
+  const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
+  const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
   
   const hasMigratedRewards = useRef(false)
 
@@ -114,6 +127,34 @@ function App() {
       hasInitializedDevice.current = true
     }
   }, [devices, childrenList, setDevices])
+
+  useEffect(() => {
+    const checkIPAccess = async () => {
+      setIsCheckingIP(true)
+      const ip = await getUserIPAddress()
+      setCurrentIP(ip)
+      
+      if (!ipRestrictions || !ipRestrictions.enabled) {
+        setIPAccessGranted(true)
+        setIsCheckingIP(false)
+        return
+      }
+      
+      const allowed = isIPAllowed(ip, ipRestrictions)
+      setIPAccessGranted(allowed)
+      setIsCheckingIP(false)
+      
+      const accessAttempt: IPAccessAttempt = {
+        ip: ip || 'unknown',
+        timestamp: Date.now(),
+        granted: allowed,
+        usedPin: false,
+      }
+      setAccessHistory((current) => [...(current || []), accessAttempt])
+    }
+    
+    checkIPAccess()
+  }, [ipRestrictions?.enabled, ipRestrictions?.allowedIPs])
 
   useEffect(() => {
     if (!hasInitializedCategories.current && categories && categories.length === 0) {
@@ -907,6 +948,41 @@ function App() {
     toast.success('Device removed')
   }
 
+  const handlePinOverride = (pin: string) => {
+    if (!ipRestrictions || !ipRestrictions.overridePin) {
+      toast.error('No access PIN configured')
+      return
+    }
+
+    if (pin === ipRestrictions.overridePin) {
+      setIPAccessGranted(true)
+      
+      const accessAttempt: IPAccessAttempt = {
+        ip: currentIP || 'unknown',
+        timestamp: Date.now(),
+        granted: true,
+        usedPin: true,
+      }
+      setAccessHistory((current) => [...(current || []), accessAttempt])
+      
+      toast.success('Access granted via PIN override')
+    } else {
+      const accessAttempt: IPAccessAttempt = {
+        ip: currentIP || 'unknown',
+        timestamp: Date.now(),
+        granted: false,
+        usedPin: true,
+      }
+      setAccessHistory((current) => [...(current || []), accessAttempt])
+      
+      toast.error('Incorrect PIN')
+    }
+  }
+
+  const handleUpdateIPRestrictions = (settings: IPRestrictionSettings) => {
+    setIPRestrictions(settings)
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -961,7 +1037,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {mode === 'parent' ? (
+      {isCheckingIP ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-fredoka font-bold mb-2">Loading...</h2>
+            <p className="text-muted-foreground">Checking access permissions</p>
+          </div>
+        </div>
+      ) : !ipAccessGranted ? (
+        <WelcomePage
+          currentIP={currentIP}
+          onPinSubmit={handlePinOverride}
+        />
+      ) : mode === 'parent' ? (
         <ParentPanel
           chores={migratedChores || []}
           childrenList={childrenList || []}
@@ -977,6 +1065,11 @@ function App() {
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
+          devices={devices || []}
+          currentDeviceId={currentDeviceId}
+          ipRestrictions={ipRestrictions || { enabled: false, allowedIPs: [], overridePin: null, requirePinForUnapproved: false }}
+          currentIP={currentIP}
+          accessHistory={accessHistory || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1003,10 +1096,9 @@ function App() {
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}
-          devices={devices || []}
-          currentDeviceId={currentDeviceId}
           onUpdateDevice={handleUpdateDevice}
           onDeleteDevice={handleDeleteDevice}
+          onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

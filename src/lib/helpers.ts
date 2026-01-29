@@ -1158,3 +1158,60 @@ export function generateDeviceFingerprint(): string {
   
   return `device_${Math.abs(hash).toString(36)}_${Date.now()}`
 }
+
+export async function getUserIPAddress(): Promise<string | null> {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json')
+    const data = await response.json()
+    return data.ip || null
+  } catch (error) {
+    console.error('Failed to fetch IP address:', error)
+    return null
+  }
+}
+
+export function isIPAllowed(
+  currentIP: string | null,
+  settings: { enabled: boolean; allowedIPs: string[] }
+): boolean {
+  if (!settings.enabled) {
+    return true
+  }
+  
+  if (!currentIP) {
+    return false
+  }
+  
+  if (settings.allowedIPs.length === 0) {
+    return true
+  }
+  
+  return settings.allowedIPs.some(allowedIP => {
+    if (allowedIP.includes('*')) {
+      const pattern = allowedIP.replace(/\./g, '\\.').replace(/\*/g, '.*')
+      const regex = new RegExp(`^${pattern}$`)
+      return regex.test(currentIP)
+    }
+    return allowedIP === currentIP
+  })
+}
+
+export function isValidIPAddress(ip: string): boolean {
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/
+  const ipv6Pattern = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/
+  
+  if (ip.includes('*')) {
+    const testIP = ip.replace(/\*/g, '0')
+    return ipv4Pattern.test(testIP)
+  }
+  
+  if (ipv4Pattern.test(ip)) {
+    const parts = ip.split('.')
+    return parts.every(part => {
+      const num = parseInt(part, 10)
+      return num >= 0 && num <= 255
+    })
+  }
+  
+  return ipv6Pattern.test(ip)
+}

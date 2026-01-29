@@ -266,3 +266,17 @@ export interface DeviceConfig {
   allowedChildIds: string[]
   parentModeEnabled: boolean
 }
+
+export interface IPRestrictionSettings {
+  enabled: boolean
+  allowedIPs: string[]
+  overridePin: string | null
+  requirePinForUnapproved: boolean
+}
+
+export interface IPAccessAttempt {
+  ip: string
+  timestamp: number
+  granted: boolean
+  usedPin: boolean
+}
