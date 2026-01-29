@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  chorequest:
+    build: .
+    container_name: chorequest
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Persist data if needed (optional)
+      - chorequest-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chorequest-network
+
+networks:
+  chorequest-network:
+    driver: bridge
+
+volumes:
+  chorequest-data:
+    driver: local

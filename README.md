@@ -1,23 +1,493 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# 🏆 ChoreQuest
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+**ChoreQuest** is a comprehensive family chore management application designed to help parents organize, track, and reward their children's daily tasks. With a simple child-friendly interface and powerful parent management tools, ChoreQuest makes household chores engaging and rewarding for the whole family.
 
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-  
-🧠 What Can You Do?
+![ChoreQuest](https://img.shields.io/badge/version-1.0.0-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![React](https://img.shields.io/badge/React-19.2.0-61dafb) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6)
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+---
 
-🧹 Just Exploring?
-No problem! If you were just checking things out and don’t need to keep this code:
+## ✨ Features
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+### 🎯 Core Features
+- **Child-Friendly Interface** - Simple, intuitive tablet-optimized interface for children
+- **Parent Dashboard** - Comprehensive management panel with full control
+- **Flexible Chore Scheduling** - Daily, weekly, bi-weekly, and custom repeat patterns
+- **Points & Rewards System** - Multiple point categories for different reward types
+- **Real-Time Progress Tracking** - Live updates on chore completion and point balances
 
-📄 License For Spark Template Resources 
+### 📅 Advanced Scheduling
+- AM/PM time-based chores (e.g., "Brush Teeth" twice daily)
+- Specific time windows (e.g., complete between 5-8pm)
+- Day-of-week assignments (e.g., every Monday, Wednesday)
+- Complex patterns (e.g., "every other Monday")
+- Optional start/end dates for seasonal chores
+- Child-specific schedules per chore
+
+### 🎁 Rewards & Shop
+- Virtual rewards shop where children spend earned points
+- Multiple point categories (e.g., "Regular" and "Extra" points)
+- Point swapping between categories
+- Reward expiry and availability dates
+- Purchase limits (per child, per day/week/month)
+- Goal tracking to help children save for special rewards
+- Custom point costs per child
+
+### 👨‍👩‍👧‍👦 Family Management
+- Multiple child profiles with avatars
+- Per-child chore assignments
+- Custom point rewards per child per chore
+- Shareable chores (multiple children can complete together)
+- Missed chore tracking and management
+- Chore completion approval workflow
+
+### 🎨 Engaging Experience
+- Celebration animations on chore completion (confetti, fireworks, sparkles, etc.)
+- Goal progress visualization
+- Category-specific point displays
+- Weather-based seasonal themes
+- Voice reading for upcoming chores
+- Weather-appropriate chore suggestions
+
+### 📊 Reporting & Analytics
+- Weekly activity reports
+- Customizable report templates
+- Points history tracking with earned/expired points
+- Chore completion history
+- Purchase history and fulfillment tracking
+- Undo history with timestamps
+
+### 🔒 Security & Access Control
+- PIN-protected parent mode
+- Optional biometric authentication
+- PIN brute-force protection with lockout
+- IP address restrictions with override PIN
+- Welcome page for unauthorized access
+- Secure parent approval workflows
+
+### 📧 Communication
+- Email alerts for reward purchases
+- Pending approval notifications
+- Digest mode for batched notifications
+- SMTP configuration for email delivery
+- Customizable email templates
+
+### 📆 Calendar Integration
+- ICS feed import per child
+- "On This Day" event display
+- 7-day calendar preview
+- Manual and auto-refresh options
+- Optional event time display
+
+### 🌤️ Weather Integration
+- Live weather display by location
+- Child-friendly temperature descriptions
+- Automatic Celsius/Fahrenheit based on location
+- Weather-appropriate chore suggestions
+- Seasonal theme color schemes
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+- Docker and Docker Compose installed on your system
+- Node.js 18+ (for local development)
+- A modern web browser
+
+### 🐳 Docker Installation (Recommended)
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/chorequest.git
+   cd chorequest
+   ```
+
+2. **Create a Dockerfile**
+   
+   Create a `Dockerfile` in the project root:
+   ```dockerfile
+   # Use Node.js LTS as base image
+   FROM node:20-alpine AS builder
+
+   # Set working directory
+   WORKDIR /app
+
+   # Copy package files
+   COPY package*.json ./
+
+   # Install dependencies
+   RUN npm ci
+
+   # Copy application files
+   COPY . .
+
+   # Build the application
+   RUN npm run build
+
+   # Production stage
+   FROM node:20-alpine AS production
+
+   WORKDIR /app
+
+   # Install serve to run the built application
+   RUN npm install -g serve
+
+   # Copy built files from builder
+   COPY --from=builder /app/dist ./dist
+
+   # Expose port
+   EXPOSE 3000
+
+   # Start the application
+   CMD ["serve", "-s", "dist", "-l", "3000"]
+   ```
+
+3. **Create a docker-compose.yml**
+   
+   Create a `docker-compose.yml` in the project root:
+   ```yaml
+   version: '3.8'
+
+   services:
+     chorequest:
+       build: .
+       container_name: chorequest
+       ports:
+         - "3000:3000"
+       restart: unless-stopped
+       environment:
+         - NODE_ENV=production
+       volumes:
+         # Persist data (optional - only if using local file storage)
+         - chorequest-data:/app/data
+       healthcheck:
+         test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+         interval: 30s
+         timeout: 10s
+         retries: 3
+         start_period: 40s
+
+   volumes:
+     chorequest-data:
+       driver: local
+   ```
+
+4. **Build and run with Docker Compose**
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **Access the application**
+   
+   Open your browser and navigate to:
+   ```
+   http://localhost:3000
+   ```
+
+6. **View logs** (optional)
+   ```bash
+   docker-compose logs -f chorequest
+   ```
+
+7. **Stop the application**
+   ```bash
+   docker-compose down
+   ```
+
+### 🔧 Docker Commands
+
+```bash
+# Build the image
+docker-compose build
+
+# Start the container
+docker-compose up -d
+
+# Stop the container
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Restart the container
+docker-compose restart
+
+# Remove everything including volumes
+docker-compose down -v
+```
+
+### 💻 Local Development Installation
+
+If you prefer to run without Docker:
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/chorequest.git
+   cd chorequest
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Access the application**
+   
+   Open your browser and navigate to:
+   ```
+   http://localhost:5173
+   ```
+
+### 🏗️ Build for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory.
+
+---
+
+## 🎮 Getting Started
+
+### Initial Setup
+
+1. **Access ChoreQuest** - Navigate to the application URL in your browser
+
+2. **Set Parent PIN** - On first access, you'll be prompted to create a Parent Mode PIN
+
+3. **Enter Parent Mode** - Click the gear icon to enter Parent Mode using your PIN
+
+4. **Add Children**
+   - Navigate to "Children" tab
+   - Click "Add Child"
+   - Enter name, optional avatar emoji, and pin (if desired)
+
+5. **Create Categories** (Optional)
+   - Navigate to "Categories" tab
+   - Create point categories like "Regular" and "Extra"
+   - Configure point swaps if desired
+
+6. **Add Chores**
+   - Navigate to "Chores" tab
+   - Click "Add Chore"
+   - Set name, description, points, and schedule
+   - Assign to children
+
+7. **Create Rewards**
+   - Navigate to "Rewards" tab
+   - Click "Add Reward"
+   - Set name, description, cost, and categories
+   - Configure limits and availability
+
+8. **Exit Parent Mode** - Children can now start completing chores!
+
+### Daily Usage
+
+**For Children:**
+1. Select your profile from the home screen
+2. View your assigned chores for the day
+3. Complete chores by clicking the checkmark
+4. Watch your points grow!
+5. Visit the shop to redeem rewards
+
+**For Parents:**
+1. Enter Parent Mode with your PIN
+2. Monitor chore completions
+3. Approve pending completions (if configured)
+4. Fulfill reward purchases
+5. Manage missed chores
+6. View reports and history
+
+---
+
+## ⚙️ Configuration
+
+### Email Alerts
+
+Configure SMTP settings in Parent Mode > Settings > Email Settings:
+
+```
+SMTP Host: smtp.gmail.com
+SMTP Port: 587
+Security: TLS
+Username: your-email@gmail.com
+Password: your-app-password
+From Email: your-email@gmail.com
+From Name: ChoreQuest
+```
+
+**Note:** For Gmail, you'll need to use an [App Password](https://support.google.com/accounts/answer/185833).
+
+### Weather Integration
+
+1. Navigate to Parent Mode > Settings > Weather
+2. Enter your location (city, country)
+3. The app will automatically detect coordinates
+4. Choose temperature unit (Auto, Celsius, or Fahrenheit)
+5. Enable seasonal themes for automatic color scheme changes
+
+### IP Restrictions
+
+For enhanced security, restrict access by IP address:
+
+1. Navigate to Parent Mode > Security > IP Restrictions
+2. Enable IP restrictions
+3. Add allowed IP addresses in CIDR notation (e.g., 192.168.1.0/24)
+4. Set an override PIN for access from unapproved IPs
+5. Optionally require PIN even for approved IPs
+
+### Calendar Integration
+
+Connect external calendars for each child:
+
+1. Edit a child's profile in Parent Mode
+2. Paste the ICS feed URL
+3. Set auto-refresh interval
+4. Enable/disable event time display
+5. Events will appear in "On This Day" and Calendar view
+
+---
+
+## 🛠️ Technology Stack
+
+- **Frontend Framework:** React 19.2.0 with TypeScript
+- **UI Components:** Radix UI + shadcn/ui v4
+- **Styling:** Tailwind CSS v4
+- **Icons:** Phosphor Icons
+- **Animations:** Framer Motion
+- **State Management:** React Hooks + useKV (Spark SDK)
+- **Date Handling:** date-fns
+- **Charts:** Recharts
+- **Build Tool:** Vite
+- **Notifications:** Sonner
+
+---
+
+## 📱 Browser Support
+
+ChoreQuest works best on:
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+Optimized for tablets and desktop displays.
+
+---
+
+## 🔐 Data & Privacy
+
+- All data is stored locally using the Spark KV store
+- No data is sent to external servers (except optional email notifications)
+- Weather data fetched from Open-Meteo (privacy-friendly, no API key required)
+- Calendar feeds are fetched directly from provided URLs
+- IP addresses logged only for security features when enabled
+
+---
+
+## 🐛 Troubleshooting
+
+### Docker Issues
+
+**Container won't start:**
+```bash
+# Check logs
+docker-compose logs chorequest
+
+# Rebuild from scratch
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+**Port already in use:**
+```bash
+# Change port in docker-compose.yml
+ports:
+  - "8080:3000"  # Use port 8080 instead
+```
+
+### Application Issues
+
+**Chores not appearing:**
+- Verify chores are assigned to the child
+- Check the schedule settings (days of week, repeat pattern)
+- Ensure chores are not outside their start/end date range
+
+**Points not calculating correctly:**
+- Check category assignments on chores and rewards
+- Verify point overrides for specific children
+- Review point swap history
+
+**Email not sending:**
+- Verify SMTP settings are correct
+- Check that email alerts are enabled
+- For Gmail, ensure you're using an App Password
+- Check browser console for errors
+
+**Weather not loading:**
+- Verify location is entered correctly
+- Check internet connection
+- Coordinates must be properly detected
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [GitHub Spark](https://githubnext.com/projects/spark)
+- UI components from [shadcn/ui](https://ui.shadcn.com)
+- Icons from [Phosphor Icons](https://phosphoricons.com)
+- Weather data from [Open-Meteo](https://open-meteo.com)
+
+---
+
+## 📞 Support
+
+For issues, questions, or suggestions:
+- Open an [Issue](https://github.com/yourusername/chorequest/issues)
+- Check the [Discussions](https://github.com/yourusername/chorequest/discussions)
+
+---
+
+## 🗺️ Roadmap
+
+Future enhancements under consideration:
+- Mobile app (iOS/Android)
+- Multi-family support
+- Chore marketplace/sharing
+- Gamification badges and achievements
+- Integration with smart home devices
+- Voice assistant integration
+- Photo proof for chore completion
+- Allowance management
+- Savings goals tracking
+
+---
+
+**Made with ❤️ for families**
