@@ -103,13 +103,18 @@ export function OnThisDay({
     })
     
     icsEvents.forEach(event => {
-      allEvents.push(event)
+      allEvents.push({
+        ...event,
+        year: undefined
+      })
     })
     
     return allEvents.sort((a, b) => {
-      if (a.year && b.year) return b.year - a.year
-      if (a.year) return 1
-      if (b.year) return -1
+      const aYear = a.year ?? 0
+      const bYear = b.year ?? 0
+      if (aYear && bYear) return bYear - aYear
+      if (aYear) return 1
+      if (bYear) return -1
       return 0
     })
   }, [historicalDates, child.id, completions, chores, assignments, icsEvents])
@@ -179,6 +184,9 @@ export function OnThisDay({
   }
 
   const currentEvent = events[currentEventIndex]
+  
+  if (!currentEvent) return null
+  
   const today = new Date()
   const yearsAgo = currentEvent.year ? today.getFullYear() - currentEvent.year : undefined
 
