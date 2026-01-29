@@ -9,8 +9,10 @@ import {
   CheckCircle,
   Sparkle,
   Calendar,
+  Users,
 } from '@phosphor-icons/react'
 import { Child, Chore, ChoreCompletion, RewardPurchase } from '@/lib/types'
+import { getShareableChoreCompletionCount } from '@/lib/helpers'
 import {
   BarChart,
   Bar,
@@ -191,6 +193,34 @@ export function WeeklySummary({
     return childStats.reduce((sum, s) => sum + s.thisWeekPoints, 0)
   }, [childStats])
 
+  const shareableChoresProgress = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    return chores
+      .filter((chore) => chore.completionType === 'shareable' && chore.maxCompletions)
+      .map((chore) => {
+        const amCount = chore.timeOfDay === 'both' || chore.timeOfDay === 'am' 
+          ? getShareableChoreCompletionCount(completions, chore.id, 'am')
+          : 0
+        const pmCount = chore.timeOfDay === 'both' || chore.timeOfDay === 'pm'
+          ? getShareableChoreCompletionCount(completions, chore.id, 'pm')
+          : 0
+        const anytimeCount = chore.timeOfDay === 'anytime'
+          ? getShareableChoreCompletionCount(completions, chore.id)
+          : 0
+
+        return {
+          chore,
+          amCount,
+          pmCount,
+          anytimeCount,
+          maxCompletions: chore.maxCompletions || 0,
+        }
+      })
+      .filter((item) => item.amCount > 0 || item.pmCount > 0 || item.anytimeCount > 0)
+  }, [chores, completions])
+
   if (childrenList.length === 0) {
     return (
       <Card>
@@ -270,6 +300,74 @@ export function WeeklySummary({
           </CardContent>
         </Card>
       </div>
+
+      {shareableChoresProgress.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-fredoka flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Today's Shareable Chores Progress
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Track which children have completed shareable tasks</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {shareableChoresProgress.map(({ chore, amCount, pmCount, anytimeCount, maxCompletions }) => (
+                <div key={chore.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{chore.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Max {maxCompletions} {maxCompletions === 1 ? 'child' : 'children'}
+                    </Badge>
+                  </div>
+                  {chore.timeOfDay === 'anytime' && (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-semibold">{anytimeCount}/{maxCompletions} completed</span>
+                      </div>
+                      <div className="h-3 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${(anytimeCount / maxCompletions) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {(chore.timeOfDay === 'am' || chore.timeOfDay === 'both') && (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Morning</span>
+                        <span className="font-semibold">{amCount}/{maxCompletions} completed</span>
+                      </div>
+                      <div className="h-3 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${(amCount / maxCompletions) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {(chore.timeOfDay === 'pm' || chore.timeOfDay === 'both') && (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Evening</span>
+                        <span className="font-semibold">{pmCount}/{maxCompletions} completed</span>
+                      </div>
+                      <div className="h-3 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${(pmCount / maxCompletions) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

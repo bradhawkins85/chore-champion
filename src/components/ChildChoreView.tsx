@@ -551,15 +551,28 @@ export function ChildChoreView({
                               </div>
                               {(chore.completionType === 'shareable' || chore.completionType === 'once-per-day') && (
                                 <div className="flex gap-1 mb-2">
-                                  {chore.completionType === 'shareable' && (
+                                  {chore.completionType === 'shareable' && chore.maxCompletions && (
+                                    <div className="flex-1">
+                                      <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
+                                        <Users className="h-3 w-3" />
+                                        Shareable - {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                      </Badge>
+                                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                        <motion.div
+                                          className="h-full bg-primary"
+                                          initial={{ width: 0 }}
+                                          animate={{ 
+                                            width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                          }}
+                                          transition={{ duration: 0.3 }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {chore.completionType === 'shareable' && !chore.maxCompletions && (
                                     <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                                       <Users className="h-3 w-3" />
                                       Shareable
-                                      {chore.maxCompletions && (
-                                        <>
-                                          {' '}({getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions})
-                                        </>
-                                      )}
                                     </Badge>
                                   )}
                                   {chore.completionType === 'once-per-day' && (
@@ -764,6 +777,22 @@ export function ChildChoreView({
                               </h3>
                               {getTimeOfDayLabel(timeOfDay)}
                             </div>
+                            {chore.completionType === 'shareable' && chore.maxCompletions && (
+                              <div className="mb-2">
+                                <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
+                                  <Users className="h-3 w-3" />
+                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                </Badge>
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary"
+                                    style={{ 
+                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                             {chore.categoryIds && chore.categoryIds.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 mb-2">
                                 {chore.categoryIds.map((categoryId) => {
@@ -857,6 +886,22 @@ export function ChildChoreView({
                               </h3>
                               {getTimeOfDayLabel(timeOfDay)}
                             </div>
+                            {chore.completionType === 'shareable' && chore.maxCompletions && (
+                              <div className="mb-2">
+                                <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
+                                  <Users className="h-3 w-3" />
+                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                </Badge>
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary"
+                                    style={{ 
+                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                             {chore.description && (
                               <p className="text-lg text-muted-foreground mb-2">
                                 {chore.description}
