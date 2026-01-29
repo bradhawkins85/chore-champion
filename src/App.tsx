@@ -1515,6 +1515,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               completions={completions || []}
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
               speechSettings={speechSettings || { enabled: true }}
+              biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />

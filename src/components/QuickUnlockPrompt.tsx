@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Fingerprint, X } from '@phosphor-icons/react'
-import { motion } from 'framer-motion'
+import { Fingerprint, X, LockKey } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BiometricSettings, PinSecurity } from '@/lib/types'
 import { authenticateWithBiometric, getBiometricDisplayName } from '@/lib/biometric'
 import { isStandalone } from '@/lib/pwaHelper'
@@ -25,7 +25,8 @@ export function QuickUnlockPrompt({
 }: QuickUnlockPromptProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const [hasAttempted, setHasAttempted] = useState(false)
+  const hasAttemptedRef = useRef(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const shouldShow =
@@ -33,25 +34,26 @@ export function QuickUnlockPrompt({
       biometricSettings?.enabled &&
       biometricSettings?.quickUnlockOnPWA &&
       biometricSettings?.credentials?.length > 0 &&
-      !hasAttempted
+      !hasAttemptedRef.current
 
     if (shouldShow) {
       const timer = setTimeout(() => {
         setIsOpen(true)
         handleBiometricAuth()
-      }, 500)
+      }, 800)
 
       return () => clearTimeout(timer)
     }
-  }, [biometricSettings, hasAttempted])
+  }, [biometricSettings])
 
   const handleBiometricAuth = async () => {
     if (!biometricSettings?.credentials?.length) {
       return
     }
 
-    setHasAttempted(true)
+    hasAttemptedRef.current = true
     setIsAuthenticating(true)
+    setErrorMessage(null)
 
     try {
       const credentialId = await authenticateWithBiometric(biometricSettings.credentials)
@@ -81,18 +83,29 @@ export function QuickUnlockPrompt({
       setIsOpen(false)
       onSuccess()
     } catch (error) {
-      if (error instanceof Error && error.message.includes('cancelled')) {
-        setIsOpen(false)
+      if (error instanceof Error) {
+        if (error.message.includes('cancelled')) {
+          setIsOpen(false)
+          setErrorMessage(null)
+        } else {
+          setErrorMessage(error.message)
+          setIsAuthenticating(false)
+        }
       } else {
-        setIsOpen(false)
+        setErrorMessage('Authentication failed')
+        setIsAuthenticating(false)
       }
-    } finally {
-      setIsAuthenticating(false)
     }
   }
 
   const handleDismiss = () => {
     setIsOpen(false)
+    setErrorMessage(null)
+  }
+
+  const handleRetry = () => {
+    setErrorMessage(null)
+    handleBiometricAuth()
   }
 
   if (!isStandalone() || !biometricSettings?.enabled || !biometricSettings?.quickUnlockOnPWA) {
@@ -113,50 +126,99 @@ export function QuickUnlockPrompt({
         </DialogHeader>
 
         <div className="py-8 space-y-6">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <Fingerprint
-                className={`h-12 w-12 text-primary ${isAuthenticating ? 'animate-pulse' : ''}`}
-                weight="fill"
-              />
-            </div>
-            <div className="text-center space-y-2">
-              <p className="text-lg font-fredoka font-semibold">
-                {isAuthenticating ? 'Authenticating...' : 'Use Quick Unlock'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {isAuthenticating
-                  ? `Complete authentication using ${getBiometricDisplayName()}`
-                  : `Tap below to authenticate with ${getBiometricDisplayName()}`}
-              </p>
-            </div>
-          </motion.div>
+          <AnimatePresence mode="wait">
+            {errorMessage ? (
+              <motion.div
+                key="error"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <LockKey className="h-12 w-12 text-destructive" weight="fill" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-fredoka font-semibold text-destructive">
+                    Authentication Failed
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {errorMessage}
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="auth"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Fingerprint
+                    className={`h-12 w-12 text-primary ${isAuthenticating ? 'animate-pulse' : ''}`}
+                    weight="fill"
+                  />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-fredoka font-semibold">
+                    {isAuthenticating ? 'Authenticating...' : 'Use Quick Unlock'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isAuthenticating
+                      ? `Complete authentication using ${getBiometricDisplayName()}`
+                      : `Tap below to authenticate with ${getBiometricDisplayName()}`}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex flex-col gap-2">
-            {!isAuthenticating && (
-              <Button
-                onClick={handleBiometricAuth}
-                className="w-full font-fredoka"
-                size="lg"
-              >
-                <Fingerprint className="h-5 w-5 mr-2" />
-                Authenticate with {getBiometricDisplayName()}
-              </Button>
-            )}
+            {errorMessage ? (
+              <>
+                <Button
+                  onClick={handleRetry}
+                  className="w-full font-fredoka"
+                  size="lg"
+                >
+                  <Fingerprint className="h-5 w-5 mr-2" />
+                  Try Again
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDismiss}
+                  className="w-full font-fredoka"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                {!isAuthenticating && (
+                  <Button
+                    onClick={handleBiometricAuth}
+                    className="w-full font-fredoka"
+                    size="lg"
+                  >
+                    <Fingerprint className="h-5 w-5 mr-2" />
+                    Authenticate with {getBiometricDisplayName()}
+                  </Button>
+                )}
 
-            <Button
-              variant="outline"
-              onClick={handleDismiss}
-              className="w-full font-fredoka"
-              disabled={isAuthenticating}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Not Now
-            </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDismiss}
+                  className="w-full font-fredoka"
+                  disabled={isAuthenticating}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Not Now
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

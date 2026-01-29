@@ -5,10 +5,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Gear, Trophy, Clock, SpeakerHigh } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings } from '@/lib/types'
+import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
+import { isStandalone } from '@/lib/pwaHelper'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -25,6 +26,7 @@ interface ChildSelectorProps {
   completions?: ChoreCompletion[]
   weatherSettings?: WeatherSettings
   speechSettings?: SpeechSettings
+  biometricSettings?: BiometricSettings
 }
 
 export function ChildSelector({ 
@@ -42,9 +44,11 @@ export function ChildSelector({
   completions = [],
   weatherSettings,
   speechSettings,
+  biometricSettings,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
+  const [showBiometricBadge, setShowBiometricBadge] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -53,6 +57,14 @@ export function ChildSelector({
 
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    const isPWA = isStandalone()
+    const hasBiometric = biometricSettings?.enabled && 
+                         biometricSettings?.quickUnlockOnPWA && 
+                         (biometricSettings?.credentials?.length ?? 0) > 0
+    setShowBiometricBadge(Boolean(isPWA && hasBiometric))
+  }, [biometricSettings])
 
   const handleSpeak = (choreId: string, choreName: string, choreDescription: string, speakDescription: boolean = true) => {
     if (!speechSettings?.enabled) return
@@ -278,6 +290,14 @@ export function ChildSelector({
                     {pendingPurchasesCount}
                   </div>
                 )}
+                {showBiometricBadge && (
+                  <div className="absolute top-3 left-3">
+                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                      <Fingerprint className="h-3 w-3" weight="fill" />
+                      Quick Unlock
+                    </Badge>
+                  </div>
+                )}
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.95 }}
@@ -291,7 +311,7 @@ export function ChildSelector({
                   Parent Mode
                 </h2>
                 <p className="text-lg font-fredoka text-muted-foreground">
-                  Manage & Configure
+                  {showBiometricBadge ? 'Tap to use Quick Unlock' : 'Manage & Configure'}
                 </p>
               </CardContent>
             </Card>
