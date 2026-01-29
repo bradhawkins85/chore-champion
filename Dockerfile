@@ -2,9 +2,6 @@
 # Stage 1: Build the application
 FROM node:20-bookworm-slim AS builder
 
-# Get target architecture for conditional package installation
-ARG TARGETARCH
-
 WORKDIR /app
 
 # Build argument to disable SSL verification if needed for corporate proxies
@@ -18,9 +15,11 @@ COPY package*.json ./
 
 # Install dependencies
 # Work around npm 10.x exit handler bug in Docker
-# Remove package-lock.json to work around npm ci issues with optional dependencies
-# as documented in https://github.com/npm/cli/issues/4828
-RUN rm -f package-lock.json && timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
+# For multi-arch builds, optional dependencies must be explicitly included
+# Using npm install (not npm ci) to avoid the npm optional dependencies bug
+# documented in https://github.com/npm/cli/issues/4828
+# Note: package-lock.json is used when available to maintain reproducibility
+RUN timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 COPY . .
 
