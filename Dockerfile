@@ -1,5 +1,5 @@
 # Multi-stage build for ChoreQuest
-# Stage 1: Build the application  
+# Stage 1: Build the application
 FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
@@ -12,7 +12,7 @@ COPY package*.json ./
 
 # Install dependencies
 # Note: Using npm install with --legacy-peer-deps due to peer dependency conflicts
-# npm ci is preferred but may have issues with npm 10.x in some Docker environments  
+# npm ci is preferred but may have issues with npm 10.x in some Docker environments
 RUN if [ "$DISABLE_SSL_VERIFY" = "true" ]; then npm config set strict-ssl false; fi && \
     npm install --legacy-peer-deps
 
