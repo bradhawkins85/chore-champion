@@ -12,6 +12,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Point Swapping Between Categories
+- **Functionality**: Allow children to exchange points between categories at configurable rates set by parents. For example, 100 Regular points can be swapped for 10 Extra points. Parents configure exchange rates per category, specifying the conversion ratio and target category.
+- **Purpose**: Provide flexibility for children to pursue high-value rewards in premium categories by converting accumulated points from regular categories. Encourages continued engagement with routine tasks while providing a path to special rewards.
+- **Trigger**: Child view → Click "Swap" button (appears only when exchange rates are configured and child has enough points) → Select exchange rate → Confirm swap
+- **Progression**: Parent configures exchange rates in category settings (e.g., "Regular → Extra: 100:10") → Child views available exchange options based on current point balances → Select desired swap → System validates sufficient points → Execute swap → Points deducted from source category and added to target category → Toast confirmation shows swap details
+- **Success criteria**: Exchange rates configurable per category in parent mode, swap dialog displays all available exchanges with clear conversion ratios, child can only see swaps they can afford, swaps are logged with timestamp for parent review, available category points update immediately after swap, swap history is persistent and trackable.
+
 ### Category System
 - **Functionality**: Create and manage categories (e.g., "Regular", "Extra") that organize chores and rewards into separate point systems. Each chore can award points in multiple categories simultaneously (e.g., 10 Regular points + 1 Extra point for brushing teeth). Each reward can belong to multiple categories and costs points from those categories.
 - **Purpose**: Allow parents to create distinct point economies - for example, regular daily chores earn "Regular" points for everyday rewards, while special extra chores earn "Extra" points for premium rewards. Chores can award different amounts of points to different categories, creating flexible incentive structures.

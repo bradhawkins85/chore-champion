@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
-import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category } from '@/lib/types'
+import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category, PointSwap } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory, isRewardActive } from '@/lib/helpers'
 import { useMemo } from 'react'
@@ -20,6 +20,7 @@ interface RewardShopProps {
   onToggleGoalTracking?: (rewardId: string) => void
   categories?: Category[]
   assignments?: any[]
+  swaps?: PointSwap[]
 }
 
 export function RewardShop({
@@ -35,6 +36,7 @@ export function RewardShop({
   onToggleGoalTracking,
   categories = [],
   assignments = [],
+  swaps = [],
 }: RewardShopProps) {
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
@@ -58,6 +60,7 @@ export function RewardShop({
         category.id,
         assignments
       )
+      const childSwaps = swaps.filter(s => s.childId === child.id)
       const availablePoints = getChildAvailablePointsByCategory(
         totalPoints,
         purchases
@@ -71,12 +74,13 @@ export function RewardShop({
             }
           }),
         rewardsMap,
-        category.id
+        category.id,
+        childSwaps
       )
       points.set(category.id, availablePoints)
     })
     return points
-  }, [categories, completions, choresMap, child.id, assignments, purchases, rewardsMap])
+  }, [categories, completions, choresMap, child.id, assignments, purchases, rewardsMap, swaps])
 
   return (
     <div className="min-h-screen p-8">

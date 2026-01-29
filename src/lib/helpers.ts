@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate } from './types'
 
 export function getRandomCelebrationAnimation(settings: CelebrationSettings): CelebrationAnimation {
   const enabledAnimations = (Object.keys(settings.animations) as CelebrationAnimation[])
@@ -627,7 +627,8 @@ export function getChildAvailablePointsByCategory(
   totalPoints: number,
   purchases: { rewardId: string; cost: number }[],
   rewardsMap: Map<string, { categoryIds: string[] }>,
-  categoryId: string
+  categoryId: string,
+  swaps?: { fromCategoryId: string; toCategoryId: string; fromAmount: number; toAmount: number }[]
 ): number {
   const spent = purchases.reduce((sum, p) => {
     const reward = rewardsMap.get(p.rewardId)
@@ -636,7 +637,20 @@ export function getChildAvailablePointsByCategory(
     }
     return sum
   }, 0)
-  return totalPoints - spent
+  
+  let netSwaps = 0
+  if (swaps) {
+    swaps.forEach((swap) => {
+      if (swap.fromCategoryId === categoryId) {
+        netSwaps -= swap.fromAmount
+      }
+      if (swap.toCategoryId === categoryId) {
+        netSwaps += swap.toAmount
+      }
+    })
+  }
+  
+  return totalPoints + netSwaps - spent
 }
 
 export function formatDuration(minutes?: number): string {
@@ -661,11 +675,20 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
     name: 'Regular',
     color: 'oklch(0.6 0.22 290)',
     description: 'Daily activities and routine chores',
+    exchangeRates: [
+      {
+        fromCategoryId: 'Regular',
+        toCategoryId: 'Extra',
+        fromAmount: 100,
+        toAmount: 10,
+      }
+    ]
   },
   {
     name: 'Extra',
     color: 'oklch(0.72 0.18 45)',
     description: 'Special chores for extra rewards',
+    exchangeRates: []
   },
 ]
 
@@ -843,4 +866,28 @@ export function formatLockoutTime(milliseconds: number): string {
   
   const hours = Math.ceil(minutes / 60)
   return `${hours} hour${hours !== 1 ? 's' : ''}`
+}
+
+export function getAvailableExchangeRates(
+  category: Category,
+  categories: Category[]
+): ExchangeRate[] {
+  if (!category.exchangeRates || category.exchangeRates.length === 0) {
+    return []
+  }
+  
+  return category.exchangeRates.map((rate) => {
+    const targetCategory = categories.find((cat) => 
+      cat.id === rate.toCategoryId || cat.name === rate.toCategoryId
+    )
+    
+    return {
+      fromCategoryId: category.id,
+      toCategoryId: targetCategory?.id || rate.toCategoryId,
+      fromAmount: rate.fromAmount,
+      toAmount: rate.toAmount,
+    }
+  }).filter((rate) => 
+    categories.some((cat) => cat.id === rate.toCategoryId)
+  )
 }

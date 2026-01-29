@@ -27,8 +27,9 @@ import {
   RepeatPattern,
   PinSecurity,
   BiometricSettings,
+  PointSwap,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -69,6 +70,7 @@ function App() {
   })
   const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
   const [categories, setCategories] = useKV<Category[]>('categories', [])
+  const [pointSwaps, setPointSwaps] = useKV<PointSwap[]>('point-swaps', [])
   
   const hasMigratedRewards = useRef(false)
 
@@ -76,11 +78,21 @@ function App() {
 
   useEffect(() => {
     if (!hasInitializedCategories.current && categories && categories.length === 0) {
-      const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
-        ...cat,
-        id: `category_default_${index}`,
-        createdAt: 0,
-      }))
+      const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => {
+        const categoryId = `category_default_${index}`
+        const exchangeRates = cat.exchangeRates?.map(rate => ({
+          ...rate,
+          fromCategoryId: categoryId,
+          toCategoryId: rate.toCategoryId === 'Extra' ? `category_default_1` : rate.toCategoryId,
+        }))
+        
+        return {
+          ...cat,
+          id: categoryId,
+          createdAt: 0,
+          exchangeRates,
+        }
+      })
       setCategories(defaultCategories)
       hasInitializedCategories.current = true
     }
@@ -189,6 +201,25 @@ function App() {
     return points
   }, [childrenList, completions, choresMap, assignments])
 
+  const migratedRewards = useMemo(() => {
+    if (!rewards || rewards.length === 0) return rewards || []
+    
+    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
+    if (!needsMigration) return rewards
+    
+    const firstCategoryId = (categories || [])[0]?.id
+    
+    return rewards.map((reward) => {
+      const rewardCategoryIds = reward.categoryIds
+      const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
+      
+      return {
+        ...reward,
+        categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
+      }
+    })
+  }, [rewards, categories])
+
   const childCategoryPoints = useMemo(() => {
     const categoryPointsMap = new Map<string, Map<string, number>>()
     ;(childrenList || []).forEach((child) => {
@@ -207,6 +238,39 @@ function App() {
     })
     return categoryPointsMap
   }, [childrenList, categories, completions, choresMap, assignments])
+
+  const childAvailableCategoryPoints = useMemo(() => {
+    const availableCategoryPointsMap = new Map<string, Map<string, number>>()
+    ;(childrenList || []).forEach((child) => {
+      const childAvailPoints = new Map<string, number>()
+      const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
+      const childPurchases = (purchases || [])
+        .filter((p) => p.childId === child.id)
+        .map((p) => {
+          const reward = rewardsMap.get(p.rewardId)
+          const override = reward?.costOverrides?.find(o => o.childId === child.id)
+          return {
+            rewardId: p.rewardId,
+            cost: override ? override.cost : (reward?.cost || 0),
+          }
+        })
+      const childSwaps = (pointSwaps || []).filter((s) => s.childId === child.id)
+      
+      ;(categories || []).forEach((category) => {
+        const totalPoints = childCategoryPoints.get(child.id)?.get(category.id) || 0
+        const availablePoints = getChildAvailablePointsByCategory(
+          totalPoints,
+          childPurchases,
+          rewardsMap,
+          category.id,
+          childSwaps
+        )
+        childAvailPoints.set(category.id, availablePoints)
+      })
+      availableCategoryPointsMap.set(child.id, childAvailPoints)
+    })
+    return availableCategoryPointsMap
+  }, [childrenList, categories, childCategoryPoints, purchases, migratedRewards, pointSwaps])
 
   const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     const newChore: Chore = {
@@ -593,24 +657,39 @@ function App() {
     toast.success('Category deleted')
   }
 
-  const migratedRewards = useMemo(() => {
-    if (!rewards || rewards.length === 0) return rewards || []
+  const handleSwapPoints = (
+    childId: string,
+    fromCategoryId: string,
+    toCategoryId: string,
+    fromAmount: number,
+    toAmount: number
+  ) => {
+    const childAvailablePoints = childAvailableCategoryPoints.get(childId)
+    const availablePoints = childAvailablePoints?.get(fromCategoryId) || 0
+
+    if (availablePoints < fromAmount) {
+      toast.error('Not enough points', {
+        description: `You need ${fromAmount} points but only have ${availablePoints}`,
+      })
+      return
+    }
+
+    const newSwap: PointSwap = {
+      id: `swap_${Date.now()}_${Math.random()}`,
+      childId,
+      fromCategoryId,
+      toCategoryId,
+      fromAmount,
+      toAmount,
+      swappedAt: Date.now(),
+    }
+    setPointSwaps((current) => [...(current || []), newSwap])
+
+    const fromCategory = (categories || []).find((c) => c.id === fromCategoryId)
+    const toCategory = (categories || []).find((c) => c.id === toCategoryId)
     
-    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
-    if (!needsMigration) return rewards
-    
-    const firstCategoryId = (categories || [])[0]?.id
-    
-    return rewards.map((reward) => {
-      const rewardCategoryIds = reward.categoryIds
-      const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
-      
-      return {
-        ...reward,
-        categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
-      }
-    })
-  }, [rewards, categories])
+    toast.success(`Swapped ${fromAmount} ${fromCategory?.name} for ${toAmount} ${toCategory?.name}!`)
+  }
 
   useEffect(() => {
     if (hasMigratedRewards.current) return
@@ -696,6 +775,7 @@ function App() {
             trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
             categories={categories || []}
+            swaps={pointSwaps || []}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
               (purchases || [])
@@ -728,10 +808,14 @@ function App() {
             rewards={rewards || []}
             categories={categories || []}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
+            availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => setSelectedChild(null)}
             onShopClick={() => setShowRewardShop(true)}
+            onSwapPoints={(fromCategoryId, toCategoryId, fromAmount, toAmount) =>
+              handleSwapPoints(selectedChild.id, fromCategoryId, toCategoryId, fromAmount, toAmount)
+            }
           />
         )
       ) : (

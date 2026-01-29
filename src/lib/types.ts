@@ -3,12 +3,20 @@ export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
 export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
+export interface ExchangeRate {
+  fromCategoryId: string
+  toCategoryId: string
+  fromAmount: number
+  toAmount: number
+}
+
 export interface Category {
   id: string
   name: string
   color: string
   description?: string
   createdAt: number
+  exchangeRates?: ExchangeRate[]
 }
 
 export interface RepeatPattern {
@@ -195,4 +203,14 @@ export interface BiometricSettings {
   enabled: boolean
   credentials: BiometricCredential[]
   requirePinFallback: boolean
+}
+
+export interface PointSwap {
+  id: string
+  childId: string
+  fromCategoryId: string
+  toCategoryId: string
+  fromAmount: number
+  toAmount: number
+  swappedAt: number
 }

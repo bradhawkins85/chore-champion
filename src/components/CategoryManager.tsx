@@ -134,6 +134,7 @@ export function CategoryManager({
         }}
         onSave={handleSave}
         category={editingCategory}
+        allCategories={categories}
       />
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
