@@ -117,7 +117,7 @@ export function EmailSettings({
   }
 
   const handleToggleAlert = (
-    type: 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts',
+    type: 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts',
     enabled: boolean
   ) => {
     if (enabled && !smtpSettings.enabled) {
@@ -357,6 +357,23 @@ export function EmailSettings({
               checked={emailAlertSettings.choreCompletionAlerts}
               onCheckedChange={(checked) =>
                 handleToggleAlert('choreCompletionAlerts', checked)
+              }
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Pending Approval Alerts</Label>
+              <p className="text-sm text-muted-foreground">
+                Get notified when chores are completed and require approval
+              </p>
+            </div>
+            <Switch
+              checked={emailAlertSettings.pendingApprovalAlerts}
+              onCheckedChange={(checked) =>
+                handleToggleAlert('pendingApprovalAlerts', checked)
               }
             />
           </div>

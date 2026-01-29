@@ -458,5 +458,6 @@ export interface EmailAlertSettings {
   rewardPurchaseAlerts: boolean
   choreCompletionAlerts: boolean
   weeklyReportAlerts: boolean
+  pendingApprovalAlerts: boolean
   recipientEmails: string[]
 }

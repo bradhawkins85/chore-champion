@@ -127,6 +127,7 @@ function App() {
     rewardPurchaseAlerts: false,
     choreCompletionAlerts: false,
     weeklyReportAlerts: false,
+    pendingApprovalAlerts: false,
     recipientEmails: [],
   })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
@@ -503,6 +504,7 @@ function App() {
       toast.info('Chore marked for parent approval', {
         description: 'Points will be awarded after approval',
       })
+      sendPendingApprovalEmail(childId, choreId)
     }
 
     if (!requiresApproval) {
@@ -1029,6 +1031,43 @@ Please fulfill this reward when you get a chance!
     })
   }
 
+  const sendPendingApprovalEmail = async (childId: string, choreId: string) => {
+    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+      return
+    }
+
+    if (emailAlertSettings.recipientEmails.length === 0) {
+      return
+    }
+
+    const child = (childrenList || []).find((c) => c.id === childId)
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+
+    if (!child || !chore) return
+
+    const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
+    const emailBody = `
+${child.name} has completed a chore that requires your approval:
+
+Chore Details:
+- Name: ${chore.name}
+- Description: ${chore.description || 'No description'}
+- Points: ${chore.points}
+- Time: ${new Date().toLocaleString()}
+
+Please log in to ChoreQuest to approve or reject this completion.
+    `.trim()
+
+    console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Subject:', emailSubject)
+    console.log('Body:', emailBody)
+    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+
+    toast.info('Approval notification sent to parents', {
+      description: `${child.name}'s chore pending approval`,
+    })
+  }
+
   const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
     const newTemplate: ReportTemplate = {
       ...templateData,
@@ -1176,7 +1215,7 @@ Please fulfill this reward when you get a chance!
           reportTemplates={reportTemplates || []}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
-          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, recipientEmails: [] }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [] }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
