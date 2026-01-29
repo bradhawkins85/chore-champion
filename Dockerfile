@@ -18,8 +18,8 @@ COPY package*.json ./
 # For multi-arch builds, optional dependencies must be explicitly included
 # Using npm install (not npm ci) to avoid the npm optional dependencies bug
 # documented in https://github.com/npm/cli/issues/4828
-# Note: package-lock.json is used when available to maintain reproducibility
-RUN timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
+# Remove package-lock.json before install to ensure optional dependencies are resolved correctly
+RUN rm -f package-lock.json && timeout 300 npm install --legacy-peer-deps || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 COPY . .
 
