@@ -19,7 +19,12 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
 
     const loadWeather = async () => {
       setLoading(true)
-      const data = await fetchWeatherData(settings.latitude!, settings.longitude!)
+      
+      const effectiveUnit = settings.temperatureUnit === 'auto' 
+        ? (settings.autoDetectedUnit || 'fahrenheit')
+        : settings.temperatureUnit
+      
+      const data = await fetchWeatherData(settings.latitude!, settings.longitude!, effectiveUnit)
       setWeather(data)
       setLoading(false)
     }
@@ -28,7 +33,7 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
     const interval = setInterval(loadWeather, 10 * 60 * 1000)
 
     return () => clearInterval(interval)
-  }, [settings.enabled, settings.latitude, settings.longitude])
+  }, [settings.enabled, settings.latitude, settings.longitude, settings.temperatureUnit, settings.autoDetectedUnit])
 
   if (!settings.enabled || !weather) {
     return null
@@ -44,8 +49,9 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
     )
   }
 
-  const tempFeeling = getTemperatureFeeling(weather.temperature)
+  const tempFeeling = getTemperatureFeeling(weather.temperature, weather.unit)
   const weatherEmoji = getWeatherEmoji(weather.conditionCode)
+  const unitSymbol = weather.unit === 'celsius' ? 'C' : 'F'
 
   return (
     <Card className="p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200">
@@ -57,7 +63,7 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
               {weather.condition}
             </div>
             <div className="text-2xl font-bold">
-              {weather.temperature}°F
+              {weather.temperature}°{unitSymbol}
             </div>
           </div>
         </div>

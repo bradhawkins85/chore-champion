@@ -103,6 +103,7 @@ function App() {
     location: '',
     latitude: null,
     longitude: null,
+    temperatureUnit: 'auto',
   })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
@@ -1053,7 +1054,7 @@ function App() {
           accessHistory={accessHistory || []}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
           reportTemplates={reportTemplates || []}
-          weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
+          weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1151,7 +1152,7 @@ function App() {
             categories={categories || []}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
-            weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
+            weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
@@ -1200,7 +1201,7 @@ function App() {
               assignments={assignments || []}
               chores={migratedChores || []}
               completions={completions || []}
-              weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null }}
+              weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />

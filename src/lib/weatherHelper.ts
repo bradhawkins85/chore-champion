@@ -1,12 +1,14 @@
-import { WeatherData } from './types'
+import { WeatherData, TemperatureUnit } from './types'
 
 export async function fetchWeatherData(
   latitude: number,
-  longitude: number
+  longitude: number,
+  unit: 'celsius' | 'fahrenheit' = 'fahrenheit'
 ): Promise<WeatherData | null> {
   try {
+    const temperatureUnit = unit === 'celsius' ? 'celsius' : 'fahrenheit'
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&temperature_unit=fahrenheit&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&temperature_unit=${temperatureUnit}&timezone=auto`
     )
     
     if (!response.ok) {
@@ -26,6 +28,7 @@ export async function fetchWeatherData(
       feels_like: Math.round(data.current.temperature_2m),
       humidity: data.current.relative_humidity_2m,
       description: condition,
+      unit,
     }
   } catch (error) {
     console.error('Failed to fetch weather:', error)
@@ -37,6 +40,7 @@ export async function geocodeLocation(locationName: string): Promise<{
   latitude: number
   longitude: number
   displayName: string
+  country: string
 } | null> {
   try {
     const response = await fetch(
@@ -59,11 +63,21 @@ export async function geocodeLocation(locationName: string): Promise<{
       latitude: result.latitude,
       longitude: result.longitude,
       displayName: `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}${result.country ? ', ' + result.country : ''}`,
+      country: result.country || '',
     }
   } catch (error) {
     console.error('Failed to geocode location:', error)
     return null
   }
+}
+
+export function detectTemperatureUnit(countryCode: string): 'celsius' | 'fahrenheit' {
+  const fahrenheitCountries = ['US', 'USA', 'United States', 'LR', 'Liberia', 'MM', 'Myanmar', 'Burma']
+  
+  const normalized = countryCode.toUpperCase().trim()
+  return fahrenheitCountries.some(code => normalized.includes(code.toUpperCase())) 
+    ? 'fahrenheit' 
+    : 'celsius'
 }
 
 function getWeatherCondition(code: number): string {
@@ -85,11 +99,13 @@ function getWeatherCondition(code: number): string {
   return 'Unknown'
 }
 
-export function getTemperatureFeeling(tempF: number): {
+export function getTemperatureFeeling(temp: number, unit: 'celsius' | 'fahrenheit'): {
   label: string
   emoji: string
   color: string
 } {
+  const tempF = unit === 'celsius' ? (temp * 9/5) + 32 : temp
+  
   if (tempF <= 32) {
     return { label: 'Freezing', emoji: '🥶', color: 'text-blue-600' }
   } else if (tempF <= 45) {

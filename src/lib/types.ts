@@ -416,11 +416,15 @@ export interface ReportSummary {
   mostEarnedCategory: string | null
 }
 
+export type TemperatureUnit = 'auto' | 'celsius' | 'fahrenheit'
+
 export interface WeatherSettings {
   enabled: boolean
   location: string
   latitude: number | null
   longitude: number | null
+  temperatureUnit: TemperatureUnit
+  autoDetectedUnit?: 'celsius' | 'fahrenheit'
 }
 
 export interface WeatherData {
@@ -430,4 +434,5 @@ export interface WeatherData {
   feels_like: number
   humidity: number
   description: string
+  unit: 'celsius' | 'fahrenheit'
 }

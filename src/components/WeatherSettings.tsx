@@ -4,10 +4,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { WeatherSettings } from '@/lib/types'
-import { geocodeLocation } from '@/lib/weatherHelper'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { WeatherSettings, TemperatureUnit } from '@/lib/types'
+import { geocodeLocation, detectTemperatureUnit } from '@/lib/weatherHelper'
 import { toast } from 'sonner'
-import { MagnifyingGlass, MapPin } from '@phosphor-icons/react'
+import { MagnifyingGlass, MapPin, ThermometerSimple } from '@phosphor-icons/react'
 
 interface WeatherSettingsComponentProps {
   settings: WeatherSettings
@@ -29,14 +30,21 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
       const result = await geocodeLocation(locationInput.trim())
       
       if (result) {
+        const detectedUnit = detectTemperatureUnit(result.country)
+        
         onUpdate({
           ...settings,
           location: result.displayName,
           latitude: result.latitude,
           longitude: result.longitude,
+          autoDetectedUnit: detectedUnit,
         })
         setLocationInput(result.displayName)
-        toast.success(`Location set to ${result.displayName}`)
+        
+        const unitLabel = detectedUnit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)'
+        toast.success(`Location set to ${result.displayName}`, {
+          description: `Auto-detected temperature unit: ${unitLabel}`,
+        })
       } else {
         toast.error('Location not found', {
           description: 'Please try a different search term',
@@ -55,6 +63,25 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
       return
     }
     onUpdate({ ...settings, enabled })
+  }
+
+  const handleUnitChange = (unit: TemperatureUnit) => {
+    onUpdate({ ...settings, temperatureUnit: unit })
+    
+    if (unit === 'auto' && settings.autoDetectedUnit) {
+      const unitLabel = settings.autoDetectedUnit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)'
+      toast.info(`Using auto-detected unit: ${unitLabel}`)
+    } else if (unit !== 'auto') {
+      const unitLabel = unit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)'
+      toast.success(`Temperature unit set to ${unitLabel}`)
+    }
+  }
+
+  const getEffectiveUnit = () => {
+    if (settings.temperatureUnit === 'auto') {
+      return settings.autoDetectedUnit || 'fahrenheit'
+    }
+    return settings.temperatureUnit
   }
 
   return (
@@ -107,6 +134,38 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
           {settings.location && settings.latitude && settings.longitude && (
             <p className="text-sm text-muted-foreground">
               Current location: {settings.location}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="temp-unit" className="flex items-center gap-2">
+            <ThermometerSimple className="h-4 w-4" />
+            Temperature Unit
+          </Label>
+          <Select
+            value={settings.temperatureUnit}
+            onValueChange={(value) => handleUnitChange(value as TemperatureUnit)}
+          >
+            <SelectTrigger id="temp-unit">
+              <SelectValue placeholder="Select temperature unit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">
+                Auto (based on location)
+                {settings.temperatureUnit === 'auto' && settings.autoDetectedUnit && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    - Currently: {getEffectiveUnit() === 'celsius' ? '°C' : '°F'}
+                  </span>
+                )}
+              </SelectItem>
+              <SelectItem value="celsius">Celsius (°C)</SelectItem>
+              <SelectItem value="fahrenheit">Fahrenheit (°F)</SelectItem>
+            </SelectContent>
+          </Select>
+          {settings.temperatureUnit === 'auto' && settings.autoDetectedUnit && (
+            <p className="text-sm text-muted-foreground">
+              Auto-detected: {getEffectiveUnit() === 'celsius' ? 'Celsius' : 'Fahrenheit'} based on {settings.location}
             </p>
           )}
         </div>
