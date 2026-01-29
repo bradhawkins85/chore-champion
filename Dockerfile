@@ -2,6 +2,9 @@
 # Stage 1: Build the application
 FROM node:20-bookworm-slim AS builder
 
+# Get target architecture for conditional package installation
+ARG TARGETARCH
+
 WORKDIR /app
 
 # Build argument to disable SSL verification if needed for corporate proxies
@@ -14,14 +17,14 @@ RUN npm config set strict-ssl false
 COPY package*.json ./
 
 # Install dependencies
-# Work around npm 10.x exit handler bug in Docker  
+# Work around npm 10.x exit handler bug in Docker
 # Ensure optional dependencies are installed (critical for native modules like Rollup on ARM)
 RUN timeout 300 npm ci --legacy-peer-deps --include=optional || ([ $? -eq 124 ] && echo "Timeout but continuing" || exit 1)
 
 # Verify and explicitly install rollup's platform-specific optional dependency if missing
 # This fixes MODULE_NOT_FOUND errors when building for ARM64 under QEMU emulation
-RUN if [ "$(node -e 'console.log(process.arch)')" = "arm64" ]; then \
-      npm install --no-save --legacy-peer-deps @rollup/rollup-linux-arm64-gnu || true; \
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      npm install --no-save --legacy-peer-deps @rollup/rollup-linux-arm64-gnu; \
     fi
 
 COPY . .
