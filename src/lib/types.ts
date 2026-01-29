@@ -256,3 +256,13 @@ export interface CategoryBonusCompletion {
   bonusPoints: number
   targetCategoryId: string
 }
+
+export interface DeviceConfig {
+  id: string
+  name: string
+  deviceFingerprint: string
+  createdAt: number
+  lastSeen: number
+  allowedChildIds: string[]
+  parentModeEnabled: boolean
+}

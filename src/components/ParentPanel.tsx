@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Devices } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, DeviceConfig } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -38,6 +38,7 @@ import { CelebrationSettingsComponent } from './CelebrationSettings'
 import { CategoryManager } from './CategoryManager'
 import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
+import { DeviceManager } from './DeviceManager'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -54,6 +55,8 @@ interface ParentPanelProps {
   biometricSettings: BiometricSettings
   categories: Category[]
   childCategoryPoints?: Map<string, Map<string, number>>
+  devices: DeviceConfig[]
+  currentDeviceId: string
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -88,6 +91,8 @@ interface ParentPanelProps {
   onApproveCompletion: (completionId: string) => void
   onRejectCompletion: (completionId: string, reason?: string) => void
   onUndoCompletion: (completionId: string) => void
+  onUpdateDevice: (deviceId: string, updates: Partial<DeviceConfig>) => void
+  onDeleteDevice: (deviceId: string) => void
   onExitParentMode: () => void
 }
 
@@ -106,6 +111,8 @@ export function ParentPanel({
   biometricSettings,
   categories,
   childCategoryPoints,
+  devices,
+  currentDeviceId,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -132,6 +139,8 @@ export function ParentPanel({
   onApproveCompletion,
   onRejectCompletion,
   onUndoCompletion,
+  onUpdateDevice,
+  onDeleteDevice,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -346,6 +355,10 @@ export function ParentPanel({
           <TabsTrigger value="settings">
             <Gear className="h-4 w-4 mr-2" />
             Settings
+          </TabsTrigger>
+          <TabsTrigger value="devices">
+            <Devices className="h-4 w-4 mr-2" />
+            Devices
           </TabsTrigger>
         </TabsList>
 
@@ -725,6 +738,16 @@ export function ParentPanel({
               onUpdate={onCelebrationSettingsChange}
             />
           </div>
+        </TabsContent>
+
+        <TabsContent value="devices" className="space-y-4">
+          <DeviceManager
+            devices={devices}
+            childrenList={childrenList}
+            currentDeviceId={currentDeviceId}
+            onUpdateDevice={onUpdateDevice}
+            onDeleteDevice={onDeleteDevice}
+          />
         </TabsContent>
       </Tabs>
 

@@ -1137,3 +1137,24 @@ export function getExpiredPointsByCategory(
 
   return expiredChorePoints + expiredBonusPoints
 }
+
+export function generateDeviceFingerprint(): string {
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    new Date().getTimezoneOffset().toString(),
+    screen.width + 'x' + screen.height,
+    screen.colorDepth.toString(),
+  ]
+  
+  const str = components.join('|')
+  
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  
+  return `device_${Math.abs(hash).toString(36)}_${Date.now()}`
+}

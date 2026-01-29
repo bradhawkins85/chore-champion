@@ -30,8 +30,9 @@ import {
   BiometricSettings,
   PointSwap,
   CategoryBonusCompletion,
+  DeviceConfig,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, generateDeviceFingerprint } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -76,10 +77,43 @@ function App() {
   const [categories, setCategories] = useKV<Category[]>('categories', [])
   const [pointSwaps, setPointSwaps] = useKV<PointSwap[]>('point-swaps', [])
   const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
+  const [devices, setDevices] = useKV<DeviceConfig[]>('devices', [])
+  const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
   
   const hasMigratedRewards = useRef(false)
 
   const hasInitializedCategories = useRef(false)
+  const hasInitializedDevice = useRef(false)
+
+  useEffect(() => {
+    if (!hasInitializedDevice.current) {
+      const fingerprint = generateDeviceFingerprint()
+      const existingDevice = (devices || []).find(d => d.deviceFingerprint === fingerprint)
+      
+      if (existingDevice) {
+        setCurrentDeviceId(existingDevice.id)
+        setDevices((current) =>
+          (current || []).map((d) =>
+            d.id === existingDevice.id ? { ...d, lastSeen: Date.now() } : d
+          )
+        )
+      } else {
+        const newDevice: DeviceConfig = {
+          id: `device_${Date.now()}_${Math.random()}`,
+          name: `Device ${(devices || []).length + 1}`,
+          deviceFingerprint: fingerprint,
+          createdAt: Date.now(),
+          lastSeen: Date.now(),
+          allowedChildIds: (childrenList || []).map(c => c.id),
+          parentModeEnabled: true,
+        }
+        setDevices((current) => [...(current || []), newDevice])
+        setCurrentDeviceId(newDevice.id)
+      }
+      
+      hasInitializedDevice.current = true
+    }
+  }, [devices, childrenList, setDevices])
 
   useEffect(() => {
     if (!hasInitializedCategories.current && categories && categories.length === 0) {
@@ -318,6 +352,14 @@ function App() {
       createdAt: Date.now(),
     }
     setChildrenList((current) => [...(current || []), newChild])
+    
+    setDevices((current) =>
+      (current || []).map((device) => ({
+        ...device,
+        allowedChildIds: [...device.allowedChildIds, newChild.id],
+      }))
+    )
+    
     toast.success(`${newChild.name} added!`)
   }
 
@@ -337,6 +379,14 @@ function App() {
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
+    
+    setDevices((current) =>
+      (current || []).map((device) => ({
+        ...device,
+        allowedChildIds: device.allowedChildIds.filter((childId) => childId !== id),
+      }))
+    )
+    
     toast.success('Child removed')
   }
 
@@ -594,10 +644,6 @@ function App() {
     toast.info('Reward marked as unfulfilled')
   }
 
-  const handleOpenParentMode = () => {
-    setShowPinDialog(true)
-  }
-
   const handlePinSuccess = () => {
     setShowPinDialog(false)
     setMode('parent')
@@ -847,6 +893,20 @@ function App() {
     }
   }
 
+  const handleUpdateDevice = (deviceId: string, updates: Partial<DeviceConfig>) => {
+    setDevices((current) =>
+      (current || []).map((d) =>
+        d.id === deviceId ? { ...d, ...updates } : d
+      )
+    )
+    toast.success('Device settings updated!')
+  }
+
+  const handleDeleteDevice = (deviceId: string) => {
+    setDevices((current) => (current || []).filter((d) => d.id !== deviceId))
+    toast.success('Device removed')
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -872,6 +932,32 @@ function App() {
   const pendingPurchasesCount = useMemo(() => {
     return (purchases || []).filter((p) => !p.fulfilled).length
   }, [purchases])
+
+  const currentDevice = useMemo(() => {
+    return (devices || []).find(d => d.id === currentDeviceId)
+  }, [devices, currentDeviceId])
+
+  const filteredChildren = useMemo(() => {
+    if (!currentDevice) return childrenList || []
+    return (childrenList || []).filter(child => 
+      currentDevice.allowedChildIds.includes(child.id)
+    )
+  }, [childrenList, currentDevice])
+
+  const isParentModeAllowed = useMemo(() => {
+    if (!currentDevice) return true
+    return currentDevice.parentModeEnabled
+  }, [currentDevice])
+
+  const handleOpenParentMode = () => {
+    if (!isParentModeAllowed) {
+      toast.error('Parent mode is disabled on this device', {
+        description: 'Contact the administrator to enable parent mode for this device',
+      })
+      return
+    }
+    setShowPinDialog(true)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -917,6 +1003,10 @@ function App() {
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}
+          devices={devices || []}
+          currentDeviceId={currentDeviceId}
+          onUpdateDevice={handleUpdateDevice}
+          onDeleteDevice={handleDeleteDevice}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)
@@ -998,28 +1088,32 @@ function App() {
         )
       ) : (
         <>
-          {(childrenList || []).length === 0 ? (
+          {filteredChildren.length === 0 ? (
             <div className="min-h-screen flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <h1 className="text-4xl font-fredoka font-bold mb-4">
-                  Welcome to ChoreQuest!
+                  {(childrenList || []).length === 0 ? 'Welcome to ChoreQuest!' : 'No Children Available'}
                 </h1>
                 <p className="text-xl text-muted-foreground mb-6">
-                  Switch to Parent Mode to add children and create chores.
+                  {(childrenList || []).length === 0 
+                    ? 'Switch to Parent Mode to add children and create chores.'
+                    : 'No children profiles are enabled for this device. Contact the administrator to enable profiles.'}
                 </p>
-                <Button
-                  size="lg"
-                  onClick={handleOpenParentMode}
-                  className="font-fredoka text-lg"
-                >
-                  <Gear className="h-5 w-5 mr-2" />
-                  Go to Parent Mode
-                </Button>
+                {isParentModeAllowed && (
+                  <Button
+                    size="lg"
+                    onClick={handleOpenParentMode}
+                    className="font-fredoka text-lg"
+                  >
+                    <Gear className="h-5 w-5 mr-2" />
+                    Go to Parent Mode
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
             <ChildSelector
-              childrenList={childrenList || []}
+              childrenList={filteredChildren}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={trackedGoals || []}
