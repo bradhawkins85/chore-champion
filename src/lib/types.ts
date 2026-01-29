@@ -47,6 +47,11 @@ export interface TimeWindow {
   endTime: string
 }
 
+export interface ApprovalConfig {
+  childId: string
+  requiresApproval: boolean
+}
+
 export interface Chore {
   id: string
   name: string
@@ -61,6 +66,7 @@ export interface Chore {
   timeOfDay?: ChoreTimeOfDay
   timeWindow?: TimeWindow
   estimatedDuration?: number
+  approvalConfigs?: ApprovalConfig[]
 }
 
 export interface Child {
@@ -94,6 +100,10 @@ export interface ChoreCompletion {
   timeOfDay?: 'am' | 'pm'
   undoneAt?: number
   overridden?: boolean
+  approvalStatus?: 'pending' | 'approved' | 'rejected'
+  approvedAt?: number
+  approvedBy?: string
+  rejectedReason?: string
 }
 
 export interface MissedChore {
@@ -106,12 +116,13 @@ export interface MissedChore {
 
 export interface ChoreHistoryEvent {
   id: string
-  type: 'complete' | 'undo' | 'override-complete' | 'override-dismiss'
+  type: 'complete' | 'undo' | 'override-complete' | 'override-dismiss' | 'approve' | 'reject'
   childId: string
   choreId: string
   timestamp: number
   timeOfDay?: 'am' | 'pm'
   completionId?: string
+  rejectedReason?: string
 }
 
 export interface RewardCostOverride {

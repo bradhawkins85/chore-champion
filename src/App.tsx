@@ -370,6 +370,9 @@ function App() {
   }
 
   const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+    const requiresApproval = chore ? chore.approvalConfigs?.find(c => c.childId === childId)?.requiresApproval : false
+    
     const completionId = `completion_${Date.now()}_${Math.random()}`
     const newCompletion: ChoreCompletion = {
       id: completionId,
@@ -377,6 +380,7 @@ function App() {
       choreId,
       completedAt: Date.now(),
       timeOfDay,
+      approvalStatus: requiresApproval ? 'pending' : 'approved',
     }
     setCompletions((current) => [...(current || []), newCompletion])
     
@@ -390,6 +394,12 @@ function App() {
       completionId,
     }
     setHistory((current) => [...(current || []), historyEvent])
+    
+    if (requiresApproval) {
+      toast.info('Chore marked for parent approval', {
+        description: 'Points will be awarded after approval',
+      })
+    }
   }
 
   const handleUndoChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
@@ -702,6 +712,55 @@ function App() {
     toast.success(`Swapped ${fromAmount} ${fromCategory?.name} for ${toAmount} ${toCategory?.name}!`)
   }
 
+  const handleApproveCompletion = (completionId: string) => {
+    setCompletions((current) =>
+      (current || []).map((c) =>
+        c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
+      )
+    )
+    
+    const completion = (completions || []).find((c) => c.id === completionId)
+    if (completion) {
+      const historyEvent: ChoreHistoryEvent = {
+        id: `history_${Date.now()}_${Math.random()}`,
+        type: 'approve',
+        childId: completion.childId,
+        choreId: completion.choreId,
+        timestamp: Date.now(),
+        timeOfDay: completion.timeOfDay,
+        completionId,
+      }
+      setHistory((current) => [...(current || []), historyEvent])
+    }
+    
+    toast.success('Chore approved! Points awarded.')
+  }
+
+  const handleRejectCompletion = (completionId: string, reason?: string) => {
+    setCompletions((current) =>
+      (current || []).map((c) =>
+        c.id === completionId ? { ...c, approvalStatus: 'rejected' as const, rejectedReason: reason } : c
+      )
+    )
+    
+    const completion = (completions || []).find((c) => c.id === completionId)
+    if (completion) {
+      const historyEvent: ChoreHistoryEvent = {
+        id: `history_${Date.now()}_${Math.random()}`,
+        type: 'reject',
+        childId: completion.childId,
+        choreId: completion.choreId,
+        timestamp: Date.now(),
+        timeOfDay: completion.timeOfDay,
+        completionId,
+        rejectedReason: reason,
+      }
+      setHistory((current) => [...(current || []), historyEvent])
+    }
+    
+    toast.info('Chore completion rejected')
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -769,6 +828,8 @@ function App() {
           onAddCategory={handleAddCategory}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
+          onApproveCompletion={handleApproveCompletion}
+          onRejectCompletion={handleRejectCompletion}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

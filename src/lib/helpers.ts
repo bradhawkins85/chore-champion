@@ -1,5 +1,16 @@
 import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate } from './types'
 
+export function isCompletionApproved(completion: ChoreCompletion): boolean {
+  if (!completion.approvalStatus) return true
+  return completion.approvalStatus === 'approved'
+}
+
+export function doesChoreRequireApproval(chore: Chore, childId: string): boolean {
+  if (!chore.approvalConfigs || chore.approvalConfigs.length === 0) return false
+  const config = chore.approvalConfigs.find(c => c.childId === childId)
+  return config ? config.requiresApproval : false
+}
+
 export function getRandomCelebrationAnimation(settings: CelebrationSettings): CelebrationAnimation {
   const enabledAnimations = (Object.keys(settings.animations) as CelebrationAnimation[])
     .filter(key => settings.animations[key])
@@ -121,7 +132,8 @@ export function isChoreCompletedForTimeOfDay(
       c.choreId === choreId &&
       c.childId === childId &&
       c.completedAt >= today.getTime() &&
-      c.timeOfDay === timeOfDay
+      c.timeOfDay === timeOfDay &&
+      isCompletionApproved(c)
   )
 }
 
@@ -137,7 +149,8 @@ export function isChoreCompletedByAnyChildToday(
     (c) =>
       c.choreId === choreId &&
       c.completedAt >= today.getTime() &&
-      (!timeOfDay || c.timeOfDay === timeOfDay)
+      (!timeOfDay || c.timeOfDay === timeOfDay) &&
+      isCompletionApproved(c)
   )
 }
 
@@ -164,7 +177,8 @@ export function isChoreCompletedToday(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
-      c.completedAt >= today.getTime()
+      c.completedAt >= today.getTime() &&
+      isCompletionApproved(c)
   )
 }
 
@@ -185,14 +199,16 @@ export function isChoreCompletedThisWeek(
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfWeek.getTime() &&
-        c.timeOfDay === 'am'
+        c.timeOfDay === 'am' &&
+        isCompletionApproved(c)
     )
     const pmCompleted = completions.some(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfWeek.getTime() &&
-        c.timeOfDay === 'pm'
+        c.timeOfDay === 'pm' &&
+        isCompletionApproved(c)
     )
     return amCompleted && pmCompleted
   }
@@ -203,7 +219,8 @@ export function isChoreCompletedThisWeek(
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfWeek.getTime() &&
-        c.timeOfDay === choreTimeOfDay
+        c.timeOfDay === choreTimeOfDay &&
+        isCompletionApproved(c)
     )
   }
   
@@ -211,7 +228,8 @@ export function isChoreCompletedThisWeek(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
-      c.completedAt >= startOfWeek.getTime()
+      c.completedAt >= startOfWeek.getTime() &&
+      isCompletionApproved(c)
   )
 }
 
@@ -239,14 +257,16 @@ export function isChoreCompletedThisBiWeek(
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfBiWeek.getTime() &&
-        c.timeOfDay === 'am'
+        c.timeOfDay === 'am' &&
+        isCompletionApproved(c)
     )
     const pmCompleted = completions.some(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfBiWeek.getTime() &&
-        c.timeOfDay === 'pm'
+        c.timeOfDay === 'pm' &&
+        isCompletionApproved(c)
     )
     return amCompleted && pmCompleted
   }
@@ -257,7 +277,8 @@ export function isChoreCompletedThisBiWeek(
         c.choreId === choreId &&
         c.childId === childId &&
         c.completedAt >= startOfBiWeek.getTime() &&
-        c.timeOfDay === choreTimeOfDay
+        c.timeOfDay === choreTimeOfDay &&
+        isCompletionApproved(c)
     )
   }
   
@@ -265,7 +286,8 @@ export function isChoreCompletedThisBiWeek(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
-      c.completedAt >= startOfBiWeek.getTime()
+      c.completedAt >= startOfBiWeek.getTime() &&
+      isCompletionApproved(c)
   )
 }
 
@@ -362,7 +384,7 @@ export function getChildTotalPoints(
   assignments?: ChoreAssignment[]
 ): number {
   return completions
-    .filter((c) => c.childId === childId)
+    .filter((c) => c.childId === childId && isCompletionApproved(c))
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
       if (!chore) return sum
@@ -378,7 +400,8 @@ export function getChildTotalPoints(
           const completionsToday = completions.filter(comp => 
             comp.choreId === c.choreId && 
             comp.completedAt >= today.getTime() &&
-            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay)
+            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
+            isCompletionApproved(comp)
           )
           
           const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
@@ -593,7 +616,7 @@ export function getChildPointsByCategory(
   assignments?: ChoreAssignment[]
 ): number {
   return completions
-    .filter((c) => c.childId === childId)
+    .filter((c) => c.childId === childId && isCompletionApproved(c))
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
       if (!chore || !chore.categoryIds.includes(categoryId)) return sum
@@ -609,7 +632,8 @@ export function getChildPointsByCategory(
           const completionsToday = completions.filter(comp => 
             comp.choreId === c.choreId && 
             comp.completedAt >= today.getTime() &&
-            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay)
+            (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
+            isCompletionApproved(comp)
           )
           
           const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size

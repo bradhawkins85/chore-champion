@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
@@ -58,6 +58,13 @@ export function ChildChoreView({
   const childChores = chores.filter((c) => childAssignments.some((a) => a.choreId === c.id))
 
   const currentTimeOfDay = getCurrentTimeOfDay()
+
+  const pendingApprovalCompletions = useMemo(() => {
+    return completions.filter((c) => 
+      c.childId === child.id && 
+      c.approvalStatus === 'pending'
+    )
+  }, [completions, child.id])
 
   const { pendingChores, completedChores, missedChores, unavailableChores } = useMemo(() => {
     const pending: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
@@ -422,6 +429,104 @@ export function ChildChoreView({
                       </Card>
                     </motion.div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {pendingApprovalCompletions.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-fredoka font-bold mb-4 flex items-center gap-2 text-orange-600">
+                  <ClockClockwise className="h-7 w-7" />
+                  Pending Approval
+                </h2>
+                <Alert className="mb-4 border-orange-200 bg-orange-50">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-900">
+                    These chores are waiting for parent approval before points are awarded. Your parent will review them soon!
+                  </AlertDescription>
+                </Alert>
+                <div className="grid gap-4">
+                  {pendingApprovalCompletions.map((completion) => {
+                    const chore = chores.find((c) => c.id === completion.choreId)
+                    const assignment = childAssignments.find((a) => a.choreId === completion.choreId)
+                    if (!chore || !assignment) return null
+
+                    return (
+                      <Card key={completion.id} className="border-2 border-orange-200 bg-orange-50/50">
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-4">
+                            <ClockClockwise
+                              className="h-12 w-12 text-orange-600 flex-shrink-0"
+                              weight="bold"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-2xl font-fredoka font-bold">
+                                  {chore.name}
+                                </h3>
+                                {getTimeOfDayLabel(completion.timeOfDay)}
+                                <Badge variant="secondary" className="bg-orange-200 text-orange-900">
+                                  Awaiting Approval
+                                </Badge>
+                              </div>
+                              {chore.categoryIds && chore.categoryIds.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {chore.categoryIds.map((categoryId) => {
+                                    const category = categories.find(c => c.id === categoryId)
+                                    if (!category) return null
+                                    return (
+                                      <Badge
+                                        key={categoryId}
+                                        variant="outline"
+                                        className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                        style={{
+                                          backgroundColor: `${category.color}20`,
+                                          borderColor: category.color,
+                                          color: category.color,
+                                        }}
+                                      >
+                                        {category.name}
+                                      </Badge>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 flex-wrap mt-2">
+                                {chore.categoryPoints && chore.categoryPoints.length > 0 ? (
+                                  chore.categoryPoints.map((cp) => {
+                                    const category = categories.find(c => c.id === cp.categoryId)
+                                    if (!category) return null
+                                    const categoryPoints = getChoreCategoryPointsForChild(chore, assignment, child.id, cp.categoryId)
+                                    return (
+                                      <Badge
+                                        key={cp.categoryId}
+                                        className="font-fredoka text-base px-3 py-1 opacity-60"
+                                        style={{
+                                          backgroundColor: category.color,
+                                          color: 'white',
+                                        }}
+                                      >
+                                        <Star weight="fill" className="h-4 w-4 mr-1" />
+                                        {categoryPoints} {category.name} pts (pending)
+                                      </Badge>
+                                    )
+                                  })
+                                ) : (
+                                  <Badge
+                                    variant="secondary"
+                                    className="font-fredoka text-lg px-3 py-1 opacity-60"
+                                  >
+                                    <Star weight="fill" className="h-4 w-4 mr-1" />
+                                    {getChorePointsForChild(chore, assignment, child.id)} pts (pending)
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
             )}

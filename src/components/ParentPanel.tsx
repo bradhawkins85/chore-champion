@@ -35,6 +35,7 @@ import { UndoHistory } from './UndoHistory'
 import { MissedChoresManager } from './MissedChoresManager'
 import { CelebrationSettingsComponent } from './CelebrationSettings'
 import { CategoryManager } from './CategoryManager'
+import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 
 interface ParentPanelProps {
@@ -83,6 +84,8 @@ interface ParentPanelProps {
   onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void
   onEditCategory: (id: string, category: Omit<Category, 'id' | 'createdAt'>) => void
   onDeleteCategory: (id: string) => void
+  onApproveCompletion: (completionId: string) => void
+  onRejectCompletion: (completionId: string, reason?: string) => void
   onExitParentMode: () => void
 }
 
@@ -124,6 +127,8 @@ export function ParentPanel({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  onApproveCompletion,
+  onRejectCompletion,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -137,6 +142,10 @@ export function ParentPanel({
   const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
 
   const popularTemplates = choreTemplates.slice(0, 6)
+
+  const pendingApprovalsCount = useMemo(() => {
+    return completions.filter((c) => c.approvalStatus === 'pending').length
+  }, [completions])
 
   const missedChoresCount = useMemo(() => {
     const today = new Date()
@@ -280,6 +289,15 @@ export function ParentPanel({
             <ChartBar className="h-4 w-4 mr-2" />
             Weekly Summary
           </TabsTrigger>
+          <TabsTrigger value="approvals">
+            <Check className="h-4 w-4 mr-2" />
+            Pending Approvals
+            {pendingApprovalsCount > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                {pendingApprovalsCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="missed">
             <Warning className="h-4 w-4 mr-2" />
             Missed Chores
@@ -340,6 +358,30 @@ export function ParentPanel({
             completions={completions}
             purchases={purchases}
             childPoints={childPoints}
+          />
+        </TabsContent>
+
+        <TabsContent value="approvals" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Pending Approvals</h2>
+              <p className="text-sm text-muted-foreground">
+                Review and approve chore completions that require verification
+              </p>
+            </div>
+            {pendingApprovalsCount > 0 && (
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                {pendingApprovalsCount} pending
+              </Badge>
+            )}
+          </div>
+
+          <PendingApprovalsManager
+            childrenList={childrenList}
+            chores={chores}
+            completions={completions}
+            onApprove={onApproveCompletion}
+            onReject={onRejectCompletion}
           />
         </TabsContent>
 

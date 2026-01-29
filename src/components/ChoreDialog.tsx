@@ -22,8 +22,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints } from '@/lib/types'
+import { Sparkle, User, Info, Check } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -68,6 +68,7 @@ export function ChoreDialog({
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
+  const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
 
 
 
@@ -86,6 +87,7 @@ export function ChoreDialog({
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
       setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
+      setApprovalConfigs(editChore.approvalConfigs || [])
     }
   }, [editChore])
 
@@ -147,6 +149,10 @@ export function ChoreDialog({
       choreData.estimatedDuration = parseInt(estimatedDuration)
     }
 
+    if (approvalConfigs && approvalConfigs.length > 0) {
+      choreData.approvalConfigs = approvalConfigs
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -163,6 +169,7 @@ export function ChoreDialog({
       setTimeWindowStart('')
       setTimeWindowEnd('')
       setEstimatedDuration('')
+      setApprovalConfigs([])
     }
     onOpenChange(false)
   }
@@ -802,6 +809,72 @@ export function ChoreDialog({
                   )
                 })}
               </div>
+            </div>
+          </>
+        )}
+
+        {childrenList.length > 0 && (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-muted-foreground" />
+                <Label className="text-base font-fredoka font-semibold">Approval Settings</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Configure which children require parent approval before points are awarded
+              </p>
+              <div className="space-y-2">
+                {childrenList.map((child) => {
+                  const config = approvalConfigs.find((c) => c.childId === child.id)
+                  const requiresApproval = config?.requiresApproval || false
+
+                  return (
+                    <Card key={child.id} className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold text-sm"
+                            style={{ backgroundColor: child.avatarColor }}
+                          >
+                            {child.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-medium">{child.name}</span>
+                            {requiresApproval && (
+                              <Badge variant="secondary" className="ml-2 text-xs">
+                                Requires Approval
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={requiresApproval}
+                          onCheckedChange={(checked) => {
+                            setApprovalConfigs((current) => {
+                              const existing = current.find((c) => c.childId === child.id)
+                              if (existing) {
+                                return current.map((c) =>
+                                  c.childId === child.id
+                                    ? { ...c, requiresApproval: checked }
+                                    : c
+                                )
+                              }
+                              return [...current, { childId: child.id, requiresApproval: checked }]
+                            })
+                          }}
+                        />
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  When approval is required, children can mark chores as complete but points won't be awarded until you approve them in the Parent Dashboard.
+                </AlertDescription>
+              </Alert>
             </div>
           </>
         )}
