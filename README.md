@@ -172,6 +172,29 @@ ChoreQuest includes automated GitHub Actions workflows:
 - **Security Scanning**: Automated vulnerability scanning with Trivy
 - **Release Pipeline**: Tagged releases with versioned Docker images
 
+#### 🔑 GitHub Secrets Setup
+
+To enable Docker Hub publishing (optional), you need to configure GitHub repository secrets:
+
+1. **Required Secrets:**
+   - `DOCKERHUB_USERNAME` - Your Docker Hub username
+   - `DOCKERHUB_TOKEN` - Docker Hub access token
+
+2. **Setup Instructions:**
+   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for detailed step-by-step guide
+   - Or follow the quick steps below
+
+**Quick Setup:**
+```bash
+# 1. Create Docker Hub access token at hub.docker.com
+# 2. Add secrets to GitHub repository:
+#    Settings → Secrets and variables → Actions → New repository secret
+#    - Name: DOCKERHUB_USERNAME, Value: your-dockerhub-username
+#    - Name: DOCKERHUB_TOKEN, Value: your-access-token
+```
+
+**Note:** If Docker Hub secrets are not configured, images will only be pushed to GitHub Container Registry (GHCR), which works automatically.
+
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed CI/CD and deployment documentation.
 
 ---
@@ -479,6 +502,20 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 5. Open a Pull Request
 
 ---
+
+## 📚 Documentation
+
+ChoreQuest includes comprehensive documentation:
+
+- **[README.md](./README.md)** - Main project overview (you are here)
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
+- **[CI-CD.md](./CI-CD.md)** - CI/CD pipeline configuration
+- **[GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)** - Docker secrets setup (detailed)
+- **[SECRETS_QUICK_REFERENCE.md](./SECRETS_QUICK_REFERENCE.md)** - Quick secrets reference
+- **[SECRETS_VISUAL_GUIDE.md](./SECRETS_VISUAL_GUIDE.md)** - Visual guide with diagrams
+- **[PWA_GUIDE.md](./PWA_GUIDE.md)** - Progressive Web App guide
+- **[PWA_QUICKSTART.md](./PWA_QUICKSTART.md)** - Quick PWA setup
+- **[SECURITY.md](./SECURITY.md)** - Security policies
 
 ## 📄 License
 

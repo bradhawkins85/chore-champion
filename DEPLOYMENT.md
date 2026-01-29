@@ -131,10 +131,23 @@ Builds multi-architecture Docker images (amd64, arm64, arm/v7) and pushes to:
    - Go to repository Settings → Actions → General
    - Enable "Read and write permissions" for GITHUB_TOKEN
 
-2. **Optional: Configure Docker Hub**:
-   - Add secrets in repository Settings → Secrets:
-     - `DOCKERHUB_USERNAME`
-     - `DOCKERHUB_TOKEN`
+2. **Configure Docker Hub** (Optional but Recommended):
+   
+   Docker Hub publishing requires two repository secrets:
+   - `DOCKERHUB_USERNAME` - Your Docker Hub username
+   - `DOCKERHUB_TOKEN` - Docker Hub access token
+   
+   **Quick Setup:**
+   ```bash
+   # 1. Create access token at hub.docker.com
+   # 2. Add secrets in repository Settings → Secrets and variables → Actions
+   ```
+   
+   **Detailed Instructions:**
+   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for complete step-by-step guide
+   - See [SECRETS_QUICK_REFERENCE.md](./SECRETS_QUICK_REFERENCE.md) for quick reference
+   
+   **Note:** If Docker Hub secrets are not configured, the workflow will still work and push images to GitHub Container Registry only.
 
 3. **Configure Deployment** (optional):
    - Add deployment credentials as secrets

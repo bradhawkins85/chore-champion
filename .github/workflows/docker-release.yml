@@ -34,9 +34,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Check Docker Hub credentials
+        id: dockerhub_check
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Log in to Docker Hub
+        if: steps.dockerhub_check.outputs.available == 'true'
         uses: docker/login-action@v3
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -63,7 +72,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build and push to Docker Hub
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        if: steps.dockerhub_check.outputs.available == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -74,3 +83,22 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Image URLs
+        run: |
+          echo "✅ Images published successfully!"
+          echo ""
+          echo "📦 GitHub Container Registry:"
+          echo "   docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          echo "   docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.DOCKER_IMAGE_NAME }}:latest"
+          if [ "${{ steps.dockerhub_check.outputs.available }}" = "true" ]; then
+            echo ""
+            echo "📦 Docker Hub:"
+            echo "   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+            echo "   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest"
+          else
+            echo ""
+            echo "ℹ️  Docker Hub publishing skipped (credentials not configured)"
+            echo "   See GITHUB_SECRETS_SETUP.md for setup instructions"
+          fi
+

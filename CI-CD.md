@@ -72,18 +72,43 @@ docker pull ghcr.io/YOUR_USERNAME/chorequest:main-abc1234
 docker pull ghcr.io/YOUR_USERNAME/chorequest:v1.0.0
 ```
 
-### 3. Optional: Docker Hub Integration
+### 3. Configure Docker Hub (Optional)
 
-To also push to Docker Hub:
+To publish images to Docker Hub in addition to GitHub Container Registry:
 
-1. Create Docker Hub account
-2. Generate access token at https://hub.docker.com/settings/security
-3. Add secrets to GitHub repository:
-   - `DOCKERHUB_USERNAME` - Your Docker Hub username
-   - `DOCKERHUB_TOKEN` - Your access token
+#### Quick Setup
+
+1. **Create Docker Hub Access Token:**
+   - Go to [hub.docker.com/settings/security](https://hub.docker.com/settings/security)
+   - Click "New Access Token"
+   - Description: "ChoreQuest CI/CD"
+   - Permissions: Read, Write, Delete
+   - Copy the token
+
+2. **Add Secrets to GitHub:**
+   - Go to repository Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Add:
+     - Name: `DOCKERHUB_USERNAME`, Value: your-dockerhub-username
+     - Name: `DOCKERHUB_TOKEN`, Value: paste-the-token
+
+#### Detailed Instructions
+
+For complete step-by-step instructions with screenshots and troubleshooting:
+- **📖 Full Guide:** [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+- **⚡ Quick Reference:** [SECRETS_QUICK_REFERENCE.md](./SECRETS_QUICK_REFERENCE.md)
+
+#### What Happens
+
+- ✅ **With secrets configured:** Images pushed to both GHCR and Docker Hub
+- ✅ **Without secrets:** Images pushed to GHCR only (still works perfectly!)
 
 Images will be published to:
-```
+```bash
+# GitHub Container Registry (always)
+ghcr.io/YOUR_USERNAME/chorequest:latest
+
+# Docker Hub (if secrets configured)
 docker.io/YOUR_USERNAME/chorequest:latest
 ```
 
