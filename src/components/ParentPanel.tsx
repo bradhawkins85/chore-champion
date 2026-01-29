@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -39,6 +39,7 @@ import { CategoryManager } from './CategoryManager'
 import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 import { IPRestrictions } from './IPRestrictions'
+import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -55,9 +56,11 @@ interface ParentPanelProps {
   biometricSettings: BiometricSettings
   categories: Category[]
   childCategoryPoints?: Map<string, Map<string, number>>
+  bonusCompletions: CategoryBonusCompletion[]
   ipRestrictions: IPRestrictionSettings
   currentIP: string | null
   accessHistory: IPAccessAttempt[]
+  weeklyReportSettings: WeeklyReportSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -93,6 +96,7 @@ interface ParentPanelProps {
   onRejectCompletion: (completionId: string, reason?: string) => void
   onUndoCompletion: (completionId: string) => void
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
+  onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
   onExitParentMode: () => void
 }
 
@@ -111,6 +115,7 @@ export function ParentPanel({
   biometricSettings,
   categories,
   childCategoryPoints,
+  bonusCompletions,
   onAddChore,
   onEditChore,
   onDeleteChore,
@@ -141,6 +146,8 @@ export function ParentPanel({
   currentIP,
   accessHistory,
   onUpdateIPRestrictions,
+  weeklyReportSettings,
+  onUpdateWeeklyReportSettings,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -731,6 +738,19 @@ export function ParentPanel({
             <BiometricSettingsComponent
               settings={biometricSettings}
               onChange={onBiometricSettingsChange}
+            />
+
+            <WeeklyReportSettingsComponent
+              settings={weeklyReportSettings}
+              childrenList={childrenList}
+              chores={chores}
+              completions={completions}
+              assignments={assignments}
+              purchases={purchases}
+              rewards={rewards}
+              categories={categories}
+              bonusCompletions={bonusCompletions}
+              onUpdateSettings={onUpdateWeeklyReportSettings}
             />
 
             <CelebrationSettingsComponent 

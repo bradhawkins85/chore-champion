@@ -32,6 +32,7 @@ import {
   CategoryBonusCompletion,
   IPRestrictionSettings,
   IPAccessAttempt,
+  WeeklyReportSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { WelcomePage } from '@/components/WelcomePage'
@@ -86,6 +87,13 @@ function App() {
     requirePinForUnapproved: false,
   })
   const [accessHistory, setAccessHistory] = useKV<IPAccessAttempt[]>('access-history', [])
+  const [weeklyReportSettings, setWeeklyReportSettings] = useKV<WeeklyReportSettings>('weekly-report-settings', {
+    enabled: false,
+    parentEmail: null,
+    sendDay: 'sunday',
+    sendTime: '18:00',
+    lastSent: null,
+  })
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -915,6 +923,10 @@ function App() {
     }
   }
 
+  const handleUpdateWeeklyReportSettings = (settings: WeeklyReportSettings) => {
+    setWeeklyReportSettings(settings)
+  }
+
   const handleUpdateIPRestrictions = (settings: IPRestrictionSettings) => {
     setIPRestrictions(settings)
   }
@@ -975,9 +987,11 @@ function App() {
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
+          bonusCompletions={bonusCompletions || []}
           ipRestrictions={ipRestrictions || { enabled: false, allowedIPs: [], overridePin: null, requirePinForUnapproved: false }}
           currentIP={currentIP}
           accessHistory={accessHistory || []}
+          weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1005,6 +1019,7 @@ function App() {
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
+          onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

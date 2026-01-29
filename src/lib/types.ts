@@ -270,3 +270,49 @@ export interface IPAccessAttempt {
   granted: boolean
   usedPin: boolean
 }
+
+export interface DeviceConfig {
+  id: string
+  name: string
+  firstSeen: number
+  lastSeen: number
+  createdAt: number
+  allowedChildIds: string[]
+  parentModeEnabled: boolean
+}
+
+export interface WeeklyReportSettings {
+  enabled: boolean
+  parentEmail: string | null
+  sendDay: DayOfWeek
+  sendTime: string
+  lastSent: number | null
+}
+
+export interface WeeklyReportData {
+  weekStart: number
+  weekEnd: number
+  children: {
+    childId: string
+    childName: string
+    choresCompleted: number
+    choresAssigned: number
+    pointsEarned: number
+    rewardsPurchased: number
+    categoryBreakdown: {
+      categoryId: string
+      categoryName: string
+      pointsEarned: number
+      choresCompleted: number
+    }[]
+    topChores: {
+      choreId: string
+      choreName: string
+      completionCount: number
+    }[]
+    streakDays: number
+  }[]
+  totalChoresCompleted: number
+  totalPointsEarned: number
+  mostActiveChild: string | null
+}
