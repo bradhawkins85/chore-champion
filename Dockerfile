@@ -1,38 +1,35 @@
-# Build stage
+# Multi-stage build for ChoreQuest
+# Stage 1: Build the application
 FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+RUN npm ci --only=production=false
 
-# Copy application files
 COPY . .
 
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine AS production
+# Stage 2: Production image with nginx
+FROM nginx:alpine AS production
 
-WORKDIR /app
+LABEL org.opencontainers.image.title="ChoreQuest"
+LABEL org.opencontainers.image.description="Family chore tracking application with rewards system"
+LABEL org.opencontainers.image.authors="ChoreQuest Team"
+LABEL org.opencontainers.image.source="https://github.com/yourusername/chorequest"
 
-# Install serve to run the built application
-RUN npm install -g serve
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
-EXPOSE 3000
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000 || exit 1
+EXPOSE 80
 
-# Start the application
-CMD ["serve", "-s", "dist", "-l", "3000"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

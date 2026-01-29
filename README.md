@@ -2,7 +2,7 @@
 
 **ChoreQuest** is a comprehensive family chore management application designed to help parents organize, track, and reward their children's daily tasks. With a simple child-friendly interface and powerful parent management tools, ChoreQuest makes household chores engaging and rewarding for the whole family.
 
-![ChoreQuest](https://img.shields.io/badge/version-1.0.0-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![React](https://img.shields.io/badge/React-19.2.0-61dafb) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6)
+![ChoreQuest](https://img.shields.io/badge/version-1.0.0-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![React](https://img.shields.io/badge/React-19.2.0-61dafb) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6) ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
 
 ---
 
@@ -91,10 +91,12 @@
 
 ### Prerequisites
 - Docker and Docker Compose installed on your system
-- Node.js 18+ (for local development)
+- Node.js 20+ (for local development)
 - A modern web browser
 
 ### 🐳 Docker Installation (Recommended)
+
+ChoreQuest includes a complete Docker setup with automated CI/CD pipelines.
 
 1. **Clone the repository**
    ```bash
@@ -102,96 +104,41 @@
    cd chorequest
    ```
 
-2. **Create a Dockerfile**
-   
-   Create a `Dockerfile` in the project root:
-   ```dockerfile
-   # Use Node.js LTS as base image
-   FROM node:20-alpine AS builder
-
-   # Set working directory
-   WORKDIR /app
-
-   # Copy package files
-   COPY package*.json ./
-
-   # Install dependencies
-   RUN npm ci
-
-   # Copy application files
-   COPY . .
-
-   # Build the application
-   RUN npm run build
-
-   # Production stage
-   FROM node:20-alpine AS production
-
-   WORKDIR /app
-
-   # Install serve to run the built application
-   RUN npm install -g serve
-
-   # Copy built files from builder
-   COPY --from=builder /app/dist ./dist
-
-   # Expose port
-   EXPOSE 3000
-
-   # Start the application
-   CMD ["serve", "-s", "dist", "-l", "3000"]
-   ```
-
-3. **Create a docker-compose.yml**
-   
-   Create a `docker-compose.yml` in the project root:
-   ```yaml
-   version: '3.8'
-
-   services:
-     chorequest:
-       build: .
-       container_name: chorequest
-       ports:
-         - "3000:3000"
-       restart: unless-stopped
-       environment:
-         - NODE_ENV=production
-       volumes:
-         # Persist data (optional - only if using local file storage)
-         - chorequest-data:/app/data
-       healthcheck:
-         test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
-         interval: 30s
-         timeout: 10s
-         retries: 3
-         start_period: 40s
-
-   volumes:
-     chorequest-data:
-       driver: local
-   ```
-
-4. **Build and run with Docker Compose**
+2. **Quick Start with Docker Compose**
    ```bash
+   # Build and start the application
    docker-compose up -d
-   ```
-
-5. **Access the application**
    
-   Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
-
-6. **View logs** (optional)
-   ```bash
-   docker-compose logs -f chorequest
+   # Access the application
+   open http://localhost:8080
    ```
 
-7. **Stop the application**
+3. **Using the Deploy Script**
    ```bash
-   docker-compose down
+   # Make script executable
+   chmod +x scripts/deploy.sh
+   
+   # Build and start
+   ./scripts/deploy.sh start
+   
+   # View logs
+   ./scripts/deploy.sh logs
+   
+   # Stop application
+   ./scripts/deploy.sh stop
+   ```
+
+4. **Using Pre-built Images**
+   ```bash
+   # Pull from GitHub Container Registry
+   docker pull ghcr.io/OWNER/chorequest:latest
+   
+   # Run the container
+   docker run -d \
+     --name chorequest \
+     -p 8080:80 \
+     --restart unless-stopped \
+     ghcr.io/OWNER/chorequest:latest
    ```
 
 ### 🔧 Docker Commands
@@ -203,21 +150,29 @@ docker-compose build
 # Start in detached mode
 docker-compose up -d
 
-# Start with logs
-docker-compose up
-
 # Stop the containers
 docker-compose down
-
-# Rebuild and restart
-docker-compose up -d --build
 
 # View logs
 docker-compose logs -f
 
-# Remove volumes (reset all data)
+# Restart the container
+docker-compose restart
+
+# Remove everything including volumes
 docker-compose down -v
 ```
+
+### 🔄 CI/CD Pipeline
+
+ChoreQuest includes automated GitHub Actions workflows:
+
+- **Continuous Integration**: Automatic testing, linting, and building on every push
+- **Docker Builds**: Multi-architecture images (amd64, arm64, arm/v7) pushed to GHCR
+- **Security Scanning**: Automated vulnerability scanning with Trivy
+- **Release Pipeline**: Tagged releases with versioned Docker images
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed CI/CD and deployment documentation.
 
 ---
 
@@ -278,28 +233,6 @@ When a new version is available, users will be prompted to reload the app.
 
 ---
 
-## 🔧 Docker Commands
-
-```bash
-# Build the image
-docker-compose build
-
-# Start the container
-docker-compose up -d
-
-# Stop the container
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Restart the container
-docker-compose restart
-
-# Remove everything including volumes
-docker-compose down -v
-```
-
 ### 💻 Local Development Installation
 
 If you prefer to run without Docker:
@@ -334,6 +267,19 @@ npm run build
 ```
 
 The built files will be in the `dist` directory.
+
+### 🚢 Deployment Options
+
+ChoreQuest can be deployed to various platforms:
+
+- **Docker** (recommended) - See docker-compose.yml
+- **Vercel** - `vercel --prod`
+- **Netlify** - `netlify deploy --prod --dir=dist`
+- **GitHub Pages** - Use included GitHub Actions workflow
+- **AWS S3 + CloudFront** - Static hosting
+- **Any static host** - Upload `dist` folder
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ---
 
