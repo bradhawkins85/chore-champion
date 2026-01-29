@@ -761,6 +761,31 @@ function App() {
     toast.info('Chore completion rejected')
   }
 
+  const handleUndoCompletion = (completionId: string) => {
+    const completion = (completions || []).find((c) => c.id === completionId)
+    
+    if (completion) {
+      setCompletions((current) => (current || []).filter((c) => c.id !== completionId))
+      
+      const historyEvent: ChoreHistoryEvent = {
+        id: `history_${Date.now()}_${Math.random()}`,
+        type: 'undo',
+        childId: completion.childId,
+        choreId: completion.choreId,
+        timestamp: Date.now(),
+        timeOfDay: completion.timeOfDay,
+        completionId,
+      }
+      setHistory((current) => [...(current || []), historyEvent])
+      
+      const chore = (migratedChores || []).find((c) => c.id === completion.choreId)
+      const child = (childrenList || []).find((c) => c.id === completion.childId)
+      toast.success('Chore completion undone', {
+        description: `${child?.name}'s completion of "${chore?.name}" has been removed`,
+      })
+    }
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -830,6 +855,7 @@ function App() {
           onDeleteCategory={handleDeleteCategory}
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
+          onUndoCompletion={handleUndoCompletion}
           onExitParentMode={() => {
             setMode('child')
             setSelectedChild(null)

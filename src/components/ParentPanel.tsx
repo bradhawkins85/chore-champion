@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -32,6 +32,7 @@ import { PurchaseHistoryCard } from './PurchaseHistoryCard'
 import { WeeklySummary } from './WeeklySummary'
 import { ChangePinDialog } from './ChangePinDialog'
 import { UndoHistory } from './UndoHistory'
+import { ChoreCompletionHistory } from './ChoreCompletionHistory'
 import { MissedChoresManager } from './MissedChoresManager'
 import { CelebrationSettingsComponent } from './CelebrationSettings'
 import { CategoryManager } from './CategoryManager'
@@ -86,6 +87,7 @@ interface ParentPanelProps {
   onDeleteCategory: (id: string) => void
   onApproveCompletion: (completionId: string) => void
   onRejectCompletion: (completionId: string, reason?: string) => void
+  onUndoCompletion: (completionId: string) => void
   onExitParentMode: () => void
 }
 
@@ -129,6 +131,7 @@ export function ParentPanel({
   onDeleteCategory,
   onApproveCompletion,
   onRejectCompletion,
+  onUndoCompletion,
   onExitParentMode,
 }: ParentPanelProps) {
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
@@ -307,6 +310,10 @@ export function ParentPanel({
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="completions">
+            <ClipboardText className="h-4 w-4 mr-2" />
+            Completions
+          </TabsTrigger>
           <TabsTrigger value="children">
             <Users className="h-4 w-4 mr-2" />
             Children
@@ -408,6 +415,15 @@ export function ParentPanel({
             dismissedMissedChores={dismissedMissedChores}
             onOverrideComplete={onOverrideComplete}
             onDismissMissed={onDismissMissed}
+          />
+        </TabsContent>
+
+        <TabsContent value="completions" className="space-y-4">
+          <ChoreCompletionHistory
+            completions={completions}
+            childrenList={childrenList}
+            chores={chores}
+            onUndoCompletion={onUndoCompletion}
           />
         </TabsContent>
 
