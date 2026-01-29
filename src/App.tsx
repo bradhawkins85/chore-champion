@@ -82,6 +82,7 @@ function App() {
   const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
   const [devices, setDevices] = useKV<DeviceConfig[]>('devices', [])
   const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
+  const deviceInitialized = useRef(false)
   const [ipRestrictions, setIPRestrictions] = useKV<IPRestrictionSettings>('ip-restrictions', {
     enabled: false,
     allowedIPs: [],
@@ -94,37 +95,36 @@ function App() {
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
   
   const hasMigratedRewards = useRef(false)
-
   const hasInitializedCategories = useRef(false)
-  const hasInitializedDevice = useRef(false)
 
   useEffect(() => {
-    if (!hasInitializedDevice.current) {
-      const fingerprint = generateDeviceFingerprint()
-      const existingDevice = (devices || []).find(d => d.deviceFingerprint === fingerprint)
-      
-      if (existingDevice) {
-        setCurrentDeviceId(existingDevice.id)
-        setDevices((current) =>
-          (current || []).map((d) =>
-            d.id === existingDevice.id ? { ...d, lastSeen: Date.now() } : d
-          )
+    if (deviceInitialized.current) return
+    
+    const fingerprint = generateDeviceFingerprint()
+    const existingDevice = (devices || []).find(d => d.deviceFingerprint === fingerprint)
+    
+    if (existingDevice) {
+      setCurrentDeviceId(existingDevice.id)
+      setDevices((current) =>
+        (current || []).map((d) =>
+          d.id === existingDevice.id ? { ...d, lastSeen: Date.now() } : d
         )
-      } else {
-        const newDevice: DeviceConfig = {
-          id: `device_${Date.now()}_${Math.random()}`,
-          name: `Device ${(devices || []).length + 1}`,
-          deviceFingerprint: fingerprint,
-          createdAt: Date.now(),
-          lastSeen: Date.now(),
-          allowedChildIds: (childrenList || []).map(c => c.id),
-          parentModeEnabled: true,
-        }
-        setDevices((current) => [...(current || []), newDevice])
-        setCurrentDeviceId(newDevice.id)
+      )
+      deviceInitialized.current = true
+    } else if (devices !== undefined) {
+      const isFirstDevice = (devices || []).length === 0
+      const newDevice: DeviceConfig = {
+        id: `device_${Date.now()}_${Math.random()}`,
+        name: `Device ${(devices || []).length + 1}`,
+        deviceFingerprint: fingerprint,
+        createdAt: Date.now(),
+        lastSeen: Date.now(),
+        allowedChildIds: isFirstDevice ? (childrenList || []).map(c => c.id) : [],
+        parentModeEnabled: true,
       }
-      
-      hasInitializedDevice.current = true
+      setDevices((current) => [...(current || []), newDevice])
+      setCurrentDeviceId(newDevice.id)
+      deviceInitialized.current = true
     }
   }, [devices, childrenList, setDevices])
 
@@ -393,14 +393,6 @@ function App() {
       createdAt: Date.now(),
     }
     setChildrenList((current) => [...(current || []), newChild])
-    
-    setDevices((current) =>
-      (current || []).map((device) => ({
-        ...device,
-        allowedChildIds: [...device.allowedChildIds, newChild.id],
-      }))
-    )
-    
     toast.success(`${newChild.name} added!`)
   }
 
