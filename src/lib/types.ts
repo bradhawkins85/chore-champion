@@ -181,3 +181,18 @@ export interface PinSecurity {
   lockedUntil: number | null
   failedAttempts: number
 }
+
+export interface BiometricCredential {
+  id: string
+  publicKey: string
+  counter: number
+  createdAt: number
+  lastUsed: number
+  name: string
+}
+
+export interface BiometricSettings {
+  enabled: boolean
+  credentials: BiometricCredential[]
+  requirePinFallback: boolean
+}

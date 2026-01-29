@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -35,6 +35,7 @@ import { UndoHistory } from './UndoHistory'
 import { MissedChoresManager } from './MissedChoresManager'
 import { CelebrationSettingsComponent } from './CelebrationSettings'
 import { CategoryManager } from './CategoryManager'
+import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -48,6 +49,7 @@ interface ParentPanelProps {
   dismissedMissedChores: MissedChore[]
   parentPin: string | null
   celebrationSettings: CelebrationSettings
+  biometricSettings: BiometricSettings
   categories: Category[]
   childCategoryPoints?: Map<string, Map<string, number>>
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
@@ -75,6 +77,7 @@ interface ParentPanelProps {
   onUnfulfillPurchase: (purchaseId: string) => void
   onChangePin: (newPin: string) => void
   onCelebrationSettingsChange: (settings: CelebrationSettings) => void
+  onBiometricSettingsChange: (settings: BiometricSettings) => void
   onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void
@@ -95,6 +98,7 @@ export function ParentPanel({
   dismissedMissedChores,
   parentPin,
   celebrationSettings,
+  biometricSettings,
   categories,
   childCategoryPoints,
   onAddChore,
@@ -114,6 +118,7 @@ export function ParentPanel({
   onUnfulfillPurchase,
   onChangePin,
   onCelebrationSettingsChange,
+  onBiometricSettingsChange,
   onOverrideComplete,
   onDismissMissed,
   onAddCategory,
@@ -651,6 +656,11 @@ export function ParentPanel({
                 </div>
               </CardContent>
             </Card>
+
+            <BiometricSettingsComponent
+              settings={biometricSettings}
+              onChange={onBiometricSettingsChange}
+            />
 
             <CelebrationSettingsComponent 
               settings={celebrationSettings}

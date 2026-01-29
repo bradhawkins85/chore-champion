@@ -9,10 +9,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LockKey, Check, Warning, ShieldWarning } from '@phosphor-icons/react'
+import { LockKey, Check, Warning, ShieldWarning, Fingerprint } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PinSecurity } from '@/lib/types'
+import { PinSecurity, BiometricSettings } from '@/lib/types'
 import { isAccountLocked, calculateLockoutDuration, formatLockoutTime } from '@/lib/helpers'
+import { authenticateWithBiometric, getBiometricDisplayName } from '@/lib/biometric'
+import { toast } from 'sonner'
 
 interface ParentPinDialogProps {
   open: boolean
@@ -22,6 +24,8 @@ interface ParentPinDialogProps {
   onSetPin: (pin: string) => void
   pinSecurity: PinSecurity
   onUpdatePinSecurity: (security: PinSecurity) => void
+  biometricSettings?: BiometricSettings
+  onUpdateBiometricSettings?: (settings: BiometricSettings) => void
 }
 
 export function ParentPinDialog({
@@ -32,12 +36,16 @@ export function ParentPinDialog({
   onSetPin,
   pinSecurity,
   onUpdatePinSecurity,
+  biometricSettings,
+  onUpdateBiometricSettings,
 }: ParentPinDialogProps) {
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [error, setError] = useState('')
   const [isSettingPin, setIsSettingPin] = useState(false)
   const [lockoutTime, setLockoutTime] = useState<number | null>(null)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [showPinInput, setShowPinInput] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -45,6 +53,7 @@ export function ParentPinDialog({
       setConfirmPin('')
       setError('')
       setIsSettingPin(!storedPin)
+      setShowPinInput(false)
       
       const lockStatus = isAccountLocked(pinSecurity)
       if (lockStatus.isLocked && lockStatus.remainingTime) {
@@ -52,8 +61,17 @@ export function ParentPinDialog({
       } else {
         setLockoutTime(null)
       }
+      
+      if (
+        !isSettingPin &&
+        biometricSettings?.enabled &&
+        biometricSettings.credentials.length > 0 &&
+        !lockStatus.isLocked
+      ) {
+        handleBiometricAuth()
+      }
     }
-  }, [open, storedPin, pinSecurity])
+  }, [open, storedPin, pinSecurity, biometricSettings])
 
   useEffect(() => {
     if (!lockoutTime || lockoutTime <= 0) return
@@ -75,6 +93,56 @@ export function ParentPinDialog({
 
     return () => clearInterval(interval)
   }, [lockoutTime])
+
+  const handleBiometricAuth = async () => {
+    if (!biometricSettings || !biometricSettings.enabled || biometricSettings.credentials.length === 0) {
+      return
+    }
+
+    setIsAuthenticating(true)
+    setError('')
+
+    try {
+      const credentialId = await authenticateWithBiometric(biometricSettings.credentials)
+      
+      const matchedCredential = biometricSettings.credentials.find(c => c.id === credentialId)
+      if (matchedCredential && onUpdateBiometricSettings) {
+        const updatedCredentials = biometricSettings.credentials.map(c =>
+          c.id === credentialId ? { ...c, lastUsed: Date.now() } : c
+        )
+        onUpdateBiometricSettings({
+          ...biometricSettings,
+          credentials: updatedCredentials,
+        })
+      }
+
+      const successSecurity: PinSecurity = {
+        attempts: [
+          ...pinSecurity.attempts,
+          { timestamp: Date.now(), success: true },
+        ],
+        lockedUntil: null,
+        failedAttempts: 0,
+      }
+      onUpdatePinSecurity(successSecurity)
+      
+      onSuccess()
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('cancelled')) {
+          setShowPinInput(true)
+        } else {
+          setError(error.message)
+          setShowPinInput(true)
+        }
+      } else {
+        setError('Biometric authentication failed')
+        setShowPinInput(true)
+      }
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -161,6 +229,10 @@ export function ParentPinDialog({
   const isLocked = lockoutTime !== null && lockoutTime > 0
   const attemptsRemaining = Math.max(0, 5 - pinSecurity.failedAttempts)
   const showWarning = !isSettingPin && pinSecurity.failedAttempts >= 3 && !isLocked
+  
+  const hasBiometric = biometricSettings?.enabled && biometricSettings.credentials.length > 0
+  const shouldShowBiometric = !isSettingPin && hasBiometric && !isLocked && !showPinInput
+  const shouldShowPinFallback = !isSettingPin && hasBiometric && biometricSettings?.requirePinFallback && !isLocked
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -207,6 +279,73 @@ export function ParentPinDialog({
               <p className="text-sm text-muted-foreground">
                 remaining until you can try again
               </p>
+            </div>
+          </div>
+        ) : shouldShowBiometric ? (
+          <div className="py-8 space-y-6">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Fingerprint className={`h-12 w-12 text-primary ${isAuthenticating ? 'animate-pulse' : ''}`} weight="fill" />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-lg font-fredoka font-semibold">
+                  {isAuthenticating ? 'Authenticating...' : 'Use Biometric Authentication'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isAuthenticating 
+                    ? `Complete authentication using ${getBiometricDisplayName()}`
+                    : `Tap below to authenticate with ${getBiometricDisplayName()}`
+                  }
+                </p>
+              </div>
+            </motion.div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-destructive text-sm text-center font-medium"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {!isAuthenticating && (
+                <Button
+                  onClick={handleBiometricAuth}
+                  className="w-full font-fredoka"
+                  size="lg"
+                >
+                  <Fingerprint className="h-5 w-5 mr-2" />
+                  Authenticate with {getBiometricDisplayName()}
+                </Button>
+              )}
+              
+              {(shouldShowPinFallback || error) && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPinInput(true)}
+                  className="w-full font-fredoka"
+                  disabled={isAuthenticating}
+                >
+                  <LockKey className="h-4 w-4 mr-2" />
+                  Use PIN Instead
+                </Button>
+              )}
+              
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                className="w-full font-fredoka"
+                disabled={isAuthenticating}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         ) : (
@@ -292,6 +431,19 @@ export function ParentPinDialog({
                 {isSettingPin ? 'Set PIN' : 'Unlock'}
               </Button>
             </div>
+
+            {!isSettingPin && shouldShowPinFallback && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleBiometricAuth}
+                className="w-full font-fredoka text-sm"
+                size="sm"
+              >
+                <Fingerprint className="h-4 w-4 mr-2" />
+                Use {getBiometricDisplayName()} Instead
+              </Button>
+            )}
           </form>
         )}
 

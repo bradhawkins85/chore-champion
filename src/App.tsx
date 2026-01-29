@@ -26,6 +26,7 @@ import {
   DayOfWeek,
   RepeatPattern,
   PinSecurity,
+  BiometricSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive } from '@/lib/helpers'
 
@@ -40,6 +41,11 @@ function App() {
     attempts: [],
     lockedUntil: null,
     failedAttempts: 0,
+  })
+  const [biometricSettings, setBiometricSettings] = useKV<BiometricSettings>('biometric-settings', {
+    enabled: false,
+    credentials: [],
+    requirePinFallback: true,
   })
 
   const [chores, setChores] = useKV<Chore[]>('chores', [])
@@ -647,6 +653,7 @@ function App() {
           dismissedMissedChores={dismissedMissedChores || []}
           parentPin={parentPin ?? null}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true } }}
+          biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
           categories={categories || []}
           childCategoryPoints={childCategoryPoints}
           onAddChore={handleAddChore}
@@ -666,6 +673,7 @@ function App() {
           onUnfulfillPurchase={handleUnfulfillPurchase}
           onChangePin={handleChangePin}
           onCelebrationSettingsChange={(settings) => setCelebrationSettings(settings)}
+          onBiometricSettingsChange={(settings) => setBiometricSettings(settings)}
           onOverrideComplete={handleOverrideComplete}
           onDismissMissed={handleDismissMissed}
           onAddCategory={handleAddCategory}
@@ -774,6 +782,8 @@ function App() {
         onSetPin={handleSetPin}
         pinSecurity={pinSecurity || { attempts: [], lockedUntil: null, failedAttempts: 0 }}
         onUpdatePinSecurity={(security) => setPinSecurity(security)}
+        biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true }}
+        onUpdateBiometricSettings={(settings) => setBiometricSettings(settings)}
       />
 
       <Toaster />
