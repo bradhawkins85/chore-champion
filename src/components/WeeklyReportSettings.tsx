@@ -395,188 +395,102 @@ Respond with a JSON object containing: { "success": true, "message": "Email sent
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Envelope className="h-5 w-5" />
-            Weekly Report Settings
-          </CardTitle>
-          <CardDescription>
-            Automatically receive weekly activity reports via email
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="report-enabled">Enable Weekly Reports</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically send activity summaries each week
-              </p>
-            </div>
-            <Switch
-              id="report-enabled"
-              checked={localSettings.enabled}
-              onCheckedChange={(checked) =>
-                setLocalSettings({ ...localSettings, enabled: checked })
-              }
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="parent-email">Parent Email Address</Label>
-            <Input
-              id="parent-email"
-              type="email"
-              placeholder="parent@example.com"
-              value={localSettings.parentEmail || ''}
-              onChange={(e) =>
-                setLocalSettings({ ...localSettings, parentEmail: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Weekly reports will be sent to this email address
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Envelope className="h-5 w-5" />
+          Weekly Report Settings
+        </CardTitle>
+        <CardDescription>
+          Automatically receive weekly activity reports via email
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="report-enabled">Enable Weekly Reports</Label>
+            <p className="text-sm text-muted-foreground">
+              Automatically send activity summaries each week
             </p>
           </div>
+          <Switch
+            id="report-enabled"
+            checked={localSettings.enabled}
+            onCheckedChange={(checked) =>
+              setLocalSettings({ ...localSettings, enabled: checked })
+            }
+          />
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="send-day">Send Day</Label>
-              <Select
-                value={localSettings.sendDay}
-                onValueChange={(value) =>
-                  setLocalSettings({ ...localSettings, sendDay: value as DayOfWeek })
-                }
-              >
-                <SelectTrigger id="send-day">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {daysOfWeek.map((day) => (
-                    <SelectItem key={day} value={day}>
-                      {day.charAt(0).toUpperCase() + day.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="send-time">Send Time</Label>
-              <Input
-                id="send-time"
-                type="time"
-                value={localSettings.sendTime}
-                onChange={(e) =>
-                  setLocalSettings({ ...localSettings, sendTime: e.target.value })
-                }
-              />
-            </div>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="parent-email">Parent Email Address</Label>
+          <Input
+            id="parent-email"
+            type="email"
+            placeholder="parent@example.com"
+            value={localSettings.parentEmail || ''}
+            onChange={(e) =>
+              setLocalSettings({ ...localSettings, parentEmail: e.target.value })
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Weekly reports will be sent to this email address
+          </p>
+        </div>
 
-          {localSettings.lastSent && (
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm">
-                <Clock className="inline h-4 w-4 mr-2" />
-                Last sent: {new Date(localSettings.lastSent).toLocaleString()}
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Save Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendUp className="h-5 w-5" />
-            Last 7 Days Preview
-          </CardTitle>
-          <CardDescription>
-            Preview what your weekly report would look like
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg bg-primary/10 p-4 text-center">
-              <div className="text-3xl font-bold text-primary">
-                {lastWeekReport.totalChoresCompleted}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Chores</div>
-            </div>
-            <div className="rounded-lg bg-accent/10 p-4 text-center">
-              <div className="text-3xl font-bold text-accent">
-                {lastWeekReport.totalPointsEarned}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Points</div>
-            </div>
-            <div className="rounded-lg bg-secondary/10 p-4 text-center">
-              <div className="text-3xl font-bold text-secondary-foreground">
-                {lastWeekReport.children.length}
-              </div>
-              <div className="text-sm text-muted-foreground">Children</div>
-            </div>
-          </div>
-
-          {lastWeekReport.mostActiveChild && (
-            <div className="rounded-lg bg-muted p-3 text-center">
-              <p className="text-sm">
-                🏆 Most Active: <strong>{lastWeekReport.mostActiveChild}</strong>
-              </p>
-            </div>
-          )}
-
-          <Separator />
-
-          {lastWeekReport.children.map((child) => (
-            <div key={child.childId} className="space-y-2 rounded-lg bg-muted p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-fredoka font-bold text-lg">{child.childName}</h3>
-                {child.streakDays > 0 && (
-                  <Badge variant="secondary">{child.streakDays} day streak 🔥</Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Chores: <strong>{child.choresCompleted}</strong></div>
-                <div>Points: <strong>{child.pointsEarned}</strong></div>
-                <div>Rewards: <strong>{child.rewardsPurchased}</strong></div>
-              </div>
-              {child.topChores.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Top Chore:</p>
-                  <p className="text-sm">
-                    {child.topChores[0].choreName} <Badge variant="outline">{child.topChores[0].completionCount}x</Badge>
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSendTestEmail}
-              disabled={isGeneratingPreview || !localSettings.parentEmail}
-              className="flex-1"
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="send-day">Send Day</Label>
+            <Select
+              value={localSettings.sendDay}
+              onValueChange={(value) =>
+                setLocalSettings({ ...localSettings, sendDay: value as DayOfWeek })
+              }
             >
-              <Envelope className="h-4 w-4 mr-2" />
-              {isGeneratingPreview ? 'Sending...' : 'Send Test Email'}
-            </Button>
-            <Button variant="outline" onClick={handleDownloadReport} className="flex-1">
-              <Download className="h-4 w-4 mr-2" />
-              Download Report
-            </Button>
+              <SelectTrigger id="send-day">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {daysOfWeek.map((day) => (
+                  <SelectItem key={day} value={day}>
+                    {day.charAt(0).toUpperCase() + day.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="send-time">Send Time</Label>
+            <Input
+              id="send-time"
+              type="time"
+              value={localSettings.sendTime}
+              onChange={(e) =>
+                setLocalSettings({ ...localSettings, sendTime: e.target.value })
+              }
+            />
+          </div>
+        </div>
+
+        {localSettings.lastSent && (
+          <div className="rounded-lg bg-muted p-3">
+            <p className="text-sm">
+              <Clock className="inline h-4 w-4 mr-2" />
+              Last sent: {new Date(localSettings.lastSent).toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button onClick={handleSave} className="flex-1">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Save Settings
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

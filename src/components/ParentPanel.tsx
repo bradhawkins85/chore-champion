@@ -732,12 +732,15 @@ export function ParentPanel({
         <TabsContent value="reports" className="space-y-4">
           <ReportTemplatesManager
             templates={reportTemplates}
-            children={childrenList}
+            childrenList={childrenList}
             chores={chores}
             assignments={assignments}
             completions={completions}
             purchases={purchases}
             categories={categories}
+            rewards={rewards}
+            bonusCompletions={bonusCompletions}
+            parentEmail={weeklyReportSettings.parentEmail}
             onAddTemplate={onAddReportTemplate}
             onEditTemplate={onEditReportTemplate}
             onDeleteTemplate={onDeleteReportTemplate}
