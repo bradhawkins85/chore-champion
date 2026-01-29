@@ -69,8 +69,7 @@ export function ChoreDialog({
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
   const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
-
-
+  const [maxCompletions, setMaxCompletions] = useState(editChore?.maxCompletions?.toString() || '')
 
   useEffect(() => {
     if (editChore) {
@@ -88,6 +87,7 @@ export function ChoreDialog({
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
       setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
       setApprovalConfigs(editChore.approvalConfigs || [])
+      setMaxCompletions(editChore.maxCompletions?.toString() || '')
     }
   }, [editChore])
 
@@ -153,6 +153,10 @@ export function ChoreDialog({
       choreData.approvalConfigs = approvalConfigs
     }
 
+    if (completionType === 'shareable' && maxCompletions && parseInt(maxCompletions) > 0) {
+      choreData.maxCompletions = parseInt(maxCompletions)
+    }
+
     onSave(choreData)
 
     if (!editChore) {
@@ -170,6 +174,7 @@ export function ChoreDialog({
       setTimeWindowEnd('')
       setEstimatedDuration('')
       setApprovalConfigs([])
+      setMaxCompletions('')
     }
     onOpenChange(false)
   }
@@ -515,10 +520,26 @@ export function ChoreDialog({
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {completionType === 'individual' && 'Each child completes independently for full points'}
-                    {completionType === 'shareable' && 'Children can work together and share points equally'}
+                    {completionType === 'shareable' && 'Multiple children can complete, with optional limit on max completers'}
                     {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
                   </p>
                 </div>
+                {completionType === 'shareable' && (
+                  <div className="grid gap-2 pl-4 border-l-2 border-primary">
+                    <Label htmlFor="max-completions">Maximum Children (optional)</Label>
+                    <Input
+                      id="max-completions"
+                      type="number"
+                      value={maxCompletions}
+                      onChange={(e) => setMaxCompletions(e.target.value)}
+                      min="1"
+                      placeholder="No limit"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Limit how many children can complete this chore. The first to complete get points, then it's removed from others' views. Leave blank for no limit.
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -758,10 +779,26 @@ export function ChoreDialog({
               </Select>
               <p className="text-xs text-muted-foreground">
                 {completionType === 'individual' && 'Each child completes independently for full points'}
-                {completionType === 'shareable' && 'Children can work together and share points equally'}
+                {completionType === 'shareable' && 'Multiple children can complete, with optional limit on max completers'}
                 {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
               </p>
             </div>
+            {completionType === 'shareable' && (
+              <div className="grid gap-2 pl-4 border-l-2 border-primary">
+                <Label htmlFor="max-completions-edit">Maximum Children (optional)</Label>
+                <Input
+                  id="max-completions-edit"
+                  type="number"
+                  value={maxCompletions}
+                  onChange={(e) => setMaxCompletions(e.target.value)}
+                  min="1"
+                  placeholder="No limit"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Limit how many children can complete this chore. The first to complete get points, then it's removed from others' views. Leave blank for no limit.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

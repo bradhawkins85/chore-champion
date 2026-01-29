@@ -56,6 +56,7 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
           <Badge variant="secondary" className="flex items-center gap-1">
             <Users className="h-3 w-3" />
             Shareable
+            {chore.maxCompletions && ` (max ${chore.maxCompletions})`}
           </Badge>
         )
       case 'once-per-day':

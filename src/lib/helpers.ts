@@ -154,6 +154,58 @@ export function isChoreCompletedByAnyChildToday(
   )
 }
 
+export function getShareableChoreCompletionCount(
+  completions: ChoreCompletion[],
+  choreId: string,
+  timeOfDay?: 'am' | 'pm'
+): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const uniqueChildren = new Set<string>()
+  
+  completions.forEach((c) => {
+    if (
+      c.choreId === choreId &&
+      c.completedAt >= today.getTime() &&
+      (!timeOfDay || c.timeOfDay === timeOfDay) &&
+      isCompletionApproved(c)
+    ) {
+      uniqueChildren.add(c.childId)
+    }
+  })
+  
+  return uniqueChildren.size
+}
+
+export function isShareableChoreFullyCompleted(
+  completions: ChoreCompletion[],
+  choreId: string,
+  maxCompletions: number,
+  timeOfDay?: 'am' | 'pm'
+): boolean {
+  return getShareableChoreCompletionCount(completions, choreId, timeOfDay) >= maxCompletions
+}
+
+export function hasChildCompletedShareableChore(
+  completions: ChoreCompletion[],
+  choreId: string,
+  childId: string,
+  timeOfDay?: 'am' | 'pm'
+): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  return completions.some(
+    (c) =>
+      c.choreId === choreId &&
+      c.childId === childId &&
+      c.completedAt >= today.getTime() &&
+      (!timeOfDay || c.timeOfDay === timeOfDay) &&
+      isCompletionApproved(c)
+  )
+}
+
 export function isChoreCompletedToday(
   completions: ChoreCompletion[],
   choreId: string,

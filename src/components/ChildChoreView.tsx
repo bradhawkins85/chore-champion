@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -84,6 +84,90 @@ export function ChildChoreView({
       if (!assignment) return
       
       const windowStatus = getTimeWindowStatus(chore)
+      
+      if (chore.completionType === 'shareable' && chore.maxCompletions) {
+        if (chore.timeOfDay === 'both') {
+          const amCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'am')
+          const pmCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'pm')
+          const amFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'am')
+          const pmFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'pm')
+          
+          if (currentTimeOfDay === 'am') {
+            if (amCompleted) {
+              completed.push({ chore, assignment, timeOfDay: 'am' })
+            } else if (amFull) {
+              return
+            } else {
+              if (!windowStatus.isWithinWindow) {
+                unavailable.push({ chore, assignment, timeOfDay: 'am', windowStatus })
+              } else {
+                pending.push({ chore, assignment, timeOfDay: 'am' })
+              }
+            }
+          } else {
+            if (amCompleted) {
+              completed.push({ chore, assignment, timeOfDay: 'am' })
+            } else if (amFull) {
+              missed.push({ chore, assignment, timeOfDay: 'am' })
+            } else {
+              missed.push({ chore, assignment, timeOfDay: 'am' })
+            }
+            
+            if (pmCompleted) {
+              completed.push({ chore, assignment, timeOfDay: 'pm' })
+            } else if (pmFull) {
+              return
+            } else {
+              if (!windowStatus.isWithinWindow) {
+                unavailable.push({ chore, assignment, timeOfDay: 'pm', windowStatus })
+              } else {
+                pending.push({ chore, assignment, timeOfDay: 'pm' })
+              }
+            }
+          }
+          return
+        } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
+          const timeOfDay = chore.timeOfDay
+          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, timeOfDay)
+          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, timeOfDay)
+          const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
+          const isAvailable = isChoreAvailableNow(chore.timeOfDay)
+          
+          if (isCompleted) {
+            completed.push({ chore, assignment, timeOfDay })
+          } else if (isFull) {
+            if (isMissedChore) {
+              missed.push({ chore, assignment, timeOfDay })
+            }
+            return
+          } else if (isMissedChore) {
+            missed.push({ chore, assignment, timeOfDay })
+          } else if (isAvailable) {
+            if (!windowStatus.isWithinWindow) {
+              unavailable.push({ chore, assignment, timeOfDay, windowStatus })
+            } else {
+              pending.push({ chore, assignment, timeOfDay })
+            }
+          }
+          return
+        } else {
+          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id)
+          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions)
+          
+          if (isCompleted) {
+            completed.push({ chore, assignment })
+          } else if (isFull) {
+            return
+          } else {
+            if (!windowStatus.isWithinWindow) {
+              unavailable.push({ chore, assignment, windowStatus })
+            } else {
+              pending.push({ chore, assignment })
+            }
+          }
+          return
+        }
+      }
       
       if (chore.completionType === 'once-per-day') {
         const anyoneCompletedToday = completions.some((c) => {
@@ -471,6 +555,11 @@ export function ChildChoreView({
                                     <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                                       <Users className="h-3 w-3" />
                                       Shareable
+                                      {chore.maxCompletions && (
+                                        <>
+                                          {' '}({getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions})
+                                        </>
+                                      )}
                                     </Badge>
                                   )}
                                   {chore.completionType === 'once-per-day' && (
