@@ -24,15 +24,32 @@ export interface ICSEvent {
 
 export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'text/calendar, text/plain, */*',
+      },
+    })
     if (!response.ok) {
       throw new Error(`Failed to fetch ICS feed: ${response.statusText}`)
     }
     const icsText = await response.text()
-    return parseICS(icsText)
+    
+    if (!icsText || icsText.trim().length === 0) {
+      console.warn('ICS feed is empty')
+      return []
+    }
+    
+    if (!icsText.includes('BEGIN:VCALENDAR')) {
+      console.warn('Invalid ICS format: missing VCALENDAR')
+      return []
+    }
+    
+    const events = parseICS(icsText)
+    console.log(`Parsed ${events.length} events from ICS feed`)
+    return events
   } catch (error) {
     console.error('Error fetching ICS feed:', error)
-    return []
+    throw error
   }
 }
 
@@ -47,6 +64,8 @@ export function parseICS(icsText: string): ICSEvent[] {
   
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim()
+    
+    if (!line) continue
     
     if (line.startsWith(' ') || line.startsWith('\t')) {
       currentValue += line.substring(1)
@@ -63,8 +82,15 @@ export function parseICS(icsText: string): ICSEvent[] {
       inEvent = true
       currentEvent = {}
     } else if (line === 'END:VEVENT') {
+      if (currentField && currentValue) {
+        processField(currentEvent, currentField, currentValue)
+        currentField = ''
+        currentValue = ''
+      }
       if (currentEvent.uid && currentEvent.summary && currentEvent.dtstart) {
         events.push(currentEvent as ICSEvent)
+      } else {
+        console.warn('Skipping incomplete event:', currentEvent)
       }
       inEvent = false
       currentEvent = {}
@@ -75,6 +101,7 @@ export function parseICS(icsText: string): ICSEvent[] {
     }
   }
   
+  console.log(`Parsed ${events.length} complete events from ICS data`)
   return events
 }
 
@@ -89,7 +116,7 @@ function processField(event: Partial<ICSEvent>, field: string, value: string) {
       event.summary = value
       break
     case 'DESCRIPTION':
-      event.description = value.replace(/\\n/g, '\n').replace(/\\,/g, ',')
+      event.description = value.replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';')
       break
     case 'DTSTART':
       event.dtstart = parseICSDate(value, field)
@@ -109,29 +136,39 @@ function processField(event: Partial<ICSEvent>, field: string, value: string) {
 function parseICSDate(value: string, field: string): Date {
   const isDate = field.includes('VALUE=DATE')
   
+  if (value.length < 8) {
+    return new Date()
+  }
+  
   if (isDate) {
     const year = parseInt(value.substring(0, 4))
     const month = parseInt(value.substring(4, 6)) - 1
     const day = parseInt(value.substring(6, 8))
-    return new Date(year, month, day)
+    return new Date(year, month, day, 0, 0, 0, 0)
   }
   
   if (value.endsWith('Z')) {
     const year = parseInt(value.substring(0, 4))
     const month = parseInt(value.substring(4, 6)) - 1
     const day = parseInt(value.substring(6, 8))
-    const hour = parseInt(value.substring(9, 11))
-    const minute = parseInt(value.substring(11, 13))
-    const second = parseInt(value.substring(13, 15))
+    const hour = value.length > 9 ? parseInt(value.substring(9, 11)) : 0
+    const minute = value.length > 11 ? parseInt(value.substring(11, 13)) : 0
+    const second = value.length > 13 ? parseInt(value.substring(13, 15)) : 0
     return new Date(Date.UTC(year, month, day, hour, minute, second))
   }
   
   const year = parseInt(value.substring(0, 4))
   const month = parseInt(value.substring(4, 6)) - 1
   const day = parseInt(value.substring(6, 8))
-  const hour = value.length > 8 ? parseInt(value.substring(9, 11)) : 0
-  const minute = value.length > 8 ? parseInt(value.substring(11, 13)) : 0
-  const second = value.length > 8 ? parseInt(value.substring(13, 15)) : 0
+  
+  if (value.length <= 8) {
+    return new Date(year, month, day, 0, 0, 0, 0)
+  }
+  
+  const hour = value.length > 9 ? parseInt(value.substring(9, 11)) : 0
+  const minute = value.length > 11 ? parseInt(value.substring(11, 13)) : 0
+  const second = value.length > 13 ? parseInt(value.substring(13, 15)) : 0
+  
   return new Date(year, month, day, hour, minute, second)
 }
 
