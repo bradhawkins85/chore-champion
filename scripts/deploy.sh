@@ -25,10 +25,12 @@ echo "  - Port: ${CHOREQUEST_PORT:-8080}"
 echo "  - Timezone: ${TIMEZONE:-UTC}"
 echo "  - Data Path: ${DATA_PATH:-./data}"
 echo "  - Backup Path: ${BACKUP_PATH:-./backups}"
+echo "  - MySQL Data Path: ${MYSQL_DATA_PATH:-./mysql-data}"
 echo ""
 
 mkdir -p "${DATA_PATH:-./data}"
 mkdir -p "${BACKUP_PATH:-./backups}"
+mkdir -p "${MYSQL_DATA_PATH:-./mysql-data}"
 chmod +x scripts/*.sh
 
 echo "Building Docker image..."

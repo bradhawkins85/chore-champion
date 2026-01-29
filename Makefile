@@ -80,7 +80,7 @@ init: ## Initialize production environment
 	else \
 		echo "✓ .env file already exists"; \
 	fi
-	@mkdir -p data backups
+	@mkdir -p data backups mysql-data
 	@chmod +x scripts/*.sh
 	@echo "✓ Created data directories"
 	@echo "✓ Made scripts executable"
