@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Category, ExchangeRate } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight } from '@phosphor-icons/react'
+import { Category, ExchangeRate, CategoryCompletionBonus } from '@/lib/types'
+import { Plus, Trash, ArrowsLeftRight, Trophy } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 
 interface CategoryDialogProps {
   open: boolean
@@ -44,6 +45,9 @@ export function CategoryDialog({
   const [description, setDescription] = useState('')
   const [color, setColor] = useState(PRESET_COLORS[0])
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([])
+  const [enableBonus, setEnableBonus] = useState(false)
+  const [bonusPoints, setBonusPoints] = useState(10)
+  const [bonusTargetCategoryId, setBonusTargetCategoryId] = useState('')
 
   useEffect(() => {
     if (category) {
@@ -51,22 +55,45 @@ export function CategoryDialog({
       setDescription(category.description || '')
       setColor(category.color)
       setExchangeRates(category.exchangeRates || [])
+      setEnableBonus(!!category.completionBonus)
+      setBonusPoints(category.completionBonus?.bonusPoints || 10)
+      setBonusTargetCategoryId(category.completionBonus?.targetCategoryId || '')
     } else {
       setName('')
       setDescription('')
       setColor(PRESET_COLORS[0])
       setExchangeRates([])
+      setEnableBonus(false)
+      setBonusPoints(10)
+      setBonusTargetCategoryId('')
     }
   }, [category, open])
 
+  useEffect(() => {
+    if (enableBonus && !bonusTargetCategoryId && allCategories.length > 0) {
+      const firstOtherCategory = allCategories.find((c) => c.id !== category?.id)
+      if (firstOtherCategory) {
+        setBonusTargetCategoryId(firstOtherCategory.id)
+      }
+    }
+  }, [enableBonus, bonusTargetCategoryId, allCategories, category])
+
   const handleSave = () => {
     if (!name.trim()) return
+
+    const completionBonus: CategoryCompletionBonus | undefined = enableBonus && bonusTargetCategoryId
+      ? {
+          targetCategoryId: bonusTargetCategoryId,
+          bonusPoints,
+        }
+      : undefined
 
     onSave({
       name: name.trim(),
       description: description.trim(),
       color,
       exchangeRates,
+      completionBonus,
     })
     onClose()
   }
@@ -250,6 +277,60 @@ export function CategoryDialog({
                 })
               )}
             </div>
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Category Completion Bonus</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Award bonus points when all chores in this category are completed
+                  </p>
+                </div>
+              </div>
+              <Switch checked={enableBonus} onCheckedChange={setEnableBonus} />
+            </div>
+
+            {enableBonus && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="bonus-points">Bonus Points</Label>
+                    <Input
+                      id="bonus-points"
+                      type="number"
+                      value={bonusPoints}
+                      onChange={(e) => setBonusPoints(parseInt(e.target.value) || 0)}
+                      min="1"
+                      placeholder="10"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="bonus-target">Award To Category</Label>
+                    <Select
+                      value={bonusTargetCategoryId}
+                      onValueChange={setBonusTargetCategoryId}
+                    >
+                      <SelectTrigger id="bonus-target">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  When a child completes all {name || 'this category'} chores today, they'll earn {bonusPoints} bonus {allCategories.find(c => c.id === bonusTargetCategoryId)?.name || 'points'}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

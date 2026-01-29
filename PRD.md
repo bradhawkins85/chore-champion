@@ -12,6 +12,13 @@ This app manages chores, points, and user roles but doesn't require complex mult
 
 ## Essential Features
 
+### Category Completion Bonuses
+- **Functionality**: Award optional bonus points when a child completes all chores in a specific category for the day. Parents configure completion bonuses per category, specifying the bonus point amount and the target category where bonus points are awarded (which can be different from the source category). For example, completing all "Regular" chores might award 10 "Extra" bonus points.
+- **Purpose**: Encourage children to complete all tasks in a category rather than cherry-picking easy chores. Creates additional motivation through milestone achievements. Allows flexible bonus structures - regular chores can earn premium bonus points, creating an alternative path to special rewards.
+- **Trigger**: Automatic check after each chore completion (or approval) → If all category chores are completed and bonus not yet claimed today → Award bonus points
+- **Progression**: Parent configures category → Enable completion bonus → Set bonus points amount → Select target category for bonus → When child completes all chores in category today → System checks if bonus already claimed → If not claimed, awards bonus points to target category → Toast notification celebrates achievement → Child view shows category completion progress with bonus information → Bonus can only be claimed once per day per category
+- **Success criteria**: Bonus configuration available in category edit dialog, bonuses only awarded once per day per category, child view displays completion progress for categories with bonuses, clear indication of bonus amount and target category, toast notification when bonus is earned, bonus points correctly added to target category, progress tracker shows X/Y chores completed with percentage and visual progress bar.
+
 ### Point Swapping Between Categories
 - **Functionality**: Allow children to exchange points between categories at configurable rates set by parents. For example, 100 Regular points can be swapped for 10 Extra points. Parents configure exchange rates per category, specifying the conversion ratio and target category.
 - **Purpose**: Provide flexibility for children to pursue high-value rewards in premium categories by converting accumulated points from regular categories. Encourages continued engagement with routine tasks while providing a path to special rewards.

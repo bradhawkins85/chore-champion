@@ -10,6 +10,11 @@ export interface ExchangeRate {
   toAmount: number
 }
 
+export interface CategoryCompletionBonus {
+  targetCategoryId: string
+  bonusPoints: number
+}
+
 export interface Category {
   id: string
   name: string
@@ -17,6 +22,7 @@ export interface Category {
   description?: string
   createdAt: number
   exchangeRates?: ExchangeRate[]
+  completionBonus?: CategoryCompletionBonus
 }
 
 export interface RepeatPattern {
@@ -232,4 +238,13 @@ export interface PointSwap {
   fromAmount: number
   toAmount: number
   swappedAt: number
+}
+
+export interface CategoryBonusCompletion {
+  id: string
+  childId: string
+  categoryId: string
+  completedAt: number
+  bonusPoints: number
+  targetCategoryId: string
 }

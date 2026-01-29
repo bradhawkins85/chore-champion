@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion } from './types'
 
 export function isCompletionApproved(completion: ChoreCompletion): boolean {
   if (!completion.approvalStatus) return true
@@ -613,9 +613,10 @@ export function getChildPointsByCategory(
   }>,
   childId: string,
   categoryId: string,
-  assignments?: ChoreAssignment[]
+  assignments?: ChoreAssignment[],
+  bonusCompletions?: Array<{ childId: string; targetCategoryId: string; bonusPoints: number }>
 ): number {
-  return completions
+  const chorePoints = completions
     .filter((c) => c.childId === childId && isCompletionApproved(c))
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
@@ -645,6 +646,14 @@ export function getChildPointsByCategory(
       
       return sum + chorePoints
     }, 0)
+
+  const bonusPoints = bonusCompletions
+    ? bonusCompletions
+        .filter((bc) => bc.childId === childId && bc.targetCategoryId === categoryId)
+        .reduce((sum, bc) => sum + bc.bonusPoints, 0)
+    : 0
+
+  return chorePoints + bonusPoints
 }
 
 export function getChildAvailablePointsByCategory(
@@ -913,5 +922,106 @@ export function getAvailableExchangeRates(
     }
   }).filter((rate) => 
     categories.some((cat) => cat.id === rate.toCategoryId)
+  )
+}
+
+export function getAllChoresInCategoryForChild(
+  childId: string,
+  categoryId: string,
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>
+): Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const childAssignments = assignments.filter(
+    (a) => a.childId === childId && isChoreActive(a) && isChoreActiveToday(a)
+  )
+
+  const categoryChores: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
+
+  childAssignments.forEach((assignment) => {
+    const chore = choresMap.get(assignment.choreId)
+    if (!chore || !chore.categoryIds.includes(categoryId)) return
+
+    const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
+
+    if (effectiveTimeOfDay === 'both') {
+      categoryChores.push({ chore, assignment, timeOfDay: 'am' })
+      categoryChores.push({ chore, assignment, timeOfDay: 'pm' })
+    } else if (effectiveTimeOfDay === 'am' || effectiveTimeOfDay === 'pm') {
+      categoryChores.push({ chore, assignment, timeOfDay: effectiveTimeOfDay })
+    } else {
+      categoryChores.push({ chore, assignment })
+    }
+  })
+
+  return categoryChores
+}
+
+export function areAllCategoryChoresCompleted(
+  childId: string,
+  categoryId: string,
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>,
+  completions: ChoreCompletion[]
+): boolean {
+  const categoryChores = getAllChoresInCategoryForChild(childId, categoryId, assignments, choresMap)
+  
+  if (categoryChores.length === 0) return false
+
+  return categoryChores.every(({ chore, timeOfDay }) => {
+    if (chore.completionType === 'once-per-day') {
+      return isChoreCompletedByAnyChildToday(completions, chore.id, timeOfDay)
+    }
+    
+    if (timeOfDay) {
+      return isChoreCompletedForTimeOfDay(completions, chore.id, childId, timeOfDay)
+    }
+    
+    const choreTimeOfDay = chore.timeOfDay || 'anytime'
+    return isChoreCompletedToday(completions, chore.id, childId, choreTimeOfDay)
+  })
+}
+
+export function getCategoryCompletionProgress(
+  childId: string,
+  categoryId: string,
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>,
+  completions: ChoreCompletion[]
+): { completed: number; total: number } {
+  const categoryChores = getAllChoresInCategoryForChild(childId, categoryId, assignments, choresMap)
+  
+  const completed = categoryChores.filter(({ chore, timeOfDay }) => {
+    if (chore.completionType === 'once-per-day') {
+      return isChoreCompletedByAnyChildToday(completions, chore.id, timeOfDay)
+    }
+    
+    if (timeOfDay) {
+      return isChoreCompletedForTimeOfDay(completions, chore.id, childId, timeOfDay)
+    }
+    
+    const choreTimeOfDay = chore.timeOfDay || 'anytime'
+    return isChoreCompletedToday(completions, chore.id, childId, choreTimeOfDay)
+  }).length
+
+  return { completed, total: categoryChores.length }
+}
+
+export function hasBonusBeenClaimedToday(
+  childId: string,
+  categoryId: string,
+  bonusCompletions: Array<{ childId: string; categoryId: string; completedAt: number }>
+): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayTimestamp = today.getTime()
+
+  return bonusCompletions.some(
+    (bc) =>
+      bc.childId === childId &&
+      bc.categoryId === categoryId &&
+      bc.completedAt >= todayTimestamp
   )
 }

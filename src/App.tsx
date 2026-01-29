@@ -28,8 +28,9 @@ import {
   PinSecurity,
   BiometricSettings,
   PointSwap,
+  CategoryBonusCompletion,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday } from '@/lib/helpers'
 
 function App() {
   const [mode, setMode] = useState<AppMode>('child')
@@ -72,6 +73,7 @@ function App() {
   const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
   const [categories, setCategories] = useKV<Category[]>('categories', [])
   const [pointSwaps, setPointSwaps] = useKV<PointSwap[]>('point-swaps', [])
+  const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
   
   const hasMigratedRewards = useRef(false)
 
@@ -231,14 +233,15 @@ function App() {
           choresMap,
           child.id,
           category.id,
-          assignments || []
+          assignments || [],
+          bonusCompletions || []
         )
         childCatPoints.set(category.id, points)
       })
       categoryPointsMap.set(child.id, childCatPoints)
     })
     return categoryPointsMap
-  }, [childrenList, categories, completions, choresMap, assignments])
+  }, [childrenList, categories, completions, choresMap, assignments, bonusCompletions])
 
   const childAvailableCategoryPoints = useMemo(() => {
     const availableCategoryPointsMap = new Map<string, Map<string, number>>()
@@ -401,6 +404,52 @@ function App() {
         description: 'Points will be awarded after approval',
       })
     }
+
+    if (!requiresApproval) {
+      setTimeout(() => {
+        checkAndAwardCategoryBonuses(childId, [...(completions || []), newCompletion])
+      }, 500)
+    }
+  }
+
+  const checkAndAwardCategoryBonuses = (childId: string, currentCompletions: ChoreCompletion[]) => {
+    (categories || []).forEach((category) => {
+      if (!category.completionBonus) return
+
+      const alreadyClaimed = hasBonusBeenClaimedToday(
+        childId,
+        category.id,
+        bonusCompletions || []
+      )
+      if (alreadyClaimed) return
+
+      const allCompleted = areAllCategoryChoresCompleted(
+        childId,
+        category.id,
+        assignments || [],
+        choresMap,
+        currentCompletions
+      )
+
+      if (allCompleted) {
+        const bonusCompletion: CategoryBonusCompletion = {
+          id: `bonus_${Date.now()}_${Math.random()}`,
+          childId,
+          categoryId: category.id,
+          completedAt: Date.now(),
+          bonusPoints: category.completionBonus.bonusPoints,
+          targetCategoryId: category.completionBonus.targetCategoryId,
+        }
+        setBonusCompletions((current) => [...(current || []), bonusCompletion])
+
+        const targetCategory = (categories || []).find(
+          (c) => c.id === category.completionBonus?.targetCategoryId
+        )
+        toast.success(`🎉 Category Bonus!`, {
+          description: `Completed all ${category.name} chores! Earned ${category.completionBonus.bonusPoints} ${targetCategory?.name || 'bonus'} points!`,
+        })
+      }
+    })
   }
 
   const handleUndoChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
@@ -732,6 +781,13 @@ function App() {
         completionId,
       }
       setHistory((current) => [...(current || []), historyEvent])
+
+      setTimeout(() => {
+        const updatedCompletions = (completions || []).map((c) =>
+          c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
+        )
+        checkAndAwardCategoryBonuses(completion.childId, updatedCompletions)
+      }, 500)
     }
     
     toast.success('Chore approved! Points awarded.')

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -213,6 +213,27 @@ export function ChildChoreView({
     return rewards.find(r => r.id === trackedGoal.rewardId)
   }, [trackedGoal, rewards])
 
+  const categoriesWithBonuses = useMemo(() => {
+    return categories.filter(cat => cat.completionBonus)
+  }, [categories])
+
+  const categoryCompletionProgress = useMemo(() => {
+    const choresMap = new Map(chores.map(c => [c.id, c]))
+    return categoriesWithBonuses.map(category => {
+      const progress = getCategoryCompletionProgress(
+        child.id,
+        category.id,
+        assignments,
+        choresMap,
+        completions
+      )
+      return {
+        category,
+        progress,
+      }
+    })
+  }, [categoriesWithBonuses, child.id, assignments, chores, completions])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -272,6 +293,72 @@ export function ChildChoreView({
               currentPoints={totalPoints}
               targetPoints={getRewardCostForChild(trackedReward, child.id)}
             />
+          </div>
+        )}
+
+        {categoryCompletionProgress.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-fredoka font-bold mb-4 flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-primary" />
+              Category Bonuses
+            </h2>
+            <div className="grid gap-3">
+              {categoryCompletionProgress.map(({ category, progress }) => {
+                const isComplete = progress.completed === progress.total && progress.total > 0
+                const targetCategory = categories.find(c => c.id === category.completionBonus?.targetCategoryId)
+                return (
+                  <Card 
+                    key={category.id} 
+                    className={isComplete ? 'border-2 bg-gradient-to-r from-accent/10 to-primary/10' : ''}
+                    style={isComplete ? { borderColor: category.color } : {}}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className="font-fredoka text-base px-3 py-1"
+                              style={{ backgroundColor: category.color, color: 'white' }}
+                            >
+                              {category.name}
+                            </Badge>
+                            {isComplete && (
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Trophy className="h-3 w-3" />
+                                Complete!
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {progress.completed} / {progress.total} chores completed
+                          </p>
+                          {category.completionBonus && targetCategory && (
+                            <p className="text-sm font-medium mt-1 flex items-center gap-1">
+                              <Star weight="fill" className="h-4 w-4" style={{ color: category.color }} />
+                              Earn {category.completionBonus.bonusPoints} {targetCategory.name} bonus points
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-fredoka font-bold" style={{ color: category.color }}>
+                            {Math.round((progress.completed / progress.total) * 100) || 0}%
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-3 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: category.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(progress.completed / progress.total) * 100}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
           </div>
         )}
 
