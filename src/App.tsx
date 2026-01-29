@@ -1152,7 +1152,6 @@ function App() {
             categories={categories || []}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
-            weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
