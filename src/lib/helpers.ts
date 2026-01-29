@@ -1139,12 +1139,24 @@ export function getExpiredPointsByCategory(
 }
 
 export function generateDeviceFingerprint(): string {
+  const STORAGE_KEY = 'chorequest_device_id'
+  
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored) {
+    return stored
+  }
+  
   const components = [
     navigator.userAgent,
     navigator.language,
+    navigator.languages?.join(',') || '',
     new Date().getTimezoneOffset().toString(),
     screen.width + 'x' + screen.height,
     screen.colorDepth.toString(),
+    navigator.hardwareConcurrency?.toString() || '',
+    navigator.maxTouchPoints?.toString() || '',
+    navigator.platform || '',
+    (window.devicePixelRatio || 1).toString(),
   ]
   
   const str = components.join('|')
@@ -1156,7 +1168,11 @@ export function generateDeviceFingerprint(): string {
     hash = hash & hash
   }
   
-  return `device_${Math.abs(hash).toString(36)}`
+  const fingerprint = `device_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`
+  
+  localStorage.setItem(STORAGE_KEY, fingerprint)
+  
+  return fingerprint
 }
 
 export async function getUserIPAddress(): Promise<string | null> {
