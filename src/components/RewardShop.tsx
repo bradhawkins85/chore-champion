@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer } from '@phosphor-icons/react'
 import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category } from '@/lib/types'
 import { motion } from 'framer-motion'
-import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward } from '@/lib/helpers'
+import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory } from '@/lib/helpers'
 import { useMemo } from 'react'
 
 interface RewardShopProps {
@@ -19,6 +19,7 @@ interface RewardShopProps {
   trackedGoal?: GoalTracker | null
   onToggleGoalTracking?: (rewardId: string) => void
   categories?: Category[]
+  assignments?: any[]
 }
 
 export function RewardShop({
@@ -33,14 +34,49 @@ export function RewardShop({
   trackedGoal,
   onToggleGoalTracking,
   categories = [],
+  assignments = [],
 }: RewardShopProps) {
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
   }, [chores])
 
+  const rewardsMap = useMemo(() => {
+    return new Map(rewards.map(r => [r.id, r]))
+  }, [rewards])
+
   const categoriesMap = useMemo(() => {
     return new Map(categories.map(c => [c.id, c]))
   }, [categories])
+
+  const categoryPoints = useMemo(() => {
+    const points = new Map<string, number>()
+    categories.forEach(category => {
+      const totalPoints = getChildPointsByCategory(
+        completions,
+        choresMap,
+        child.id,
+        category.id,
+        assignments
+      )
+      const availablePoints = getChildAvailablePointsByCategory(
+        totalPoints,
+        purchases
+          .filter(p => p.childId === child.id)
+          .map(p => {
+            const reward = rewardsMap.get(p.rewardId)
+            const override = reward?.costOverrides?.find(o => o.childId === child.id)
+            return { 
+              rewardId: p.rewardId, 
+              cost: override ? override.cost : (reward?.cost || 0) 
+            }
+          }),
+        rewardsMap,
+        category.id
+      )
+      points.set(category.id, availablePoints)
+    })
+    return points
+  }, [categories, completions, choresMap, child.id, assignments, purchases, rewardsMap])
 
   return (
     <div className="min-h-screen p-8">
