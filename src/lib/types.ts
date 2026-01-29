@@ -90,6 +90,7 @@ export interface Child {
   totalPoints: number
   createdAt: number
   icsUrl?: string
+  calendarLastRefresh?: number
 }
 
 export interface ChoreAssignment {

@@ -30,6 +30,7 @@ interface ChildChoreViewProps {
   categoryPoints?: Map<string, number>
   availableCategoryPoints?: Map<string, number>
   onSwapPoints?: (fromCategoryId: string, toCategoryId: string, fromAmount: number, toAmount: number) => void
+  onUpdateCalendarRefresh?: (timestamp: number) => void
 }
 
 export function ChildChoreView({
@@ -50,6 +51,7 @@ export function ChildChoreView({
   categoryPoints,
   availableCategoryPoints,
   onSwapPoints,
+  onUpdateCalendarRefresh,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -309,6 +311,15 @@ export function ChildChoreView({
             />
           </div>
         )}
+
+        <OnThisDay
+          child={child}
+          chores={chores}
+          completions={completions}
+          assignments={assignments}
+          categories={categories}
+          onUpdateLastRefresh={onUpdateCalendarRefresh}
+        />
 
         {categoryCompletionProgress.length > 0 && (
           <div className="mb-8">

@@ -972,6 +972,14 @@ function App() {
     toast.success('Report template deleted')
   }
 
+  const handleUpdateCalendarRefresh = (childId: string, timestamp: number) => {
+    setChildrenList((current) =>
+      (current || []).map((child) =>
+        child.id === childId ? { ...child, calendarLastRefresh: timestamp } : child
+      )
+    )
+  }
+
   useEffect(() => {
     if (hasMigratedRewards.current) return
     
@@ -1142,6 +1150,7 @@ function App() {
             onSwapPoints={(fromCategoryId, toCategoryId, fromAmount, toAmount) =>
               handleSwapPoints(selectedChild.id, fromCategoryId, toCategoryId, fromAmount, toAmount)
             }
+            onUpdateCalendarRefresh={(timestamp) => handleUpdateCalendarRefresh(selectedChild.id, timestamp)}
           />
         )
       ) : (

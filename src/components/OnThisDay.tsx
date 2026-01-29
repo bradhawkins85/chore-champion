@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CalendarCheck, Star, CaretLeft, CaretRight, Sparkle, MapPin, Clock } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { CalendarCheck, Star, CaretLeft, CaretRight, Sparkle, MapPin, Clock, ArrowClockwise } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, Category } from '@/lib/types'
 import { CalendarEvent, getEventsForDate, getHistoricalDates, fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
+import { toast } from 'sonner'
 
 interface OnThisDayProps {
   child: Child
@@ -12,6 +14,7 @@ interface OnThisDayProps {
   completions: ChoreCompletion[]
   assignments: ChoreAssignment[]
   categories: Category[]
+  onUpdateLastRefresh?: (timestamp: number) => void
 }
 
 export function OnThisDay({
@@ -20,33 +23,53 @@ export function OnThisDay({
   completions,
   assignments,
   categories,
+  onUpdateLastRefresh,
 }: OnThisDayProps) {
   const [currentEventIndex, setCurrentEventIndex] = useState(0)
   const [direction, setDirection] = useState(0)
   const [icsEvents, setIcsEvents] = useState<CalendarEvent[]>([])
   const [isLoadingICS, setIsLoadingICS] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(
+    child.calendarLastRefresh || null
+  )
 
-  useEffect(() => {
+  const loadICSFeed = async (showToast = false) => {
     if (!child.icsUrl) {
       setIcsEvents([])
       return
     }
 
-    const loadICSFeed = async () => {
-      setIsLoadingICS(true)
-      try {
-        const events = await fetchICSFeed(child.icsUrl!)
-        const todayEvents = getICSEventsForToday(events)
-        setIcsEvents(todayEvents)
-      } catch (error) {
-        console.error('Failed to load ICS feed:', error)
-        setIcsEvents([])
-      } finally {
-        setIsLoadingICS(false)
+    setIsLoadingICS(true)
+    setIsRefreshing(true)
+    try {
+      const events = await fetchICSFeed(child.icsUrl!)
+      const todayEvents = getICSEventsForToday(events)
+      setIcsEvents(todayEvents)
+      const now = Date.now()
+      setLastRefreshTime(now)
+      onUpdateLastRefresh?.(now)
+      if (showToast) {
+        toast.success('Calendar feed refreshed!', {
+          description: `Found ${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} for today`,
+        })
       }
+    } catch (error) {
+      console.error('Failed to load ICS feed:', error)
+      setIcsEvents([])
+      if (showToast) {
+        toast.error('Failed to refresh calendar feed', {
+          description: 'Please check the feed URL and try again',
+        })
+      }
+    } finally {
+      setIsLoadingICS(false)
+      setIsRefreshing(false)
     }
+  }
 
-    loadICSFeed()
+  useEffect(() => {
+    loadICSFeed(false)
   }, [child.icsUrl])
 
   const historicalDates = useMemo(() => {
@@ -112,9 +135,32 @@ export function OnThisDay({
     setCurrentEventIndex((prev) => (prev + 1) % events.length)
   }
 
+  const handleRefresh = async () => {
+    await loadICSFeed(true)
+  }
+
+  const formatLastRefreshTime = () => {
+    if (!lastRefreshTime) return null
+    
+    const now = Date.now()
+    const diffMinutes = Math.floor((now - lastRefreshTime) / 60000)
+    
+    if (diffMinutes < 1) return 'Just now'
+    if (diffMinutes === 1) return '1 minute ago'
+    if (diffMinutes < 60) return `${diffMinutes} minutes ago`
+    
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours === 1) return '1 hour ago'
+    if (diffHours < 24) return `${diffHours} hours ago`
+    
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays === 1) return '1 day ago'
+    return `${diffDays} days ago`
+  }
+
   if (events.length === 0 && !isLoadingICS) return null
 
-  if (isLoadingICS) {
+  if (isLoadingICS && !isRefreshing) {
     return (
       <div className="mb-8">
         <h2 className="text-2xl font-fredoka font-bold mb-4 flex items-center gap-2">
@@ -177,10 +223,34 @@ export function OnThisDay({
 
   return (
     <div className="mb-8">
-      <h2 className="text-2xl font-fredoka font-bold mb-4 flex items-center gap-2">
-        <Sparkle className="h-6 w-6 text-accent" weight="fill" />
-        On This Day
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-fredoka font-bold flex items-center gap-2">
+          <Sparkle className="h-6 w-6 text-accent" weight="fill" />
+          On This Day
+        </h2>
+        {child.icsUrl && (
+          <div className="flex items-center gap-3">
+            {lastRefreshTime && (
+              <span className="text-sm text-muted-foreground">
+                Updated {formatLastRefreshTime()}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="gap-2"
+            >
+              <ArrowClockwise 
+                className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+                weight="bold" 
+              />
+              Refresh
+            </Button>
+          </div>
+        )}
+      </div>
       <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
