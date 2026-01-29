@@ -9,6 +9,7 @@ import { ChildSelector } from '@/components/ChildSelector'
 import { ChildChoreView } from '@/components/ChildChoreView'
 import { RewardShop } from '@/components/RewardShop'
 import { ParentPinDialog } from '@/components/ParentPinDialog'
+import { PointsHistoryView } from '@/components/PointsHistoryView'
 import {
   AppMode,
   Child,
@@ -36,6 +37,7 @@ function App() {
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
+  const [showPointsHistory, setShowPointsHistory] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', null)
@@ -919,10 +921,24 @@ function App() {
             setMode('child')
             setSelectedChild(null)
             setShowRewardShop(false)
+            setShowPointsHistory(false)
           }}
         />
       ) : selectedChild ? (
-        showRewardShop ? (
+        showPointsHistory ? (
+          <PointsHistoryView
+            child={selectedChild}
+            chores={migratedChores || []}
+            completions={completions || []}
+            categories={categories || []}
+            assignments={assignments || []}
+            bonusCompletions={bonusCompletions || []}
+            purchases={purchases || []}
+            rewards={migratedRewards || []}
+            swaps={pointSwaps || []}
+            onBack={() => setShowPointsHistory(false)}
+          />
+        ) : showRewardShop ? (
           <RewardShop
             child={selectedChild}
             rewards={migratedRewards || []}
@@ -968,8 +984,13 @@ function App() {
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
-            onBack={() => setSelectedChild(null)}
+            onBack={() => {
+              setSelectedChild(null)
+              setShowPointsHistory(false)
+              setShowRewardShop(false)
+            }}
             onShopClick={() => setShowRewardShop(true)}
+            onHistoryClick={() => setShowPointsHistory(true)}
             onSwapPoints={(fromCategoryId, toCategoryId, fromAmount, toAmount) =>
               handleSwapPoints(selectedChild.id, fromCategoryId, toCategoryId, fromAmount, toAmount)
             }

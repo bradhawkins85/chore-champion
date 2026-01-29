@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress } from '@/lib/helpers'
 import { ChoreCompletionCelebration } from './Celebration'
@@ -22,6 +22,7 @@ interface ChildChoreViewProps {
   onUndo: (choreId: string, timeOfDay?: 'am' | 'pm') => void
   onBack: () => void
   onShopClick: () => void
+  onHistoryClick?: () => void
   trackedGoal?: GoalTracker | null
   rewards?: Reward[]
   categories?: Category[]
@@ -41,6 +42,7 @@ export function ChildChoreView({
   onUndo,
   onBack,
   onShopClick,
+  onHistoryClick,
   trackedGoal,
   rewards = [],
   categories = [],
@@ -280,6 +282,17 @@ export function ChildChoreView({
               <ShoppingCart className="mr-2 h-5 w-5" />
               Shop
             </Button>
+            {onHistoryClick && (
+              <Button 
+                size="lg"
+                variant="outline"
+                onClick={onHistoryClick} 
+                className="text-lg px-6 py-6 font-fredoka"
+              >
+                <ChartLine className="mr-2 h-5 w-5" />
+                History
+              </Button>
+            )}
             <Button variant="outline" onClick={onBack} className="text-lg px-6 py-6">
               Back
             </Button>
