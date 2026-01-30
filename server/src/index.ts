@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { initDatabase } from './config/database.js';
 import kvRoutes from './routes/kv.js';
+import updateRoutes from './routes/update.js';
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api', kvRoutes);
+app.use('/api', updateRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
