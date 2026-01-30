@@ -43,7 +43,7 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
     return (Array.isArray(loadedValue) ? loadedValue : defaultValue) as T;
   }
   
-  // If defaultValue is an object, ensure loadedValue is also an object (but not an array)
+  // If defaultValue is an object (but not null), ensure loadedValue is also an object (but not an array)
   if (typeof defaultValue === 'object' && defaultValue !== null) {
     const isValidObject = typeof loadedValue === 'object' && 
                           loadedValue !== null && 
@@ -51,8 +51,9 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
     return (isValidObject ? loadedValue : defaultValue) as T;
   }
   
-  // For primitive types, use loadedValue if not null/undefined
-  return (loadedValue !== undefined && loadedValue !== null ? loadedValue : defaultValue) as T;
+  // For primitive types (including null), accept loaded value if it's not undefined
+  // This allows null to be overridden by stored values
+  return (loadedValue !== undefined ? loadedValue : defaultValue) as T;
 }
 
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
