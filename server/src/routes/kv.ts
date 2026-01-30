@@ -28,7 +28,27 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
 router.post('/kv/:key', async (req: Request, res: Response) => {
   try {
     const { key } = req.params;
-    const { value } = req.body;
+    let value;
+    
+    // Handle both Spark runtime format (text/plain with raw JSON) and standard format (application/json with {value: ...})
+    const contentType = req.get('content-type') || '';
+    
+    if (contentType.includes('text/plain')) {
+      // Spark runtime sends raw JSON as text/plain
+      if (typeof req.body === 'string') {
+        try {
+          value = JSON.parse(req.body);
+        } catch {
+          // If it's not valid JSON, treat it as a string value
+          value = req.body;
+        }
+      } else {
+        value = req.body;
+      }
+    } else {
+      // Standard format: {value: ...}
+      value = req.body.value;
+    }
     
     if (value === undefined) {
       return res.status(400).json({ error: 'Value is required' });
