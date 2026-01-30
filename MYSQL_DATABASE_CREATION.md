@@ -102,6 +102,23 @@ depends_on:
 
 ## Verification Steps
 
+### Quick Verification
+
+Run the automated verification script:
+
+```bash
+./test-mysql-database-creation.sh
+```
+
+This script validates:
+- Docker and Docker Compose are available
+- Configuration files are valid
+- Initialization scripts are in place
+- Environment variables are configured
+- Documentation is complete
+
+### Manual Verification Steps
+
 ### 1. Verify Database Exists
 
 After starting the containers, check that the database was created:
