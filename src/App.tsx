@@ -146,13 +146,37 @@ function App() {
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null)
+
+  const coerceArray = <T,>(value: unknown): T[] => {
+    if (Array.isArray(value)) return value
+    if (value && typeof value === 'object') {
+      return Object.values(value as Record<string, T>)
+    }
+    return []
+  }
+
+  const safeChores = coerceArray<Chore>(chores)
+  const safeChildrenList = coerceArray<Child>(childrenList)
+  const safeCategories = coerceArray<Category>(categories)
+  const safeAssignments = coerceArray<ChoreAssignment>(assignments)
+  const safeCompletions = coerceArray<ChoreCompletion>(completions)
+  const safeRewards = coerceArray<Reward>(rewards)
+  const safePurchases = coerceArray<RewardPurchase>(purchases)
+  const safeHistory = coerceArray<ChoreHistoryEvent>(history)
+  const safeDismissedMissedChores = coerceArray<MissedChore>(dismissedMissedChores)
+  const safePointSwaps = coerceArray<PointSwap>(pointSwaps)
+  const safeBonusCompletions = coerceArray<CategoryBonusCompletion>(bonusCompletions)
+  const safeTrackedGoals = coerceArray<GoalTracker>(trackedGoals)
+  const safeAccessHistory = coerceArray<IPAccessAttempt>(accessHistory)
+  const safeReportTemplates = coerceArray<ReportTemplate>(reportTemplates)
+  const safePendingDigestItems = coerceArray<any>(pendingDigestItems)
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
 
   // Helper function to ensure pendingDigestItems is always an array
   const getValidatedDigestItems = (): any[] => {
-    return Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+    return safePendingDigestItems
   }
 
   useEffect(() => {
@@ -188,7 +212,7 @@ function App() {
   }, [ipRestrictions?.enabled, ipRestrictions?.allowedIPs])
 
   useEffect(() => {
-    if (!hasInitializedCategories.current && categories && categories.length === 0) {
+    if (!hasInitializedCategories.current && safeCategories.length === 0) {
       const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => {
         const categoryId = `category_default_${index}`
         const exchangeRates = cat.exchangeRates?.map(rate => ({
@@ -208,10 +232,10 @@ function App() {
       setCategories(defaultCategories)
       hasInitializedCategories.current = true
     }
-  }, [])
+  }, [safeCategories, setCategories])
 
   useEffect(() => {
-    if (reportTemplates && reportTemplates.length === 0) {
+    if (safeReportTemplates.length === 0) {
       const defaultTemplates = DEFAULT_REPORT_TEMPLATES.map((template, index: number) => ({
         ...template,
         id: `template_default_${index}`,
@@ -219,11 +243,11 @@ function App() {
       }))
       setReportTemplates(defaultTemplates)
     }
-  }, [])
+  }, [safeReportTemplates, setReportTemplates])
 
   useEffect(() => {
-    if (rewards && rewards.length > 0) {
-      const needsUpdate = rewards.some(r => 
+    if (safeRewards.length > 0) {
+      const needsUpdate = safeRewards.some(r => 
         r.expiryDate && Date.now() > r.expiryDate && !r.disabled
       )
       
@@ -238,13 +262,13 @@ function App() {
         )
       }
     }
-  }, [rewards, setRewards])
+  }, [safeRewards, setRewards])
 
   const migratedChores = useMemo(() => {
-    if (!chores || chores.length === 0) return chores || []
+    if (!safeChores || safeChores.length === 0) return safeChores || []
     
     let needsAnyMigration = false
-    for (const chore of chores) {
+    for (const chore of safeChores) {
       if (!chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints) {
         needsAnyMigration = true
         break
@@ -252,12 +276,12 @@ function App() {
     }
     
     if (!needsAnyMigration) {
-      return chores
+      return safeChores
     }
     
-    const firstCategoryId = (categories || [])[0]?.id
+    const firstCategoryId = safeCategories[0]?.id
     
-    return chores.map((chore) => {
+    return safeChores.map((chore) => {
       const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints
       
       if (needsMigration) {
@@ -280,15 +304,15 @@ function App() {
       
       return chore
     })
-  }, [chores, categories])
+  }, [safeChores, safeCategories])
 
   useEffect(() => {
-    if (assignments && assignments.length > 0) {
-      const oldChores = chores || []
+    if (safeAssignments && safeAssignments.length > 0) {
+      const oldChores = safeChores
       const needsMigration = oldChores.some((c: any) => c.daysOfWeek || c.repeatPattern || c.startDate || c.endDate)
       
       if (needsMigration) {
-        const updatedAssignments = (assignments || []).map(assignment => {
+        const updatedAssignments = safeAssignments.map(assignment => {
           const oldChore: any = oldChores.find((c: any) => c.id === assignment.choreId)
           if (oldChore && !assignment.daysOfWeek && !assignment.repeatPattern && !assignment.startDate && !assignment.endDate) {
             return {
@@ -310,7 +334,7 @@ function App() {
         setChores(cleanedChores)
       }
     }
-  }, [])
+  }, [safeAssignments, safeChores, setAssignments, setChores])
 
   const choresMap = useMemo(() => {
     return new Map((migratedChores || []).map((c) => [c.id, c]))
@@ -318,21 +342,21 @@ function App() {
 
   const childPoints = useMemo(() => {
     const points = new Map<string, number>()
-    ;(childrenList || []).forEach((child) => {
-      points.set(child.id, getChildTotalPoints(completions || [], choresMap, child.id, assignments || []))
+    safeChildrenList.forEach((child) => {
+      points.set(child.id, getChildTotalPoints(safeCompletions, choresMap, child.id, safeAssignments))
     })
     return points
-  }, [childrenList, completions, choresMap, assignments])
+  }, [safeChildrenList, safeCompletions, choresMap, safeAssignments])
 
   const migratedRewards = useMemo(() => {
-    if (!rewards || rewards.length === 0) return rewards || []
+    if (!safeRewards || safeRewards.length === 0) return safeRewards || []
     
-    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
-    if (!needsMigration) return rewards
+    const needsMigration = safeRewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
+    if (!needsMigration) return safeRewards
     
-    const firstCategoryId = (categories || [])[0]?.id
+    const firstCategoryId = safeCategories[0]?.id
     
-    return rewards.map((reward) => {
+    return safeRewards.map((reward) => {
       const rewardCategoryIds = reward.categoryIds
       const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
       
@@ -341,20 +365,20 @@ function App() {
         categoryIds: hasValidCategoryIds ? [...rewardCategoryIds] : (firstCategoryId ? [firstCategoryId] : []),
       }
     })
-  }, [rewards, categories])
+  }, [safeRewards, safeCategories])
 
   const childCategoryPoints = useMemo(() => {
     const categoryPointsMap = new Map<string, Map<string, number>>()
-    ;(childrenList || []).forEach((child) => {
+    safeChildrenList.forEach((child) => {
       const childCatPoints = new Map<string, number>()
-      ;(categories || []).forEach((category) => {
+      safeCategories.forEach((category) => {
         const points = getChildPointsByCategory(
-          completions || [],
+          safeCompletions,
           choresMap,
           child.id,
           category.id,
-          assignments || [],
-          bonusCompletions || [],
+          safeAssignments,
+          safeBonusCompletions,
           category
         )
         childCatPoints.set(category.id, points)
@@ -362,14 +386,14 @@ function App() {
       categoryPointsMap.set(child.id, childCatPoints)
     })
     return categoryPointsMap
-  }, [childrenList, categories, completions, choresMap, assignments, bonusCompletions])
+  }, [safeChildrenList, safeCategories, safeCompletions, choresMap, safeAssignments, safeBonusCompletions])
 
   const childAvailableCategoryPoints = useMemo(() => {
     const availableCategoryPointsMap = new Map<string, Map<string, number>>()
-    ;(childrenList || []).forEach((child) => {
+    safeChildrenList.forEach((child) => {
       const childAvailPoints = new Map<string, number>()
       const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
-      const childPurchases = (purchases || [])
+      const childPurchases = safePurchases
         .filter((p) => p.childId === child.id)
         .map((p) => {
           const reward = rewardsMap.get(p.rewardId)
@@ -379,9 +403,9 @@ function App() {
             cost: override ? override.cost : (reward?.cost || 0),
           }
         })
-      const childSwaps = (pointSwaps || []).filter((s) => s.childId === child.id)
+      const childSwaps = safePointSwaps.filter((s) => s.childId === child.id)
       
-      ;(categories || []).forEach((category) => {
+      safeCategories.forEach((category) => {
         const totalPoints = childCategoryPoints.get(child.id)?.get(category.id) || 0
         const availablePoints = getChildAvailablePointsByCategory(
           totalPoints,
@@ -395,7 +419,7 @@ function App() {
       availableCategoryPointsMap.set(child.id, childAvailPoints)
     })
     return availableCategoryPointsMap
-  }, [childrenList, categories, childCategoryPoints, purchases, migratedRewards, pointSwaps])
+  }, [safeChildrenList, safeCategories, childCategoryPoints, safePurchases, migratedRewards, safePointSwaps])
 
   const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     const newChore: Chore = {
@@ -530,26 +554,26 @@ function App() {
 
     if (!requiresApproval) {
       setTimeout(() => {
-        checkAndAwardCategoryBonuses(childId, [...(completions || []), newCompletion])
+        checkAndAwardCategoryBonuses(childId, [...safeCompletions, newCompletion])
       }, 500)
     }
   }
 
   const checkAndAwardCategoryBonuses = (childId: string, currentCompletions: ChoreCompletion[]) => {
-    (categories || []).forEach((category) => {
+    safeCategories.forEach((category) => {
       if (!category.completionBonus) return
 
       const alreadyClaimed = hasBonusBeenClaimedToday(
         childId,
         category.id,
-        bonusCompletions || []
+        safeBonusCompletions
       )
       if (alreadyClaimed) return
 
       const allCompleted = areAllCategoryChoresCompleted(
         childId,
         category.id,
-        assignments || [],
+        safeAssignments,
         choresMap,
         currentCompletions
       )
@@ -565,7 +589,7 @@ function App() {
         }
         setBonusCompletions((current) => [...(current || []), bonusCompletion])
 
-        const targetCategory = (categories || []).find(
+        const targetCategory = safeCategories.find(
           (c) => c.id === category.completionBonus?.targetCategoryId
         )
         toast.success(`🎉 Category Bonus!`, {
@@ -650,17 +674,17 @@ function App() {
         r.id === id ? { ...r, disabled: !r.disabled } : r
       )
     )
-    const reward = (rewards || []).find((r) => r.id === id)
+    const reward = safeRewards.find((r) => r.id === id)
     if (reward) {
       toast.success(reward.disabled ? 'Reward enabled' : 'Reward disabled')
     }
   }
 
   const handlePurchaseReward = (childId: string, rewardId: string, cost: number) => {
-    const reward = (rewards || []).find((r) => r.id === rewardId)
+    const reward = safeRewards.find((r) => r.id === rewardId)
     if (!reward) return
 
-    const limitCheck = canPurchaseReward(reward, childId, purchases || [])
+    const limitCheck = canPurchaseReward(reward, childId, safePurchases)
     if (!limitCheck.canPurchase) {
       toast.error('Cannot purchase reward', {
         description: limitCheck.reason,
@@ -754,7 +778,7 @@ function App() {
     setHistory((current) => [...(current || []), historyEvent])
 
     const chore = (migratedChores || []).find((c) => c.id === choreId)
-    const child = (childrenList || []).find((c) => c.id === childId)
+    const child = safeChildrenList.find((c) => c.id === childId)
     toast.success(`Awarded ${chore?.points || 0} points to ${child?.name || 'child'}`, {
       description: 'Missed chore marked as complete',
     })
@@ -795,7 +819,7 @@ function App() {
         toast.info('Goal tracking removed')
         return currentGoals.filter(g => g.childId !== childId)
       } else {
-        const reward = (rewards || []).find(r => r.id === rewardId)
+        const reward = safeRewards.find(r => r.id === rewardId)
         if (reward) {
           toast.success(`Tracking goal: ${reward.name}`)
         }
@@ -877,8 +901,8 @@ function App() {
     }
     setPointSwaps((current) => [...(current || []), newSwap])
 
-    const fromCategory = (categories || []).find((c) => c.id === fromCategoryId)
-    const toCategory = (categories || []).find((c) => c.id === toCategoryId)
+    const fromCategory = safeCategories.find((c) => c.id === fromCategoryId)
+    const toCategory = safeCategories.find((c) => c.id === toCategoryId)
     
     toast.success(`Swapped ${fromAmount} ${fromCategory?.name} for ${toAmount} ${toCategory?.name}!`)
   }
@@ -890,7 +914,7 @@ function App() {
       )
     )
     
-    const completion = (completions || []).find((c) => c.id === completionId)
+    const completion = safeCompletions.find((c) => c.id === completionId)
     if (completion) {
       const historyEvent: ChoreHistoryEvent = {
         id: `history_${Date.now()}_${Math.random()}`,
@@ -904,7 +928,7 @@ function App() {
       setHistory((current) => [...(current || []), historyEvent])
 
       setTimeout(() => {
-        const updatedCompletions = (completions || []).map((c) =>
+        const updatedCompletions = safeCompletions.map((c) =>
           c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
         )
         checkAndAwardCategoryBonuses(completion.childId, updatedCompletions)
@@ -921,7 +945,7 @@ function App() {
       )
     )
     
-    const completion = (completions || []).find((c) => c.id === completionId)
+    const completion = safeCompletions.find((c) => c.id === completionId)
     if (completion) {
       const historyEvent: ChoreHistoryEvent = {
         id: `history_${Date.now()}_${Math.random()}`,
@@ -940,7 +964,7 @@ function App() {
   }
 
   const handleUndoCompletion = (completionId: string) => {
-    const completion = (completions || []).find((c) => c.id === completionId)
+    const completion = safeCompletions.find((c) => c.id === completionId)
     
     if (completion) {
       setCompletions((current) => (current || []).filter((c) => c.id !== completionId))
@@ -957,7 +981,7 @@ function App() {
       setHistory((current) => [...(current || []), historyEvent])
       
       const chore = (migratedChores || []).find((c) => c.id === completion.choreId)
-      const child = (childrenList || []).find((c) => c.id === completion.childId)
+      const child = safeChildrenList.find((c) => c.id === completion.childId)
       toast.success('Chore completion undone', {
         description: `${child?.name}'s completion of "${chore?.name}" has been removed`,
       })
@@ -1024,8 +1048,8 @@ function App() {
       return
     }
 
-    const child = (childrenList || []).find((c) => c.id === childId)
-    const reward = (rewards || []).find((r) => r.id === rewardId)
+    const child = safeChildrenList.find((c) => c.id === childId)
+    const reward = safeRewards.find((r) => r.id === rewardId)
 
     if (!child || !reward) return
 
@@ -1061,7 +1085,7 @@ Please fulfill this reward when you get a chance!
       return
     }
 
-    const child = (childrenList || []).find((c) => c.id === childId)
+    const child = safeChildrenList.find((c) => c.id === childId)
     const chore = (migratedChores || []).find((c) => c.id === choreId)
 
     if (!child || !chore) return
@@ -1129,7 +1153,7 @@ Please log in to ChoreQuest to approve or reject this completion.
     let emailBody = `You have ${items.length} chore${items.length > 1 ? 's' : ''} pending approval:\n\n`
 
     for (const [childId, items] of groupedByChild.entries()) {
-      const child = (childrenList || []).find((c) => c.id === childId)
+      const child = safeChildrenList.find((c) => c.id === childId)
       if (!child) continue
 
       emailBody += `${child.name}:\n`
@@ -1253,12 +1277,12 @@ Please log in to ChoreQuest to approve or reject this completion.
 
   useEffect(() => {
     if (hasMigratedRewards.current) return
-    if (!rewards || !categories) return
+    if (!safeRewards || !safeCategories) return
     
-    const needsMigration = rewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
+    const needsMigration = safeRewards.some(r => !Array.isArray(r.categoryIds) || r.categoryIds === undefined || r.categoryIds === null)
     if (needsMigration) {
-      const firstCategoryId = categories[0]?.id
-      const migrated = rewards.map((reward) => {
+      const firstCategoryId = safeCategories[0]?.id
+      const migrated = safeRewards.map((reward) => {
         const rewardCategoryIds = reward.categoryIds
         const hasValidCategoryIds = Array.isArray(rewardCategoryIds) && rewardCategoryIds !== null && rewardCategoryIds !== undefined
         
@@ -1270,7 +1294,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       setRewards(migrated)
       hasMigratedRewards.current = true
     }
-  }, [rewards, categories, setRewards])
+  }, [safeRewards, safeCategories, setRewards])
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -1320,8 +1344,8 @@ Please log in to ChoreQuest to approve or reject this completion.
   }, [weatherSettings?.seasonalThemesEnabled, currentWeather, mode, selectedChild])
 
   const pendingPurchasesCount = useMemo(() => {
-    return (purchases || []).filter((p) => !p.fulfilled).length
-  }, [purchases])
+    return safePurchases.filter((p) => !p.fulfilled).length
+  }, [safePurchases])
 
   return (
     <div className="min-h-screen bg-background">
@@ -1340,31 +1364,31 @@ Please log in to ChoreQuest to approve or reject this completion.
       ) : mode === 'parent' ? (
         <ParentPanel
           chores={migratedChores || []}
-          childrenList={childrenList || []}
-          assignments={assignments || []}
-          completions={completions || []}
+          childrenList={safeChildrenList}
+          assignments={safeAssignments}
+          completions={safeCompletions}
           childPoints={childPoints}
           rewards={migratedRewards || []}
-          purchases={purchases || []}
-          history={history || []}
-          dismissedMissedChores={dismissedMissedChores || []}
+          purchases={safePurchases}
+          history={safeHistory}
+          dismissedMissedChores={safeDismissedMissedChores}
           parentPin={parentPin ?? null}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
-          categories={categories || []}
+          categories={safeCategories}
           childCategoryPoints={childCategoryPoints}
-          bonusCompletions={bonusCompletions || []}
-          pointSwaps={pointSwaps || []}
+          bonusCompletions={safeBonusCompletions}
+          pointSwaps={safePointSwaps}
           ipRestrictions={ipRestrictions || { enabled: false, allowedIPs: [], overridePin: null, requirePinForUnapproved: false }}
           currentIP={currentIP}
-          accessHistory={accessHistory || []}
+          accessHistory={safeAccessHistory}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
-          reportTemplates={reportTemplates || []}
+          reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
           smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
-          pendingDigestItems={pendingDigestItems || []}
+          pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
@@ -1420,13 +1444,13 @@ Please log in to ChoreQuest to approve or reject this completion.
           <PointsHistoryView
             child={selectedChild}
             chores={migratedChores || []}
-            completions={completions || []}
-            categories={categories || []}
-            assignments={assignments || []}
-            bonusCompletions={bonusCompletions || []}
-            purchases={purchases || []}
+            completions={safeCompletions}
+            categories={safeCategories}
+            assignments={safeAssignments}
+            bonusCompletions={safeBonusCompletions}
+            purchases={safePurchases}
             rewards={migratedRewards || []}
-            swaps={pointSwaps || []}
+            swaps={safePointSwaps}
             onBack={() => setShowPointsHistory(false)}
           />
         ) : showRewardShop ? (
@@ -1434,15 +1458,15 @@ Please log in to ChoreQuest to approve or reject this completion.
             child={selectedChild}
             rewards={migratedRewards || []}
             chores={migratedChores || []}
-            completions={completions || []}
-            purchases={purchases || []}
-            trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
+            completions={safeCompletions}
+            purchases={safePurchases}
+            trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
-            categories={categories || []}
-            swaps={pointSwaps || []}
+            categories={safeCategories}
+            swaps={safePointSwaps}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
-              (purchases || [])
+              safePurchases
                 .filter((p) => p.childId === selectedChild.id)
                 .map((p) => {
                   const reward = (migratedRewards || []).find((r) => r.id === p.rewardId)
@@ -1464,13 +1488,13 @@ Please log in to ChoreQuest to approve or reject this completion.
           <ChildChoreView
             child={selectedChild}
             chores={migratedChores || []}
-            assignments={assignments || []}
-            completions={completions || []}
+            assignments={safeAssignments}
+            completions={safeCompletions}
             totalPoints={childPoints.get(selectedChild.id) || 0}
             celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
-            trackedGoal={(trackedGoals || []).find(g => g.childId === selectedChild.id)}
-            rewards={rewards || []}
-            categories={categories || []}
+            trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}
+            rewards={safeRewards}
+            categories={safeCategories}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
             currentWeather={currentWeather}
@@ -1493,7 +1517,7 @@ Please log in to ChoreQuest to approve or reject this completion.
         )
       ) : (
         <>
-          {(childrenList || []).length === 0 ? (
+          {safeChildrenList.length === 0 ? (
             <div className="min-h-screen flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <h1 className="text-4xl font-fredoka font-bold mb-4">
@@ -1514,16 +1538,16 @@ Please log in to ChoreQuest to approve or reject this completion.
             </div>
           ) : (
             <ChildSelector
-              childrenList={childrenList || []}
+              childrenList={safeChildrenList}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
-              trackedGoals={trackedGoals || []}
-              rewards={rewards || []}
+              trackedGoals={safeTrackedGoals}
+              rewards={safeRewards}
               categoryPoints={childCategoryPoints}
-              categories={categories || []}
-              assignments={assignments || []}
+              categories={safeCategories}
+              assignments={safeAssignments}
               chores={migratedChores || []}
-              completions={completions || []}
+              completions={safeCompletions}
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
               speechSettings={speechSettings || { enabled: true }}
               biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
