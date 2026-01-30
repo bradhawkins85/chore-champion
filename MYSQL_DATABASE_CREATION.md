@@ -230,9 +230,11 @@ curl http://localhost:8080/api/kv
 2. **Check if data directory was pre-existing**:
    If the MySQL volume already had data from a previous installation, the initialization scripts won't run. To start fresh:
    ```bash
-   docker-compose down
-   docker volume rm mysql-data
-   docker-compose up -d
+   docker-compose down  # or: docker compose down
+   docker compose down -v  # Remove all volumes (WARNING: deletes all data!)
+   # Or remove just the MySQL volume:
+   docker volume rm chorequest_mysql-data
+   docker-compose up -d  # or: docker compose up -d
    ```
    **WARNING**: This deletes all existing data!
 

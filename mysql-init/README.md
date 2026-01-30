@@ -25,8 +25,8 @@ These scripts only run when:
 2. The data directory is empty (no existing database)
 
 If you want to re-run these scripts:
-1. Stop the containers: `docker-compose down`
-2. Remove the MySQL volume: `docker volume rm mysql-data`
-3. Start the containers: `docker-compose up -d`
+1. Stop the containers: `docker-compose down` or `docker compose down`
+2. Remove the MySQL volume: `docker compose down -v` (removes all volumes) or `docker volume rm chorequest_mysql-data`
+3. Start the containers: `docker-compose up -d` or `docker compose up -d`
 
 **WARNING**: Removing the volume will delete all existing data!

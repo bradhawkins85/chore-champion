@@ -124,8 +124,13 @@ fi
 echo "Test 6: Checking MYSQL_DATABASE environment variable..."
 if grep -q "MYSQL_DATABASE=" docker-compose.yml; then
     success "MYSQL_DATABASE is set in docker-compose.yml"
-    DB_NAME=$(grep "MYSQL_DATABASE=" docker-compose.yml | head -1 | sed 's/.*MYSQL_DATABASE=\${MYSQL_DATABASE:-\([^}]*\)}.*/\1/')
-    echo "   Default database name: $DB_NAME"
+    # Extract database name - simplified approach
+    DB_LINE=$(grep "MYSQL_DATABASE=" docker-compose.yml | head -1)
+    if echo "$DB_LINE" | grep -q "chorequest"; then
+        echo "   Default database name: chorequest"
+    else
+        echo "   Database configuration found (see docker-compose.yml for details)"
+    fi
 else
     error "MYSQL_DATABASE not found in docker-compose.yml"
     exit 1
