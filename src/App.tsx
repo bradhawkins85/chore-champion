@@ -150,6 +150,11 @@ function App() {
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
 
+  // Helper function to ensure pendingDigestItems is always an array
+  const getValidatedDigestItems = (): any[] => {
+    return Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+  }
+
   useEffect(() => {
     initializePWA()
   }, [])
@@ -1097,8 +1102,8 @@ Please log in to ChoreQuest to approve or reject this completion.
   }
 
   const sendDigestEmail = async () => {
-    // Ensure pendingDigestItems is always an array
-    const items = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+    // Use helper function to ensure pendingDigestItems is always an array
+    const items = getValidatedDigestItems()
     
     if (items.length === 0) {
       return
@@ -1186,8 +1191,8 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    // Ensure pendingDigestItems is always an array
-    const items = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+    // Use helper function to ensure pendingDigestItems is always an array
+    const items = getValidatedDigestItems()
     
     if (items.length === 0) {
       return

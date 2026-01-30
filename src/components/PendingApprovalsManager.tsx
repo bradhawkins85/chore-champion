@@ -40,6 +40,9 @@ export function PendingApprovalsManager({
   const [selectedCompletion, setSelectedCompletion] = useState<ChoreCompletion | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
+  // Ensure pendingDigestItems is always an array
+  const digestItems = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+
   const pendingCompletions = completions
     .filter((c) => c.approvalStatus === 'pending')
     .sort((a, b) => a.completedAt - b.completedAt)
@@ -95,9 +98,6 @@ export function PendingApprovalsManager({
   }
 
   if (pendingCompletions.length === 0) {
-    // Ensure pendingDigestItems is always an array
-    const digestItems = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
-    
     return (
       <>
         {emailAlertSettings.digestMode !== 'immediate' && digestItems.length > 0 && (
@@ -137,9 +137,6 @@ export function PendingApprovalsManager({
       </>
     )
   }
-
-  // Ensure pendingDigestItems is always an array
-  const digestItems = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
 
   return (
     <>
