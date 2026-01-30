@@ -1097,7 +1097,10 @@ Please log in to ChoreQuest to approve or reject this completion.
   }
 
   const sendDigestEmail = async () => {
-    if (!pendingDigestItems || pendingDigestItems.length === 0) {
+    // Ensure pendingDigestItems is always an array
+    const items = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+    
+    if (items.length === 0) {
       return
     }
 
@@ -1111,14 +1114,14 @@ Please log in to ChoreQuest to approve or reject this completion.
 
     const groupedByChild = new Map<string, any[]>()
     
-    for (const item of pendingDigestItems) {
+    for (const item of items) {
       if (!groupedByChild.has(item.childId)) {
         groupedByChild.set(item.childId, [])
       }
       groupedByChild.get(item.childId)!.push(item)
     }
 
-    let emailBody = `You have ${pendingDigestItems.length} chore${pendingDigestItems.length > 1 ? 's' : ''} pending approval:\n\n`
+    let emailBody = `You have ${items.length} chore${items.length > 1 ? 's' : ''} pending approval:\n\n`
 
     for (const [childId, items] of groupedByChild.entries()) {
       const child = (childrenList || []).find((c) => c.id === childId)
@@ -1139,7 +1142,7 @@ Please log in to ChoreQuest to approve or reject this completion.
 
     emailBody += 'Please log in to ChoreQuest to approve or reject these completions.'
 
-    const emailSubject = `⏳ ${pendingDigestItems.length} Chore${pendingDigestItems.length > 1 ? 's' : ''} Pending Approval`
+    const emailSubject = `⏳ ${items.length} Chore${items.length > 1 ? 's' : ''} Pending Approval`
 
     console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
@@ -1162,7 +1165,7 @@ Please log in to ChoreQuest to approve or reject this completion.
     }))
 
     toast.success('Digest email sent to parents', {
-      description: `${pendingDigestItems.length} pending approval${pendingDigestItems.length > 1 ? 's' : ''} notified`,
+      description: `${items.length} pending approval${items.length > 1 ? 's' : ''} notified`,
     })
   }
 
@@ -1183,7 +1186,10 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    if (!pendingDigestItems || pendingDigestItems.length === 0) {
+    // Ensure pendingDigestItems is always an array
+    const items = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+    
+    if (items.length === 0) {
       return
     }
 
