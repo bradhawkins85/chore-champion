@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash, Star, ListChecks, CalendarBlank } from '@phosphor-icons/react'
 import { Child, Category } from '@/lib/types'
+import { getInitialsFromName } from '@/lib/helpers'
 
 interface ChildCardProps {
   child: Child
@@ -17,12 +18,7 @@ interface ChildCardProps {
 }
 
 export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, onDownloadICS, categoryPoints, categories = [] }: ChildCardProps) {
-  const initials = child.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const initials = getInitialsFromName(child.name)
 
   return (
     <Card className="hover:shadow-lg transition-shadow">

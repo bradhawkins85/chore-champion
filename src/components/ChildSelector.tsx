@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
 import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings } from '@/lib/types'
-import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration } from '@/lib/helpers'
+import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 import { isStandalone } from '@/lib/pwaHelper'
 
@@ -137,12 +137,7 @@ export function ChildSelector({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {childrenList.map((child, index) => {
-            const initials = child.name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')
-              .toUpperCase()
-              .slice(0, 2)
+            const initials = getInitialsFromName(child.name)
 
             const childGoal = trackedGoals.find(g => g.childId === child.id)
             const goalReward = childGoal ? rewards.find(r => r.id === childGoal.rewardId) : null

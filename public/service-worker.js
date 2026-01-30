@@ -4,10 +4,8 @@ const RUNTIME_CACHE = 'chorequest-runtime';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/main.css',
-  '/src/index.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {

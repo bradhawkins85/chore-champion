@@ -35,6 +35,25 @@ export function getWeekNumber(date: Date): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
+export function getInitialsFromName(name?: string, fallback: string = '?'): string {
+  if (!name) {
+    return fallback
+  }
+
+  const trimmed = name.trim()
+  if (!trimmed) {
+    return fallback
+  }
+
+  return trimmed
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
 export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean {
   if (!assignment.repeatPattern) {
     return true
