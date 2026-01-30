@@ -30,6 +30,31 @@ async function checkApiAvailability(): Promise<boolean> {
   }
 }
 
+/**
+ * Validates that a loaded value matches the expected type based on the default value.
+ * This prevents corrupted data from causing runtime errors.
+ * 
+ * Note: This performs shallow type checking (array vs object vs primitive).
+ * It does not validate the structure or properties of complex types.
+ */
+function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
+  // If defaultValue is an array, ensure loadedValue is also an array
+  if (Array.isArray(defaultValue)) {
+    return (Array.isArray(loadedValue) ? loadedValue : defaultValue) as T;
+  }
+  
+  // If defaultValue is an object, ensure loadedValue is also an object (but not an array)
+  if (typeof defaultValue === 'object' && defaultValue !== null) {
+    const isValidObject = typeof loadedValue === 'object' && 
+                          loadedValue !== null && 
+                          !Array.isArray(loadedValue);
+    return (isValidObject ? loadedValue : defaultValue) as T;
+  }
+  
+  // For primitive types, use loadedValue if not null/undefined
+  return (loadedValue !== undefined && loadedValue !== null ? loadedValue : defaultValue) as T;
+}
+
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
@@ -55,18 +80,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           if (response.ok) {
             const data = await response.json();
             if (mounted) {
-              // Validate that loaded value matches expected type
-              const loadedValue = data.value;
-              
-              // If defaultValue is an array, ensure loadedValue is also an array
-              if (Array.isArray(defaultValue)) {
-                setValue((Array.isArray(loadedValue) ? loadedValue : defaultValue) as T);
-              } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-                // If defaultValue is an object, ensure loadedValue is also an object and not an array
-                setValue((typeof loadedValue === 'object' && loadedValue !== null && !Array.isArray(loadedValue) ? loadedValue : defaultValue) as T);
-              } else {
-                setValue((loadedValue !== undefined && loadedValue !== null ? loadedValue : defaultValue) as T);
-              }
+              setValue(validateLoadedValue(data.value, defaultValue));
             }
           } else if (response.status === 404) {
             // Key not found, use default
@@ -81,15 +95,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           if (stored && mounted) {
             try {
               const parsedValue = JSON.parse(stored);
-              
-              // Validate that loaded value matches expected type
-              if (Array.isArray(defaultValue)) {
-                setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
-              } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-                setValue((typeof parsedValue === 'object' && parsedValue !== null && !Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
-              } else {
-                setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
-              }
+              setValue(validateLoadedValue(parsedValue, defaultValue));
             } catch {
               setValue(defaultValue);
             }
@@ -101,15 +107,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
         if (stored && mounted) {
           try {
             const parsedValue = JSON.parse(stored);
-            
-            // Validate that loaded value matches expected type
-            if (Array.isArray(defaultValue)) {
-              setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
-            } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-              setValue((typeof parsedValue === 'object' && parsedValue !== null && !Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
-            } else {
-              setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
-            }
+            setValue(validateLoadedValue(parsedValue, defaultValue));
           } catch {
             setValue(defaultValue);
           }
