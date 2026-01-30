@@ -70,7 +70,7 @@ export function QuickUnlockPrompt({
       }
 
       const successSecurity: PinSecurity = {
-        attempts: [...pinSecurity.attempts, { timestamp: Date.now(), success: true }],
+        attempts: [...(Array.isArray(pinSecurity.attempts) ? pinSecurity.attempts : []), { timestamp: Date.now(), success: true }],
         lockedUntil: null,
         failedAttempts: 0,
       }

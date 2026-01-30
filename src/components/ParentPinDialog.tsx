@@ -118,7 +118,7 @@ export function ParentPinDialog({
 
       const successSecurity: PinSecurity = {
         attempts: [
-          ...pinSecurity.attempts,
+          ...(Array.isArray(pinSecurity.attempts) ? pinSecurity.attempts : []),
           { timestamp: Date.now(), success: true },
         ],
         lockedUntil: null,
@@ -177,7 +177,7 @@ export function ParentPinDialog({
       if (pin === storedPin) {
         const successSecurity: PinSecurity = {
           attempts: [
-            ...pinSecurity.attempts,
+            ...(Array.isArray(pinSecurity.attempts) ? pinSecurity.attempts : []),
             { timestamp: Date.now(), success: true },
           ],
           lockedUntil: null,
@@ -191,7 +191,7 @@ export function ParentPinDialog({
         
         const failedSecurity: PinSecurity = {
           attempts: [
-            ...pinSecurity.attempts,
+            ...(Array.isArray(pinSecurity.attempts) ? pinSecurity.attempts : []),
             { timestamp: Date.now(), success: false },
           ],
           lockedUntil: lockoutDuration > 0 ? Date.now() + lockoutDuration : null,

@@ -173,6 +173,7 @@ function App() {
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
+  const hasMigratedPinSecurity = useRef(false)
 
   // Helper function to ensure pendingDigestItems is always an array
   const getValidatedDigestItems = (): any[] => {
@@ -182,6 +183,24 @@ function App() {
   useEffect(() => {
     initializePWA()
   }, [])
+
+  // Validate and fix pinSecurity data structure - one-time migration
+  useEffect(() => {
+    if (pinSecurity && !hasMigratedPinSecurity.current) {
+      // Ensure attempts is always an array (handles null, undefined, or non-array values)
+      if (!Array.isArray(pinSecurity.attempts)) {
+        const fixedSecurity: PinSecurity = {
+          attempts: [],
+          lockedUntil: pinSecurity.lockedUntil || null,
+          failedAttempts: pinSecurity.failedAttempts || 0,
+        }
+        setPinSecurity(fixedSecurity)
+        hasMigratedPinSecurity.current = true
+      } else {
+        hasMigratedPinSecurity.current = true
+      }
+    }
+  }, [pinSecurity, setPinSecurity]) // Dependencies included for proper reactivity
 
   useEffect(() => {
     const checkIPAccess = async () => {
