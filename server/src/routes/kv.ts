@@ -17,7 +17,13 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Key not found' });
     }
     
-    res.json({ value: JSON.parse(rows[0].value_data) });
+    // Handle null values from database
+    const valueData = rows[0].value_data;
+    if (valueData === null || valueData === undefined) {
+      return res.status(404).json({ error: 'Key not found' });
+    }
+    
+    res.json({ value: JSON.parse(valueData) });
   } catch (error) {
     console.error('Error getting value:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -89,7 +95,10 @@ router.get('/kv', async (req: Request, res: Response) => {
     
     const data: Record<string, any> = {};
     rows.forEach(row => {
-      data[row.key_name] = JSON.parse(row.value_data);
+      // Skip null or undefined values
+      if (row.value_data !== null && row.value_data !== undefined) {
+        data[row.key_name] = JSON.parse(row.value_data);
+      }
     });
     
     res.json(data);
