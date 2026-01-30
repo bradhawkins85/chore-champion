@@ -579,6 +579,8 @@ ChoreQuest includes a built-in update feature accessible from the Parent Dashboa
 - Version comparison with GitHub releases
 - No SSH or command-line access required
 
+**⚠️ First-Time Setup Required:** If you're seeing "No releases found" error, you need to create the initial v1.0.0 release on GitHub. See [RELEASE_SETUP.md](./RELEASE_SETUP.md) for step-by-step instructions.
+
 For more details, see [UPDATE_FEATURE.md](./UPDATE_FEATURE.md).
 
 Alternatively, you can update manually from the command line:
