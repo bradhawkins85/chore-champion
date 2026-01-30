@@ -44,6 +44,7 @@ import { WeatherSettingsComponent } from './WeatherSettings'
 import { EmailSettings } from './EmailSettings'
 import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
+import { UpdateSettings } from './UpdateSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -840,6 +841,8 @@ export function ParentPanel({
               settings={speechSettings}
               onUpdate={onUpdateSpeechSettings}
             />
+
+            <UpdateSettings />
           </div>
         </TabsContent>
 

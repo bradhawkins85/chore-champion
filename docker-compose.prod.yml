@@ -53,6 +53,9 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
       - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts:/app/scripts:ro
     depends_on:
       mysql:
         condition: service_healthy
