@@ -241,6 +241,8 @@ await migrateToApi();
 
 For detailed MySQL backend documentation, see [MYSQL_BACKEND.md](MYSQL_BACKEND.md).
 
+> **📘 Database Creation**: To understand how the MySQL database is automatically created during deployment, see [MYSQL_DATABASE_CREATION.md](MYSQL_DATABASE_CREATION.md).
+
 ### 📦 Volume Persistence
 
 ChoreQuest stores all data in Docker volumes for persistence:

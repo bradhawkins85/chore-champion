@@ -11,6 +11,7 @@ services:
       - TZ=${TIMEZONE:-UTC}
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
     networks:
       - chorequest-network
     healthcheck:
