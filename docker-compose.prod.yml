@@ -96,7 +96,7 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=${TIMEZONE:-UTC}
-      - VITE_API_URL=http://api:3000/api
+      - VITE_API_URL=/api
     volumes:
       - chorequest-data:/usr/share/nginx/html/data
       - chorequest-backups:/backups:ro
