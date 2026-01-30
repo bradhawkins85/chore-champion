@@ -11,7 +11,22 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => {
+        // Try to add all URLs, but don't fail the install if some fail
+        return cache.addAll(PRECACHE_URLS).catch((error) => {
+          console.warn('Failed to cache some resources during install:', error);
+          // Try to cache each resource individually
+          return Promise.all(
+            PRECACHE_URLS.map(url => 
+              cache.add(url).catch(err => {
+                console.warn(`Failed to cache ${url}:`, err);
+                // Don't fail the whole install if one resource fails
+                return Promise.resolve();
+              })
+            )
+          );
+        });
+      })
       .then(() => self.skipWaiting())
   );
 });

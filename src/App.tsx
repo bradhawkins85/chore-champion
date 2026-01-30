@@ -183,6 +183,21 @@ function App() {
     initializePWA()
   }, [])
 
+  // Validate and fix pinSecurity data structure
+  useEffect(() => {
+    if (pinSecurity) {
+      // Ensure attempts is always an array
+      if (!Array.isArray(pinSecurity.attempts)) {
+        const fixedSecurity: PinSecurity = {
+          attempts: [],
+          lockedUntil: pinSecurity.lockedUntil || null,
+          failedAttempts: pinSecurity.failedAttempts || 0,
+        }
+        setPinSecurity(fixedSecurity)
+      }
+    }
+  }, []) // Run only once on mount
+
   useEffect(() => {
     const checkIPAccess = async () => {
       setIsCheckingIP(true)
