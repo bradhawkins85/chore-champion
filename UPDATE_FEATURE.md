@@ -85,11 +85,14 @@ The update feature requires these Docker Compose configurations:
 ```yaml
 api:
   volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker socket access
-    - ./scripts:/app/scripts:ro                      # Update scripts
+    - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker socket access (read-only)
+    - /usr/bin/docker:/usr/bin/docker:ro              # Docker CLI binary (read-only)
+    - ./scripts:/app/scripts:ro                       # Update scripts (read-only)
 ```
 
 These are already configured in the default docker-compose files.
+
+**Security Note**: All mounts are configured as read-only (:ro) to minimize security risks.
 
 ### Version Management
 
@@ -100,9 +103,12 @@ These are already configured in the default docker-compose files.
 ### Security Considerations
 
 1. **Docker Socket Access**: The API container has read-only access to the Docker socket
-2. **Script Permissions**: Update scripts are mounted read-only
-3. **Parent Mode Only**: Updates can only be triggered from Parent Mode (PIN protected)
-4. **Automatic Backups**: A backup is created before each update
+2. **Docker Binary**: The Docker binary is mounted read-only from the host
+3. **Script Permissions**: Update scripts are mounted read-only
+4. **Parent Mode Only**: Updates can only be triggered from Parent Mode (PIN protected)
+5. **Automatic Backups**: A backup is created before each update
+6. **Path Validation**: Server validates script paths to prevent command injection
+7. **Version Validation**: Semantic version comparison prevents incorrect version detection
 
 ## Troubleshooting
 
@@ -117,9 +123,27 @@ This message appears if ChoreQuest is not running in a Docker container. The upd
 The API container cannot find the update script.
 
 **Solution**: 
-1. Ensure the `scripts` directory is mounted in docker-compose.yml
-2. Check that `update-internal.sh` exists and is executable
+1. Ensure the `scripts` directory is mounted in docker-compose.yml:
+   ```yaml
+   volumes:
+     - ./scripts:/app/scripts:ro
+   ```
+2. Check that `update-internal.sh` exists and is executable:
+   ```bash
+   ls -la scripts/update-internal.sh
+   chmod +x scripts/update-internal.sh
+   ```
 3. Restart the API container: `docker-compose restart api`
+
+### "Update script is not executable"
+
+The update script exists but doesn't have execute permissions.
+
+**Solution**:
+```bash
+chmod +x scripts/update-internal.sh
+docker-compose restart api
+```
 
 ### "Failed to trigger update"
 
