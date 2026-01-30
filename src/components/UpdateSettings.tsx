@@ -26,6 +26,26 @@ interface GitHubRelease {
   body: string
 }
 
+// Helper function to compare semantic versions
+function compareVersions(v1: string, v2: string): number {
+  // Remove 'v' prefix if present
+  const clean1 = v1.replace(/^v/, '')
+  const clean2 = v2.replace(/^v/, '')
+  
+  const parts1 = clean1.split('.').map(Number)
+  const parts2 = clean2.split('.').map(Number)
+  
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0
+    const p2 = parts2[i] || 0
+    
+    if (p1 > p2) return 1
+    if (p1 < p2) return -1
+  }
+  
+  return 0
+}
+
 export function UpdateSettings() {
   const [isChecking, setIsChecking] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -40,25 +60,35 @@ export function UpdateSettings() {
     try {
       const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
       
+      if (response.status === 404) {
+        throw new Error('No releases found for this repository')
+      }
+      
+      if (response.status === 403) {
+        throw new Error('GitHub API rate limit exceeded. Please try again later.')
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to check for updates')
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
       }
       
       const release: GitHubRelease = await response.json()
       setLatestRelease(release)
       
-      const latestVersion = release.tag_name.replace(/^v/, '')
-      const currentVersion = CURRENT_VERSION.replace(/^v/, '')
+      const comparison = compareVersions(release.tag_name, CURRENT_VERSION)
       
-      if (latestVersion !== currentVersion) {
+      if (comparison > 0) {
         toast.success(`New version available: ${release.tag_name}`)
-      } else {
+      } else if (comparison === 0) {
         toast.info('You are running the latest version')
+      } else {
+        toast.info(`You are running a newer version than the latest release`)
       }
     } catch (error) {
       console.error('Error checking for updates:', error)
-      setCheckError(error instanceof Error ? error.message : 'Failed to check for updates')
-      toast.error('Failed to check for updates')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to check for updates'
+      setCheckError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsChecking(false)
     }
@@ -68,7 +98,6 @@ export function UpdateSettings() {
     setIsUpdating(true)
     
     try {
-      // Check if we're running in Docker
       const response = await fetch('/api/update', {
         method: 'POST',
         headers: {
@@ -76,34 +105,45 @@ export function UpdateSettings() {
         },
       })
       
-      if (!response.ok) {
-        throw new Error('Failed to trigger update')
+      let result
+      try {
+        result = await response.json()
+      } catch {
+        throw new Error('Invalid response from server')
       }
       
-      const result = await response.json()
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error(result.message || 'Update is only available when running in Docker')
+        } else if (response.status === 500) {
+          throw new Error(result.message || 'Update script not found or failed to execute')
+        } else {
+          throw new Error(result.message || `Server error: ${response.status}`)
+        }
+      }
       
       if (result.success) {
         toast.success('Update started! The application will restart shortly.')
         
         // Reload the page after a delay to get the new version
+        // Use a longer timeout to allow the update to complete
         setTimeout(() => {
           window.location.reload()
-        }, 10000)
+        }, 20000)
       } else {
         throw new Error(result.message || 'Update failed')
       }
     } catch (error) {
       console.error('Error triggering update:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to trigger update')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to trigger update'
+      toast.error(errorMessage)
       setIsUpdating(false)
     }
   }
 
   const hasNewVersion = () => {
     if (!latestRelease) return false
-    const latestVersion = latestRelease.tag_name.replace(/^v/, '')
-    const currentVersion = CURRENT_VERSION.replace(/^v/, '')
-    return latestVersion !== currentVersion
+    return compareVersions(latestRelease.tag_name, CURRENT_VERSION) > 0
   }
 
   return (

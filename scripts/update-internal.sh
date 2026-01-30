@@ -50,6 +50,7 @@ docker exec ${COMPOSE_PROJECT}-backup-1 /scripts/backup.sh 2>/dev/null || \
 echo ""
 echo "Pulling latest images..."
 # Try to determine which compose file is being used
+COMPOSE_FILE=""
 if docker container inspect ${COMPOSE_PROJECT}-traefik-1 >/dev/null 2>&1 || \
    docker container inspect ${COMPOSE_PROJECT}_traefik_1 >/dev/null 2>&1; then
     COMPOSE_FILE="docker-compose.traefik.yml"
@@ -63,13 +64,25 @@ fi
 echo "Using compose file: $COMPOSE_FILE"
 echo ""
 
+# Validate that the compose file exists (it should be in the project directory)
+# Since we're running in a container, we need to check on the host via Docker
+# We'll check if the main service is defined
+if ! docker compose -p ${COMPOSE_PROJECT} config >/dev/null 2>&1; then
+    echo "ERROR: Could not validate compose configuration"
+    echo "The compose file may not be accessible or valid"
+    exit 1
+fi
+
+echo "Compose configuration validated"
+echo ""
+
 # Pull the latest images
-docker compose -f $COMPOSE_FILE pull
+docker compose -p ${COMPOSE_PROJECT} pull
 
 echo ""
 echo "Recreating containers..."
 # Recreate containers with new images
-docker compose -f $COMPOSE_FILE up -d --force-recreate --remove-orphans
+docker compose -p ${COMPOSE_PROJECT} up -d --force-recreate --remove-orphans
 
 echo ""
 echo "Cleaning up old images..."

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
 
 const execAsync = promisify(exec);
 const router = Router();
@@ -18,11 +19,19 @@ router.post('/update', async (req, res) => {
       });
     }
 
-    // Check if the update script exists
-    const scriptPath = '/app/scripts/update-internal.sh';
+    // Use absolute path and validate it exists
+    const scriptPath = path.resolve('/app/scripts/update-internal.sh');
+    
+    // Ensure the path is within expected directory
+    if (!scriptPath.startsWith('/app/scripts/')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Invalid script path'
+      });
+    }
     
     try {
-      await execAsync(`test -f ${scriptPath}`);
+      await execAsync(`test -f "${scriptPath}"`);
     } catch {
       return res.status(500).json({
         success: false,
@@ -30,9 +39,19 @@ router.post('/update', async (req, res) => {
       });
     }
 
+    // Verify script is executable
+    try {
+      await execAsync(`test -x "${scriptPath}"`);
+    } catch {
+      return res.status(500).json({
+        success: false,
+        message: 'Update script is not executable'
+      });
+    }
+
     // Execute the update script in the background
     // We need to detach the process so it continues after the API returns
-    exec(`${scriptPath} > /tmp/update.log 2>&1 &`, (error) => {
+    exec(`"${scriptPath}" > /tmp/update.log 2>&1 &`, (error) => {
       if (error) {
         console.error('Error starting update:', error);
       }
@@ -46,7 +65,7 @@ router.post('/update', async (req, res) => {
     console.error('Error triggering update:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to trigger update'
+      message: error instanceof Error ? error.message : 'Failed to trigger update'
     });
   }
 });
@@ -54,14 +73,14 @@ router.post('/update', async (req, res) => {
 // Helper function to check if running in Docker
 async function checkIfDocker(): Promise<boolean> {
   try {
-    // Check for .dockerenv file
+    // Check for .dockerenv file (most reliable indicator)
     await execAsync('test -f /.dockerenv');
     return true;
   } catch {
     try {
-      // Check /proc/1/cgroup for docker
-      const { stdout } = await execAsync('cat /proc/1/cgroup | grep -q docker');
-      return true;
+      // Check /proc/1/cgroup for docker/containerd
+      const { stdout } = await execAsync('cat /proc/1/cgroup 2>/dev/null || echo ""');
+      return stdout.includes('docker') || stdout.includes('containerd');
     } catch {
       return false;
     }
