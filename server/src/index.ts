@@ -37,10 +37,7 @@ const limiter = rateLimit({
   // The app makes many simultaneous KV requests on initialization
   skip: (req) => {
     // Skip rate limiting for KV GET requests (reading data on load)
-    if (req.method === 'GET' && req.path.startsWith('/api/kv/')) {
-      return true;
-    }
-    return false;
+    return req.method === 'GET' && req.path.startsWith('/api/kv');
   },
 });
 
