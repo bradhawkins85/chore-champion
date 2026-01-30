@@ -38,6 +38,11 @@ async function checkApiAvailability(): Promise<boolean> {
  * It does not validate the structure or properties of complex types.
  */
 function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
+  // If loadedValue is null or undefined, return defaultValue
+  if (loadedValue === null || loadedValue === undefined) {
+    return defaultValue;
+  }
+  
   // If defaultValue is an array, ensure loadedValue is also an array
   if (Array.isArray(defaultValue)) {
     return (Array.isArray(loadedValue) ? loadedValue : defaultValue) as T;
@@ -51,9 +56,8 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
     return (isValidObject ? loadedValue : defaultValue) as T;
   }
   
-  // For primitive types (including null), accept loaded value if it's not undefined
-  // This allows null to be overridden by stored values
-  return (loadedValue !== undefined ? loadedValue : defaultValue) as T;
+  // For primitive types, accept loaded value if it matches the type
+  return loadedValue as T;
 }
 
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
