@@ -30,6 +30,32 @@ async function checkApiAvailability(): Promise<boolean> {
   }
 }
 
+/**
+ * Validates that a loaded value matches the expected type based on the default value.
+ * This prevents corrupted data from causing runtime errors.
+ * 
+ * Note: This performs shallow type checking (array vs object vs primitive).
+ * It does not validate the structure or properties of complex types.
+ */
+function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
+  // If defaultValue is an array, ensure loadedValue is also an array
+  if (Array.isArray(defaultValue)) {
+    return (Array.isArray(loadedValue) ? loadedValue : defaultValue) as T;
+  }
+  
+  // If defaultValue is an object (but not null), ensure loadedValue is also an object (but not an array)
+  if (typeof defaultValue === 'object' && defaultValue !== null) {
+    const isValidObject = typeof loadedValue === 'object' && 
+                          loadedValue !== null && 
+                          !Array.isArray(loadedValue);
+    return (isValidObject ? loadedValue : defaultValue) as T;
+  }
+  
+  // For primitive types (including null), accept loaded value if it's not undefined
+  // This allows null to be overridden by stored values
+  return (loadedValue !== undefined ? loadedValue : defaultValue) as T;
+}
+
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
@@ -55,7 +81,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           if (response.ok) {
             const data = await response.json();
             if (mounted) {
-              setValue(data.value);
+              setValue(validateLoadedValue(data.value, defaultValue));
             }
           } else if (response.status === 404) {
             // Key not found, use default
@@ -69,7 +95,8 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           const stored = localStorage.getItem(key);
           if (stored && mounted) {
             try {
-              setValue(JSON.parse(stored));
+              const parsedValue = JSON.parse(stored);
+              setValue(validateLoadedValue(parsedValue, defaultValue));
             } catch {
               setValue(defaultValue);
             }
@@ -80,7 +107,8 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
         const stored = localStorage.getItem(key);
         if (stored && mounted) {
           try {
-            setValue(JSON.parse(stored));
+            const parsedValue = JSON.parse(stored);
+            setValue(validateLoadedValue(parsedValue, defaultValue));
           } catch {
             setValue(defaultValue);
           }
