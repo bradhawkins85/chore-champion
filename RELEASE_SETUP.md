@@ -73,6 +73,22 @@ Or after pushing the tag, go to the GitHub web interface and create a release fr
 
 After creating the release, verify that the update checker works:
 
+### Method 1: Using the Verification Script (Recommended)
+
+Run the automated release status checker:
+
+```bash
+./scripts/check-release-status.sh
+```
+
+This script will:
+- Check GitHub API connectivity
+- Verify the release exists
+- Compare versions
+- Provide clear status and next steps
+
+### Method 2: Manual Verification via Web Interface
+
 1. **Open ChoreQuest** in your browser
 2. **Enter Parent Mode** (using your PIN)
 3. **Go to Settings** tab
