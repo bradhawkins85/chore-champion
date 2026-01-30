@@ -42,7 +42,7 @@ This is the easiest method and requires no command-line tools.
 - PWA support for mobile devices
 
 ## Installation
-See the [README](https://github.com/bradhawkins85/chore-champion/blob/main/README.md) for installation instructions.
+See the [README](../README.md) for installation instructions.
 ```
 
 3. **Verify the release**
@@ -78,6 +78,9 @@ After creating the release, verify that the update checker works:
 Run the automated release status checker:
 
 ```bash
+# If you get a permission denied error, make the script executable first:
+# chmod +x ./scripts/check-release-status.sh
+
 ./scripts/check-release-status.sh
 ```
 
@@ -96,11 +99,13 @@ This script will:
 5. **Click "Check for Updates"**
 
 You should now see:
-- ✅ Current Version: 1.0.0
+- ✅ Current Version: v1.0.0
 - ✅ Latest Version: v1.0.0
 - ✅ "You're running the latest version" message
 
 Instead of the previous error: "No releases found for this repository"
+
+**Note:** The current version is displayed as shown in the code (1.0.0), while the release tag includes the 'v' prefix (v1.0.0). Both formats are correct.
 
 ## What Happens After Creating the Release
 
@@ -144,9 +149,11 @@ Follow semantic versioning:
 
 ### Update checker shows "GitHub API rate limit exceeded"
 
-- GitHub API has rate limits for unauthenticated requests
-- Wait an hour and try again
+- GitHub API has rate limits for unauthenticated requests (60 per hour)
+- The rate limit resets one hour after your first request
+- Wait up to an hour from your first request and try again
 - This is normal behavior and doesn't indicate a problem
+- To avoid rate limits, you can authenticate GitHub API requests (see GitHub documentation)
 
 ### Docker images aren't building automatically
 
