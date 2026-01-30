@@ -56,8 +56,13 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
     return (isValidObject ? loadedValue : defaultValue) as T;
   }
   
-  // For primitive types, accept loaded value if it matches the type
-  return loadedValue as T;
+  // For primitive types, validate type matches
+  if (typeof loadedValue === typeof defaultValue) {
+    return loadedValue as T;
+  }
+  
+  // Type mismatch - return default value
+  return defaultValue;
 }
 
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
