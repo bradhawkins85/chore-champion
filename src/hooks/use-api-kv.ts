@@ -62,8 +62,8 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
               if (Array.isArray(defaultValue)) {
                 setValue((Array.isArray(loadedValue) ? loadedValue : defaultValue) as T);
               } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-                // If defaultValue is an object, ensure loadedValue is also an object
-                setValue((typeof loadedValue === 'object' && loadedValue !== null ? loadedValue : defaultValue) as T);
+                // If defaultValue is an object, ensure loadedValue is also an object and not an array
+                setValue((typeof loadedValue === 'object' && loadedValue !== null && !Array.isArray(loadedValue) ? loadedValue : defaultValue) as T);
               } else {
                 setValue((loadedValue !== undefined && loadedValue !== null ? loadedValue : defaultValue) as T);
               }
@@ -86,7 +86,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
               if (Array.isArray(defaultValue)) {
                 setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
               } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-                setValue((typeof parsedValue === 'object' && parsedValue !== null ? parsedValue : defaultValue) as T);
+                setValue((typeof parsedValue === 'object' && parsedValue !== null && !Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
               } else {
                 setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
               }
@@ -106,7 +106,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
             if (Array.isArray(defaultValue)) {
               setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
             } else if (typeof defaultValue === 'object' && defaultValue !== null) {
-              setValue((typeof parsedValue === 'object' && parsedValue !== null ? parsedValue : defaultValue) as T);
+              setValue((typeof parsedValue === 'object' && parsedValue !== null && !Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
             } else {
               setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
             }
