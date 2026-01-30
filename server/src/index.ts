@@ -29,10 +29,19 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting configuration - applied AFTER body parser
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased from 100 to 500 to handle multiple simultaneous requests on page load
+  max: 5000, // Significantly increased to handle many KV stores loading on page initialization (26+ useKV hooks)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip rate limiting for KV endpoints to prevent 429 errors during page load
+  // The app makes many simultaneous KV requests on initialization
+  skip: (req) => {
+    // Skip rate limiting for KV GET requests (reading data on load)
+    if (req.method === 'GET' && req.path.startsWith('/api/kv/')) {
+      return true;
+    }
+    return false;
+  },
 });
 
 // Apply rate limiting to all API routes
