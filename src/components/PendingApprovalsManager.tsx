@@ -40,6 +40,9 @@ export function PendingApprovalsManager({
   const [selectedCompletion, setSelectedCompletion] = useState<ChoreCompletion | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
+  // Ensure pendingDigestItems is always an array
+  const digestItems = Array.isArray(pendingDigestItems) ? pendingDigestItems : []
+
   const pendingCompletions = completions
     .filter((c) => c.approvalStatus === 'pending')
     .sort((a, b) => a.completedAt - b.completedAt)
@@ -97,7 +100,7 @@ export function PendingApprovalsManager({
   if (pendingCompletions.length === 0) {
     return (
       <>
-        {emailAlertSettings.digestMode !== 'immediate' && pendingDigestItems.length > 0 && (
+        {emailAlertSettings.digestMode !== 'immediate' && digestItems.length > 0 && (
           <Card className="mb-4 border-primary/50 bg-primary/5">
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
@@ -105,7 +108,7 @@ export function PendingApprovalsManager({
                   <Clock className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">
-                      {pendingDigestItems.length} approval{pendingDigestItems.length > 1 ? 's' : ''} queued for digest
+                      {digestItems.length} approval{digestItems.length > 1 ? 's' : ''} queued for digest
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Digest mode: {getDigestModeLabel(emailAlertSettings.digestMode)}
@@ -137,7 +140,7 @@ export function PendingApprovalsManager({
 
   return (
     <>
-      {emailAlertSettings.digestMode !== 'immediate' && pendingDigestItems.length > 0 && (
+      {emailAlertSettings.digestMode !== 'immediate' && digestItems.length > 0 && (
         <Card className="mb-4 border-primary/50 bg-primary/5">
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
@@ -145,7 +148,7 @@ export function PendingApprovalsManager({
                 <Clock className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">
-                    {pendingDigestItems.length} approval{pendingDigestItems.length > 1 ? 's' : ''} queued for digest
+                    {digestItems.length} approval{digestItems.length > 1 ? 's' : ''} queued for digest
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Digest mode: {getDigestModeLabel(emailAlertSettings.digestMode)}
