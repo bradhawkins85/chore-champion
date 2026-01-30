@@ -2,6 +2,8 @@
 
 ChoreQuest now includes MySQL database backend support for persistent data storage when deployed in Docker.
 
+> **📘 Database Creation**: For details on how the MySQL database is automatically created during deployment, see [MYSQL_DATABASE_CREATION.md](MYSQL_DATABASE_CREATION.md).
+
 ## Features
 
 - **Persistent Storage**: All application data is stored in MySQL instead of browser localStorage
