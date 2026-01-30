@@ -22,6 +22,7 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+app.use(bodyParser.text({ type: 'text/plain', limit: '10mb' })); // For Spark runtime KV requests
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
