@@ -55,7 +55,18 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           if (response.ok) {
             const data = await response.json();
             if (mounted) {
-              setValue(data.value);
+              // Validate that loaded value matches expected type
+              const loadedValue = data.value;
+              
+              // If defaultValue is an array, ensure loadedValue is also an array
+              if (Array.isArray(defaultValue)) {
+                setValue((Array.isArray(loadedValue) ? loadedValue : defaultValue) as T);
+              } else if (typeof defaultValue === 'object' && defaultValue !== null) {
+                // If defaultValue is an object, ensure loadedValue is also an object
+                setValue((typeof loadedValue === 'object' && loadedValue !== null ? loadedValue : defaultValue) as T);
+              } else {
+                setValue((loadedValue !== undefined && loadedValue !== null ? loadedValue : defaultValue) as T);
+              }
             }
           } else if (response.status === 404) {
             // Key not found, use default
@@ -69,7 +80,16 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
           const stored = localStorage.getItem(key);
           if (stored && mounted) {
             try {
-              setValue(JSON.parse(stored));
+              const parsedValue = JSON.parse(stored);
+              
+              // Validate that loaded value matches expected type
+              if (Array.isArray(defaultValue)) {
+                setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
+              } else if (typeof defaultValue === 'object' && defaultValue !== null) {
+                setValue((typeof parsedValue === 'object' && parsedValue !== null ? parsedValue : defaultValue) as T);
+              } else {
+                setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
+              }
             } catch {
               setValue(defaultValue);
             }
@@ -80,7 +100,16 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
         const stored = localStorage.getItem(key);
         if (stored && mounted) {
           try {
-            setValue(JSON.parse(stored));
+            const parsedValue = JSON.parse(stored);
+            
+            // Validate that loaded value matches expected type
+            if (Array.isArray(defaultValue)) {
+              setValue((Array.isArray(parsedValue) ? parsedValue : defaultValue) as T);
+            } else if (typeof defaultValue === 'object' && defaultValue !== null) {
+              setValue((typeof parsedValue === 'object' && parsedValue !== null ? parsedValue : defaultValue) as T);
+            } else {
+              setValue((parsedValue !== undefined && parsedValue !== null ? parsedValue : defaultValue) as T);
+            }
           } catch {
             setValue(defaultValue);
           }
