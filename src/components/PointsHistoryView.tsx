@@ -93,7 +93,7 @@ export function PointsHistoryView({
         const chore = choresMap.get(completion.choreId)
         if (!chore) return
 
-        chore.categoryIds.forEach((categoryId) => {
+        ;(chore.categoryIds || []).forEach((categoryId) => {
           const assignment = assignments.find(
             (a) => a.childId === child.id && a.choreId === completion.choreId
           )
@@ -132,7 +132,7 @@ export function PointsHistoryView({
         const reward = rewardsMap.get(purchase.rewardId)
         if (!reward) return
 
-        reward.categoryIds.forEach((categoryId) => {
+        ;(reward.categoryIds || []).forEach((categoryId) => {
           const override = reward.costOverrides?.find((o) => o.childId === child.id)
           const cost = override ? override.cost : reward.cost
 
@@ -183,7 +183,7 @@ export function PointsHistoryView({
         .filter((c) => c.childId === child.id && isCompletionApproved(c) && c.completedAt < expiryStartTime)
         .forEach((completion) => {
           const chore = choresMap.get(completion.choreId)
-          if (!chore || !chore.categoryIds.includes(category.id)) return
+          if (!chore || !(chore.categoryIds || []).includes(category.id)) return
 
           const assignment = assignments.find(
             (a) => a.childId === child.id && a.choreId === completion.choreId

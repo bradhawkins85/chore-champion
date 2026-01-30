@@ -118,7 +118,7 @@ export function ActivityView({
         const chore = choresMap.get(completion.choreId)
         if (!chore) return
 
-        chore.categoryIds.forEach((categoryId) => {
+        ;(chore.categoryIds || []).forEach((categoryId) => {
           const assignment = assignments.find(
             (a) => a.childId === completion.childId && a.choreId === completion.choreId
           )
@@ -155,7 +155,7 @@ export function ActivityView({
       const reward = rewardsMap.get(purchase.rewardId)
       if (!reward) return
 
-      reward.categoryIds.forEach((categoryId) => {
+      ;(reward.categoryIds || []).forEach((categoryId) => {
         const override = reward.costOverrides?.find((o) => o.childId === purchase.childId)
         const cost = override ? override.cost : reward.cost
 
@@ -207,7 +207,7 @@ export function ActivityView({
         .filter((c) => isCompletionApproved(c) && c.completedAt < expiryStartTime)
         .forEach((completion) => {
           const chore = choresMap.get(completion.choreId)
-          if (!chore || !chore.categoryIds.includes(category.id)) return
+          if (!chore || !(chore.categoryIds || []).includes(category.id)) return
 
           const assignment = assignments.find(
             (a) => a.childId === completion.childId && a.choreId === completion.choreId
