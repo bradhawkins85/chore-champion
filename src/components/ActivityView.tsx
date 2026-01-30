@@ -207,7 +207,7 @@ export function ActivityView({
         .filter((c) => isCompletionApproved(c) && c.completedAt < expiryStartTime)
         .forEach((completion) => {
           const chore = choresMap.get(completion.choreId)
-          if (!chore || !chore.categoryIds.includes(category.id)) return
+          if (!chore || !(chore.categoryIds || []).includes(category.id)) return
 
           const assignment = assignments.find(
             (a) => a.childId === completion.childId && a.choreId === completion.choreId

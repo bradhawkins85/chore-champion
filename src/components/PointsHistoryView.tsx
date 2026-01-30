@@ -183,7 +183,7 @@ export function PointsHistoryView({
         .filter((c) => c.childId === child.id && isCompletionApproved(c) && c.completedAt < expiryStartTime)
         .forEach((completion) => {
           const chore = choresMap.get(completion.choreId)
-          if (!chore || !chore.categoryIds.includes(category.id)) return
+          if (!chore || !(chore.categoryIds || []).includes(category.id)) return
 
           const assignment = assignments.find(
             (a) => a.childId === child.id && a.choreId === completion.choreId
