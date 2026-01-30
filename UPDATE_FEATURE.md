@@ -4,6 +4,12 @@
 
 ChoreQuest includes a built-in update feature that allows administrators to check for and install the latest version directly from the Parent Dashboard, without needing SSH access or command-line tools.
 
+> **⚠️ IMPORTANT - First-Time Setup Required**
+>
+> If you're seeing the error **"No releases found for this repository"** when checking for updates, you need to create the initial v1.0.0 release on GitHub first. This is a one-time setup.
+>
+> **→ See [RELEASE_SETUP.md](./RELEASE_SETUP.md) for step-by-step instructions.**
+
 ## Features
 
 - **Check for Updates**: Query GitHub for the latest release version
@@ -21,6 +27,7 @@ For the update feature to work, your ChoreQuest deployment must:
 2. **Use Docker Compose**: Must be deployed using docker-compose.yml
 3. **Mount Docker Socket**: The API container needs access to the Docker socket
 4. **Mount Scripts Directory**: Update scripts must be accessible to the API container
+5. **Have GitHub Releases**: At least one release must be published on GitHub ([setup guide](./RELEASE_SETUP.md))
 
 These requirements are automatically met if you deployed using:
 - `docker-compose.yml` (development)
@@ -111,6 +118,18 @@ These are already configured in the default docker-compose files.
 7. **Version Validation**: Semantic version comparison prevents incorrect version detection
 
 ## Troubleshooting
+
+### "No releases found for this repository" ⚠️
+
+**This is the most common error for first-time users.**
+
+The update checker cannot find any releases on GitHub because none have been published yet. This is expected for new installations.
+
+**Solution**: Create the initial v1.0.0 release on GitHub. This is a one-time setup:
+
+1. **Quick Fix**: See [RELEASE_SETUP.md](./RELEASE_SETUP.md) for detailed step-by-step instructions
+2. **Summary**: Go to https://github.com/bradhawkins85/chore-champion/releases and create a new release with tag `v1.0.0`
+3. **Verification**: After creating the release, the update checker will work immediately
 
 ### "Update is only available when running in Docker"
 
