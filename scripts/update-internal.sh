@@ -9,8 +9,17 @@ echo "ChoreQuest Update Triggered from Container"
 echo "==========================================="
 echo ""
 
-# This script will use Docker socket to trigger an update
-# The actual update will be performed by docker-compose on the host
+# Check if docker command is available
+if ! command -v docker &> /dev/null; then
+    echo "ERROR: Docker CLI not found in container"
+    echo "The update feature requires Docker CLI to be available."
+    echo ""
+    echo "Possible solutions:"
+    echo "  1. Use the manual update method from the host:"
+    echo "     make update"
+    echo "  2. Install Docker CLI in the API container"
+    exit 1
+fi
 
 # Check if we have access to docker socket
 if [ ! -S /var/run/docker.sock ]; then
@@ -25,6 +34,7 @@ COMPOSE_PROJECT=$(docker inspect --format='{{index .Config.Labels "com.docker.co
 
 if [ -z "$COMPOSE_PROJECT" ]; then
     echo "ERROR: Could not determine compose project name"
+    echo "This container may not be running via Docker Compose"
     exit 1
 fi
 
