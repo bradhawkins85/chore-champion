@@ -85,6 +85,13 @@
 - Weather-appropriate chore suggestions
 - Seasonal theme color schemes
 
+### 🔄 System Management
+- **Built-in Update Feature**: Check for and install updates from the dashboard
+- One-click update process with automatic backup
+- Version checking via GitHub releases
+- Manual update options via CLI
+- Docker-based deployment with persistent storage
+
 ---
 
 ## 🚀 Installation
@@ -556,6 +563,28 @@ Connect external calendars for each child:
 3. Set auto-refresh interval
 4. Enable/disable event time display
 5. Events will appear in "On This Day" and Calendar view
+
+### Software Updates
+
+ChoreQuest includes a built-in update feature accessible from the Parent Dashboard:
+
+1. Navigate to Parent Mode > Settings > Software Updates
+2. Click "Check for Updates" to see if a new version is available
+3. Click "Update Now" to automatically update to the latest release
+4. The application will create a backup and restart with the new version
+
+**Features:**
+- One-click updates from the dashboard
+- Automatic backup before updating
+- Version comparison with GitHub releases
+- No SSH or command-line access required
+
+For more details, see [UPDATE_FEATURE.md](./UPDATE_FEATURE.md).
+
+Alternatively, you can update manually from the command line:
+```bash
+make update  # or ./scripts/update.sh
+```
 
 ---
 
