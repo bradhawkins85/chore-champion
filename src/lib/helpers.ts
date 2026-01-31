@@ -1219,7 +1219,8 @@ export function areAllCategoryChoresCompleted(
 ): boolean {
   const categoryChores = getAllChoresInCategoryForChild(childId, categoryId, assignments, choresMap)
   
-  if (categoryChores.length === 0) return false
+  // If there are no chores in this category for this child, consider it completed (vacuously true)
+  if (categoryChores.length === 0) return true
 
   return categoryChores.every(({ chore, timeOfDay }) => {
     if (chore.completionType === 'once-per-day') {
