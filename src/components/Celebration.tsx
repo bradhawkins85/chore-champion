@@ -283,7 +283,13 @@ export function ChoreCompletionCelebration({
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0, opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+      className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+      }}
     >
       <motion.div
         initial={{ scale: 0.5 }}

@@ -58,7 +58,7 @@ export function WelcomePage({ currentIP, onPinSubmit }: WelcomePageProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl">
         <div className="text-center mb-12">
           <h1 className="text-6xl font-fredoka font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
