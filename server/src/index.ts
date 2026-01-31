@@ -23,14 +23,14 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-app.use(bodyParser.text({ type: 'text/plain', limit: '10mb' })); // For Spark runtime KV requests
+app.use(bodyParser.text({ type: 'text/plain', limit: '10mb' })); // For legacy Spark runtime KV requests (backward compatibility)
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting configuration - applied AFTER body parser
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Significantly increased to handle many KV stores loading on page initialization (26+ useKV hooks)
+  max: 5000, // Significantly increased to handle many KV stores loading on page initialization (26+ useApiKV hooks)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers

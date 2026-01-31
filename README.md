@@ -599,7 +599,7 @@ make update  # or ./scripts/update.sh
 - **Styling:** Tailwind CSS v4
 - **Icons:** Phosphor Icons
 - **Animations:** Framer Motion
-- **State Management:** React Hooks + useKV (Spark SDK)
+- **State Management:** React Hooks + useApiKV (MySQL backend)
 - **Date Handling:** date-fns
 - **Charts:** Recharts
 - **Build Tool:** Vite
