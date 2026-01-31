@@ -1,5 +1,8 @@
 import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion } from './types'
 
+// Epoch date for bi-weekly period calculations (January 1, 2024 - a Monday)
+const BI_WEEKLY_EPOCH = new Date('2024-01-01T00:00:00Z').getTime()
+
 export function isCompletionApproved(completion: ChoreCompletion): boolean {
   if (!completion.approvalStatus) return true
   return completion.approvalStatus === 'approved'
@@ -218,20 +221,114 @@ export function isChoreCompletedByAnyChildToday(
   )
 }
 
+/**
+ * Calculate the start time of the current reset period based on the reset period type
+ * @param resetPeriod - The reset period ('daily', 'weekly', 'bi-weekly', 'monthly'). Defaults to 'daily'
+ * @returns Timestamp of the start of the current reset period
+ */
+export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
+  const now = new Date()
+  const periodStart = new Date(now)
+  
+  if (!resetPeriod || resetPeriod === 'daily') {
+    // Reset at midnight (start of current day)
+    periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'weekly') {
+    // Reset at midnight on Monday (start of week)
+    const dayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Monday = 0 days to subtract
+    periodStart.setDate(now.getDate() - daysToSubtract)
+    periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'bi-weekly') {
+    // Reset at midnight on Monday every 2 weeks
+    // Use fixed epoch to calculate bi-weekly periods
+    const dayOfWeek = now.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisMonday = new Date(now)
+    thisMonday.setDate(now.getDate() - daysToSubtract)
+    thisMonday.setHours(0, 0, 0, 0)
+    
+    // Calculate how many weeks since epoch
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - BI_WEEKLY_EPOCH) / (7 * 24 * 60 * 60 * 1000))
+    const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
+    
+    // Get the start of this bi-weekly period
+    periodStart.setTime(BI_WEEKLY_EPOCH + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
+  } else if (resetPeriod === 'monthly') {
+    // Reset at midnight on the 1st of the month
+    periodStart.setDate(1)
+    periodStart.setHours(0, 0, 0, 0)
+  }
+  
+  return periodStart.getTime()
+}
+
+/**
+ * Calculate the start time of the reset period for a specific date
+ * Used for historical calculations (e.g., expired points)
+ */
+function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
+  const periodStart = new Date(date)
+  
+  if (!resetPeriod || resetPeriod === 'daily') {
+    periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'weekly') {
+    const dayOfWeek = date.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    periodStart.setDate(date.getDate() - daysToSubtract)
+    periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'bi-weekly') {
+    const dayOfWeek = date.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisMonday = new Date(date)
+    thisMonday.setDate(date.getDate() - daysToSubtract)
+    thisMonday.setHours(0, 0, 0, 0)
+    
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - BI_WEEKLY_EPOCH) / (7 * 24 * 60 * 60 * 1000))
+    const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
+    
+    periodStart.setTime(BI_WEEKLY_EPOCH + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
+  } else if (resetPeriod === 'monthly') {
+    periodStart.setDate(1)
+    periodStart.setHours(0, 0, 0, 0)
+  }
+  
+  return periodStart.getTime()
+}
+
+/**
+ * Calculate the start of the next reset period given a period start time
+ */
+function getNextResetPeriodStart(periodStart: number, resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
+  const nextPeriod = new Date(periodStart)
+  
+  if (!resetPeriod || resetPeriod === 'daily') {
+    nextPeriod.setDate(nextPeriod.getDate() + 1)
+  } else if (resetPeriod === 'weekly') {
+    nextPeriod.setDate(nextPeriod.getDate() + 7)
+  } else if (resetPeriod === 'bi-weekly') {
+    nextPeriod.setDate(nextPeriod.getDate() + 14)
+  } else if (resetPeriod === 'monthly') {
+    nextPeriod.setMonth(nextPeriod.getMonth() + 1)
+  }
+  
+  return nextPeriod.getTime()
+}
+
 export function getShareableChoreCompletionCount(
   completions: ChoreCompletion[],
   choreId: string,
-  timeOfDay?: 'am' | 'pm'
+  timeOfDay?: 'am' | 'pm',
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): number {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const periodStart = getResetPeriodStart(resetPeriod)
   
   const uniqueChildren = new Set<string>()
   
   completions.forEach((c) => {
     if (
       c.choreId === choreId &&
-      c.completedAt >= today.getTime() &&
+      c.completedAt >= periodStart &&
       (!timeOfDay || c.timeOfDay === timeOfDay) &&
       isCompletionApproved(c)
     ) {
@@ -246,25 +343,26 @@ export function isShareableChoreFullyCompleted(
   completions: ChoreCompletion[],
   choreId: string,
   maxCompletions: number,
-  timeOfDay?: 'am' | 'pm'
+  timeOfDay?: 'am' | 'pm',
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): boolean {
-  return getShareableChoreCompletionCount(completions, choreId, timeOfDay) >= maxCompletions
+  return getShareableChoreCompletionCount(completions, choreId, timeOfDay, resetPeriod) >= maxCompletions
 }
 
 export function hasChildCompletedShareableChore(
   completions: ChoreCompletion[],
   choreId: string,
   childId: string,
-  timeOfDay?: 'am' | 'pm'
+  timeOfDay?: 'am' | 'pm',
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): boolean {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const periodStart = getResetPeriodStart(resetPeriod)
   
   return completions.some(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
-      c.completedAt >= today.getTime() &&
+      c.completedAt >= periodStart &&
       (!timeOfDay || c.timeOfDay === timeOfDay) &&
       isCompletionApproved(c)
   )
@@ -509,7 +607,7 @@ export function isRewardAvailableForChild(
 
 export function getChildTotalPoints(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number; completionType?: string }>,
+  choresMap: Map<string, { points: number; completionType?: string; resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' }>,
   childId: string,
   assignments?: ChoreAssignment[]
 ): number {
@@ -525,16 +623,15 @@ export function getChildTotalPoints(
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
         if (assignedChildren > 1) {
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          const completionsToday = completions.filter(comp => 
+          const periodStart = getResetPeriodStart(chore.resetPeriod)
+          const completionsInPeriod = completions.filter(comp => 
             comp.choreId === c.choreId && 
-            comp.completedAt >= today.getTime() &&
+            comp.completedAt >= periodStart &&
             (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
             isCompletionApproved(comp)
           )
           
-          const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
+          const childrenWhoCompleted = new Set(completionsInPeriod.map(comp => comp.childId)).size
           if (childrenWhoCompleted > 0) {
             return sum + (chorePoints / childrenWhoCompleted)
           }
@@ -735,9 +832,10 @@ export function formatTime12Hour(time24: string): string {
 
 export function getChildPointsByCategory(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { 
+  choresMap: Map<string, {
     points: number
     completionType?: string
+    resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
     categoryIds: string[]
     categoryPoints?: { categoryId: string; points: number }[]
   }>,
@@ -759,16 +857,15 @@ export function getChildPointsByCategory(
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
         if (assignedChildren > 1) {
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          const completionsToday = completions.filter(comp => 
+          const periodStart = getResetPeriodStart(chore.resetPeriod)
+          const completionsInPeriod = completions.filter(comp => 
             comp.choreId === c.choreId && 
-            comp.completedAt >= today.getTime() &&
+            comp.completedAt >= periodStart &&
             (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
             isCompletionApproved(comp)
           )
           
-          const childrenWhoCompleted = new Set(completionsToday.map(comp => comp.childId)).size
+          const childrenWhoCompleted = new Set(completionsInPeriod.map(comp => comp.childId)).size
           if (childrenWhoCompleted > 0) {
             return sum + (chorePoints / childrenWhoCompleted)
           }
@@ -1209,6 +1306,7 @@ export function getExpiredPointsByCategory(
   choresMap: Map<string, { 
     points: number
     completionType?: string
+    resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
     categoryIds: string[]
     categoryPoints?: { categoryId: string; points: number }[]
   }>,
@@ -1236,20 +1334,18 @@ export function getExpiredPointsByCategory(
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
         if (assignedChildren > 1) {
-          const completionDay = new Date(c.completedAt)
-          completionDay.setHours(0, 0, 0, 0)
-          const completionDayTimestamp = completionDay.getTime()
+          const completionDate = new Date(c.completedAt)
+          const completionPeriodStart = getResetPeriodStartForDate(completionDate, chore.resetPeriod)
           
-          const completionsThatDay = completions.filter(comp => {
-            const compDay = new Date(comp.completedAt)
-            compDay.setHours(0, 0, 0, 0)
+          const completionsInThatPeriod = completions.filter(comp => {
             return comp.choreId === c.choreId && 
-              compDay.getTime() === completionDayTimestamp &&
+              comp.completedAt >= completionPeriodStart &&
+              comp.completedAt < getNextResetPeriodStart(completionPeriodStart, chore.resetPeriod) &&
               (!c.timeOfDay || comp.timeOfDay === c.timeOfDay) &&
               isCompletionApproved(comp)
           })
           
-          const childrenWhoCompleted = new Set(completionsThatDay.map(comp => comp.childId)).size
+          const childrenWhoCompleted = new Set(completionsInThatPeriod.map(comp => comp.childId)).size
           if (childrenWhoCompleted > 0) {
             return sum + (chorePoints / childrenWhoCompleted)
           }
