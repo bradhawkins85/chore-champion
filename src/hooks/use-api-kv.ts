@@ -20,20 +20,13 @@ interface QueuedRequest {
 const requestQueue: QueuedRequest[] = [];
 let activeRequests = 0;
 const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests to avoid overwhelming the server
-let processingQueue = false; // Prevent race conditions in queue processing
 
 // Process queued requests
-async function processQueue() {
-  // Prevent multiple simultaneous processQueue calls
-  if (processingQueue) {
-    return;
-  }
-  
-  processingQueue = true;
-  
-  // Process requests in a loop instead of recursion to avoid stack overflow
+function processQueue() {
+  // Process requests to fill up to MAX_CONCURRENT_REQUESTS slots
   while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
-    const request = requestQueue.shift()!; // Safe because we check length > 0
+    const request = requestQueue.shift();
+    if (!request) break; // Guard against race conditions
 
     activeRequests++;
     
@@ -43,15 +36,12 @@ async function processQueue() {
       .catch((error) => request.reject(error))
       .finally(() => {
         activeRequests--;
-        // Trigger processing of next batch if queue is not empty
-        // Use setTimeout to avoid deep recursion and ensure processingQueue flag is reset
+        // Process next request from queue if available
         if (requestQueue.length > 0) {
-          setTimeout(() => processQueue(), 0);
+          processQueue();
         }
       });
   }
-  
-  processingQueue = false;
 }
 
 // Queue an API request to avoid rate limiting
