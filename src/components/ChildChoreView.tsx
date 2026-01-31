@@ -4,9 +4,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine } from '@phosphor-icons/react'
+import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -292,6 +292,37 @@ export function ChildChoreView({
     }
   }, [childChores, completions, child.id, currentTimeOfDay, categories])
 
+  // Check which chores are locked due to unmet prerequisites
+  const lockedChoresInfo = useMemo(() => {
+    const locked = new Map<string, Category | null>() // Map choreId to blockedByCategory
+    const choresMap = new Map(chores.map(c => [c.id, c]))
+    
+    childChores.forEach((chore) => {
+      const choreCategories = chore.categoryIds || []
+      for (const categoryId of choreCategories) {
+        const prerequisiteMet = isPrerequisiteCategoryCompleted(
+          child.id,
+          categoryId,
+          categories,
+          assignments,
+          choresMap,
+          completions
+        )
+        
+        if (!prerequisiteMet) {
+          const category = categories.find(c => c.id === categoryId)
+          const blockedBy = category?.prerequisiteCategoryId 
+            ? categories.find(c => c.id === category.prerequisiteCategoryId) || null
+            : null
+          locked.set(chore.id, blockedBy)
+          break
+        }
+      }
+    })
+    
+    return locked
+  }, [childChores, child.id, categories, assignments, chores, completions])
+
   const initials = getInitialsFromName(child.name)
 
   const handleComplete = (chore: Chore, assignment: ChoreAssignment, timeOfDay?: 'am' | 'pm') => {
@@ -547,7 +578,11 @@ export function ChildChoreView({
               <div>
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pendingChores.map(({ chore, assignment, timeOfDay }, index) => (
+                  {pendingChores.map(({ chore, assignment, timeOfDay }, index) => {
+                    const isLocked = lockedChoresInfo.has(chore.id)
+                    const blockedByCategory = isLocked ? lockedChoresInfo.get(chore.id) : null
+                    
+                    return (
                     <motion.div
                       key={`${chore.id}-${timeOfDay || 'anytime'}`}
                       initial={{ opacity: 0, x: -20 }}
@@ -555,15 +590,25 @@ export function ChildChoreView({
                       transition={{ delay: index * 0.05 }}
                     >
                       <Card
-                        className="cursor-pointer hover:scale-102 transition-all hover:shadow-xl h-full"
-                        onClick={() => handleComplete(chore, assignment, timeOfDay)}
+                        className={`${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:scale-102'} transition-all hover:shadow-xl h-full`}
+                        onClick={() => !isLocked && handleComplete(chore, assignment, timeOfDay)}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
-                            <motion.div whileTap={{ scale: 0.9 }} className="mt-1">
-                              <Circle className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                            <motion.div whileTap={{ scale: isLocked ? 1 : 0.9 }} className="mt-1">
+                              {isLocked ? (
+                                <Lock className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <Circle className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                              )}
                             </motion.div>
                             <div className="flex-1 min-w-0">
+                              {isLocked && blockedByCategory && (
+                                <Badge variant="secondary" className="mb-2 flex items-center gap-1 w-fit">
+                                  <Lock className="h-3 w-3" />
+                                  Complete {blockedByCategory.name} first
+                                </Badge>
+                              )}
                               <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <h3 className="text-xl font-fredoka font-bold">
                                   {chore.name}
@@ -674,7 +719,7 @@ export function ChildChoreView({
                         </CardContent>
                       </Card>
                     </motion.div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}

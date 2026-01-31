@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye } from '@phosphor-icons/react'
+import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye, Lock } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 
 interface CategoryDialogProps {
   open: boolean
@@ -51,6 +52,7 @@ export function CategoryDialog({
   const [enableExpiry, setEnableExpiry] = useState(false)
   const [expiryInterval, setExpiryInterval] = useState<PointsExpiryInterval>('daily')
   const [showInUpNext, setShowInUpNext] = useState(true)
+  const [prerequisiteCategoryId, setPrerequisiteCategoryId] = useState('')
 
   useEffect(() => {
     if (category) {
@@ -64,6 +66,7 @@ export function CategoryDialog({
       setEnableExpiry(category.pointsExpiry?.enabled || false)
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
       setShowInUpNext(category.showInUpNext !== false)
+      setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
     } else {
       setName('')
       setDescription('')
@@ -75,6 +78,7 @@ export function CategoryDialog({
       setEnableExpiry(false)
       setExpiryInterval('daily')
       setShowInUpNext(true)
+      setPrerequisiteCategoryId('')
     }
   }, [category, open])
 
@@ -87,8 +91,47 @@ export function CategoryDialog({
     }
   }, [enableBonus, bonusTargetCategoryId, allCategories, category])
 
+  // Memoize prerequisite category name lookup
+  const prerequisiteCategoryName = useMemo(() => {
+    if (!prerequisiteCategoryId) return null
+    return allCategories.find(c => c.id === prerequisiteCategoryId)?.name || 'prerequisite'
+  }, [prerequisiteCategoryId, allCategories])
+
+  // Helper to detect circular prerequisite dependencies
+  const wouldCreateCircularDependency = (targetCategoryId: string): boolean => {
+    if (!targetCategoryId || !category) return false
+    
+    // Check if the target category (or any of its prerequisites) points back to this category
+    const visited = new Set<string>()
+    let currentId: string | undefined = targetCategoryId
+    
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId)
+      
+      // If we reach back to the current category, there's a circular dependency
+      if (currentId === category.id) {
+        return true
+      }
+      
+      // Move to the next prerequisite in the chain
+      const currentCategory = allCategories.find(c => c.id === currentId)
+      currentId = currentCategory?.prerequisiteCategoryId
+    }
+    
+    return false
+  }
+
   const handleSave = () => {
     if (!name.trim()) return
+
+    // Check for circular prerequisite dependency
+    if (prerequisiteCategoryId && wouldCreateCircularDependency(prerequisiteCategoryId)) {
+      const prerequisiteCategory = allCategories.find(c => c.id === prerequisiteCategoryId)
+      toast.error('Cannot create circular dependency', {
+        description: `Setting ${prerequisiteCategory?.name} as a prerequisite would create a circular dependency chain.`,
+      })
+      return
+    }
 
     const completionBonus: CategoryCompletionBonus | undefined = enableBonus && bonusTargetCategoryId
       ? {
@@ -108,6 +151,7 @@ export function CategoryDialog({
         interval: expiryInterval,
       },
       showInUpNext,
+      prerequisiteCategoryId: prerequisiteCategoryId || undefined,
     })
     onClose()
   }
@@ -388,6 +432,47 @@ export function CategoryDialog({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Category Prerequisite</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Require another category to be completed first
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="pt-2">
+              <Label htmlFor="prerequisite-category">Required Category (Optional)</Label>
+              <Select
+                value={prerequisiteCategoryId}
+                onValueChange={setPrerequisiteCategoryId}
+              >
+                <SelectTrigger id="prerequisite-category">
+                  <SelectValue placeholder="None - No prerequisite required" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {allCategories
+                    .filter((c) => c.id !== category?.id)
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {prerequisiteCategoryId && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Chores in {name || 'this category'} cannot be completed until all{' '}
+                  {prerequisiteCategoryName} chores are complete.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="border rounded-lg p-4 space-y-3">

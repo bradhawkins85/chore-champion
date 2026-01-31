@@ -1277,6 +1277,45 @@ export function hasBonusBeenClaimedToday(
   )
 }
 
+export function isPrerequisiteCategoryCompleted(
+  childId: string,
+  categoryId: string,
+  categories: Category[],
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>,
+  completions: ChoreCompletion[]
+): boolean {
+  const category = categories.find((c) => c.id === categoryId)
+  
+  // No prerequisite means the category is available
+  if (!category || !category.prerequisiteCategoryId) {
+    return true
+  }
+  
+  // Check if the prerequisite category itself has its prerequisites satisfied
+  const prerequisiteAvailable = isPrerequisiteCategoryCompleted(
+    childId,
+    category.prerequisiteCategoryId,
+    categories,
+    assignments,
+    choresMap,
+    completions
+  )
+  
+  if (!prerequisiteAvailable) {
+    return false
+  }
+  
+  // Check if all chores in the prerequisite category are completed
+  return areAllCategoryChoresCompleted(
+    childId,
+    category.prerequisiteCategoryId,
+    assignments,
+    choresMap,
+    completions
+  )
+}
+
 export function getExpiryStartTime(interval: 'daily' | 'weekly' | 'monthly' | 'never'): number {
   if (interval === 'never') {
     return 0

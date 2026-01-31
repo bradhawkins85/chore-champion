@@ -33,6 +33,7 @@ export interface Category {
   completionBonus?: CategoryCompletionBonus
   pointsExpiry?: PointsExpiryConfig
   showInUpNext?: boolean
+  prerequisiteCategoryId?: string
 }
 
 export interface RepeatPattern {
