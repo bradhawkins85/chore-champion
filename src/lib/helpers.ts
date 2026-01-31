@@ -1244,8 +1244,6 @@ export function getExpiredPointsByCategory(
       if (chore.completionType === 'shareable' && assignments) {
         const assignedChildren = assignments.filter(a => a.choreId === c.choreId).length
         if (assignedChildren > 1) {
-          // For expired points, we need to calculate based on the completion's own period
-          // This determines the period the completion was in (not the current period)
           const completionDate = new Date(c.completedAt)
           const completionPeriodStart = getResetPeriodStartForDate(completionDate, chore.resetPeriod)
           
