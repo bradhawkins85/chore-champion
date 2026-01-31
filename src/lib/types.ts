@@ -512,7 +512,6 @@ export interface DevicePushSettings {
   subscription: PushSubscription | null
   enabled: boolean
   rewardPurchaseAlerts: boolean
-  choreCompletionAlerts: boolean
   weeklyReportAlerts: boolean
   pendingApprovalAlerts: boolean
   digestMode: DigestInterval

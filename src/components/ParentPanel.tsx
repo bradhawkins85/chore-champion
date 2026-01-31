@@ -80,6 +80,7 @@ interface ParentPanelProps {
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
   pushNotificationSettings: PushNotificationSettings
+  currentDeviceId: string
   hideChildrenWithNoActivity: boolean
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
@@ -189,6 +190,7 @@ export function ParentPanel({
   onUpdateSMTPSettings,
   onUpdateEmailAlertSettings,
   pushNotificationSettings,
+  currentDeviceId,
   onUpdatePushNotificationSettings,
   speechSettings,
   onUpdateSpeechSettings,
@@ -845,7 +847,7 @@ export function ParentPanel({
 
             <PushNotificationSettingsComponent
               pushSettings={pushNotificationSettings}
-              deviceId=""
+              deviceId={currentDeviceId}
               onUpdatePushSettings={onUpdatePushNotificationSettings}
             />
 

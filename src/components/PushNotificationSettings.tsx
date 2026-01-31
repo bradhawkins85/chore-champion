@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { Bell, BellSlash, Check, Warning, DeviceMobile } from '@phosphor-icons/react'
 import { PushNotificationSettings, DevicePushSettings, DigestInterval } from '@/lib/types'
+import { getDeviceId } from '@/lib/deviceHelper'
 
 interface PushNotificationSettingsProps {
   pushSettings: PushNotificationSettings
@@ -17,22 +18,15 @@ interface PushNotificationSettingsProps {
 
 export function PushNotificationSettingsComponent({
   pushSettings,
-  deviceId,
+  deviceId: propDeviceId,
   onUpdatePushSettings,
 }: PushNotificationSettingsProps) {
   const [isSupported, setIsSupported] = useState(false)
   const [permissionState, setPermissionState] = useState<NotificationPermission>('default')
   const [isSubscribing, setIsSubscribing] = useState(false)
 
-  // Generate a simple device ID if none is provided
-  const currentDeviceId = deviceId || (() => {
-    let storedId = localStorage.getItem('chorequest-device-id')
-    if (!storedId) {
-      storedId = `device-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      localStorage.setItem('chorequest-device-id', storedId)
-    }
-    return storedId
-  })()
+  // Use provided device ID or generate one
+  const currentDeviceId = propDeviceId || getDeviceId()
 
   const currentDeviceSettings = pushSettings.devices.find(d => d.deviceId === currentDeviceId)
 
@@ -127,7 +121,6 @@ export function PushNotificationSettingsComponent({
                 subscription: pushSubscription,
                 enabled: true,
                 rewardPurchaseAlerts: true,
-                choreCompletionAlerts: true,
                 weeklyReportAlerts: true,
                 pendingApprovalAlerts: true,
                 digestMode: 'immediate' as DigestInterval,
@@ -182,7 +175,7 @@ export function PushNotificationSettingsComponent({
   }
 
   const handleToggleAlert = (
-    type: 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts',
+    type: 'rewardPurchaseAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts',
     enabled: boolean
   ) => {
     if (!currentDeviceSettings) {

@@ -15,6 +15,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { initializePWA } from '@/lib/pwaHelper'
+import { getDeviceId } from '@/lib/deviceHelper'
 import {
   AppMode,
   Child,
@@ -1135,16 +1136,6 @@ function App() {
     }
   }
 
-  // Helper to get device ID
-  const getDeviceId = () => {
-    let storedId = localStorage.getItem('chorequest-device-id')
-    if (!storedId) {
-      storedId = `device-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      localStorage.setItem('chorequest-device-id', storedId)
-    }
-    return storedId
-  }
-
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
     if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
       return
@@ -1541,6 +1532,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
           pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
+          currentDeviceId={getDeviceId()}
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}

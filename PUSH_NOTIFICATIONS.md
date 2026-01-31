@@ -15,9 +15,8 @@ ChoreQuest now supports push notifications when installed as a Progressive Web A
 ### Notification Types
 
 1. **Reward Purchase Alerts** - Get notified when a child claims a reward
-2. **Pending Approval Alerts** - Get notified when chores need approval
+2. **Pending Approval Alerts** - Get notified when chores are completed and need approval
 3. **Weekly Report Alerts** - Receive weekly activity reports
-4. **Chore Completion Alerts** - Get notified when chores are completed
 
 ### Digest Mode
 
