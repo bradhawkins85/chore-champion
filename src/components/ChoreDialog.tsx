@@ -85,6 +85,8 @@ export function ChoreDialog({
     editChore?.weatherConditions?.unit || 'fahrenheit'
   )
   const [speakDescription, setSpeakDescription] = useState(editChore?.speakDescription ?? true)
+  const [inactiveOnSchoolHolidays, setInactiveOnSchoolHolidays] = useState(editChore?.inactiveOnSchoolHolidays ?? false)
+  const [onlyOnSchoolHolidays, setOnlyOnSchoolHolidays] = useState(editChore?.onlyOnSchoolHolidays ?? false)
 
   useEffect(() => {
     if (editChore) {
@@ -110,6 +112,8 @@ export function ChoreDialog({
       setWeatherMaxTemp(editChore.weatherConditions?.maxTemp?.toString() || '')
       setWeatherTempUnit(editChore.weatherConditions?.unit || 'fahrenheit')
       setSpeakDescription(editChore.speakDescription ?? true)
+      setInactiveOnSchoolHolidays(editChore.inactiveOnSchoolHolidays ?? false)
+      setOnlyOnSchoolHolidays(editChore.onlyOnSchoolHolidays ?? false)
     }
   }, [editChore])
 
@@ -209,6 +213,14 @@ export function ChoreDialog({
     }
 
     choreData.speakDescription = speakDescription
+    
+    if (inactiveOnSchoolHolidays) {
+      choreData.inactiveOnSchoolHolidays = true
+    }
+    
+    if (onlyOnSchoolHolidays) {
+      choreData.onlyOnSchoolHolidays = true
+    }
 
     onSave(choreData)
 
@@ -235,6 +247,8 @@ export function ChoreDialog({
       setWeatherMaxTemp('')
       setWeatherTempUnit('fahrenheit')
       setSpeakDescription(true)
+      setInactiveOnSchoolHolidays(false)
+      setOnlyOnSchoolHolidays(false)
     }
     onOpenChange(false)
   }
@@ -1122,6 +1136,79 @@ export function ChoreDialog({
                 </div>
               )}
             </div>
+            
+            <Separator />
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-base font-fredoka font-semibold">
+                      School Holiday Settings
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Control when this chore appears based on school holidays
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 pl-4 border-l-2 border-muted">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="inactive-on-holidays-edit"
+                    checked={inactiveOnSchoolHolidays}
+                    onCheckedChange={(checked) => {
+                      setInactiveOnSchoolHolidays(checked as boolean)
+                      if (checked) {
+                        setOnlyOnSchoolHolidays(false)
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor="inactive-on-holidays-edit"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Inactive On School Holidays
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  This chore will not appear during school holidays
+                </p>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="only-on-holidays-edit"
+                    checked={onlyOnSchoolHolidays}
+                    onCheckedChange={(checked) => {
+                      setOnlyOnSchoolHolidays(checked as boolean)
+                      if (checked) {
+                        setInactiveOnSchoolHolidays(false)
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor="only-on-holidays-edit"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Only On School Holidays
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  This chore will only appear during school holidays
+                </p>
+                
+                {(inactiveOnSchoolHolidays || onlyOnSchoolHolidays) && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      School holidays can be managed in the Parent Panel settings
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </div>
+            
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">

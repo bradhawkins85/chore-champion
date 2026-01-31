@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion, SchoolHoliday } from './types'
 
 // Epoch date for bi-weekly period calculations (January 1, 2024 - a Monday)
 const BI_WEEKLY_EPOCH = new Date('2024-01-01T00:00:00Z').getTime()
@@ -101,6 +101,21 @@ export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean
   return isRepeatPatternActiveOnDate(assignment, new Date())
 }
 
+export function isDateOnSchoolHoliday(date: Date, schoolHolidays: SchoolHoliday[]): boolean {
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
+  const checkTime = checkDate.getTime()
+  
+  return schoolHolidays.some(holiday => {
+    const startDate = new Date(holiday.startDate)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(holiday.endDate)
+    endDate.setHours(23, 59, 59, 999)
+    
+    return checkTime >= startDate.getTime() && checkTime <= endDate.getTime()
+  })
+}
+
 export function isChoreActiveOnDate(assignment: ChoreAssignment, date: Date): boolean {
   if (!isRepeatPatternActiveOnDate(assignment, date)) {
     return false
@@ -115,6 +130,42 @@ export function isChoreActiveOnDate(assignment: ChoreAssignment, date: Date): bo
 
 export function isChoreActiveToday(assignment: ChoreAssignment): boolean {
   return isChoreActiveOnDate(assignment, new Date())
+}
+
+export function isChoreActiveOnDateWithHolidays(
+  chore: Chore,
+  assignment: ChoreAssignment,
+  date: Date,
+  schoolHolidays: SchoolHoliday[]
+): boolean {
+  // First check if the assignment is active for this date (days of week, repeat pattern)
+  if (!isChoreActiveOnDate(assignment, date)) {
+    return false
+  }
+  
+  // Check if this date is a school holiday
+  const isHoliday = isDateOnSchoolHoliday(date, schoolHolidays)
+  
+  // If chore is only on school holidays, it's only active during holidays
+  if (chore.onlyOnSchoolHolidays) {
+    return isHoliday
+  }
+  
+  // If chore is inactive on school holidays, it's not active during holidays
+  if (chore.inactiveOnSchoolHolidays) {
+    return !isHoliday
+  }
+  
+  // Otherwise, the chore is active (no school holiday restrictions)
+  return true
+}
+
+export function isChoreActiveTodayWithHolidays(
+  chore: Chore,
+  assignment: ChoreAssignment,
+  schoolHolidays: SchoolHoliday[]
+): boolean {
+  return isChoreActiveOnDateWithHolidays(chore, assignment, new Date(), schoolHolidays)
 }
 
 export function getCurrentTimeOfDay(): 'am' | 'pm' {

@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -47,6 +47,7 @@ import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
+import { SchoolHolidaySettings } from './SchoolHolidaySettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -82,6 +83,7 @@ interface ParentPanelProps {
   pushNotificationSettings: PushNotificationSettings
   currentDeviceId: string
   hideChildrenWithNoActivity: boolean
+  schoolHolidays: SchoolHoliday[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -127,6 +129,9 @@ interface ParentPanelProps {
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
+  onAddSchoolHoliday: (holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
+  onEditSchoolHoliday: (id: string, holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
+  onDeleteSchoolHoliday: (id: string) => void
   onSendDigestNow: () => void
   onExitParentMode: () => void
 }
@@ -199,6 +204,10 @@ export function ParentPanel({
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
+  schoolHolidays,
+  onAddSchoolHoliday,
+  onEditSchoolHoliday,
+  onDeleteSchoolHoliday,
   onSendDigestNow,
   onExitParentMode,
 }: ParentPanelProps) {
@@ -823,6 +832,13 @@ export function ParentPanel({
             <WeatherSettingsComponent
               settings={weatherSettings}
               onUpdate={onUpdateWeatherSettings}
+            />
+
+            <SchoolHolidaySettings
+              holidays={schoolHolidays}
+              onAdd={onAddSchoolHoliday}
+              onEdit={onEditSchoolHoliday}
+              onDelete={onDeleteSchoolHoliday}
             />
 
             <WeeklyReportSettingsComponent

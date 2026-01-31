@@ -45,6 +45,7 @@ import {
   EmailAlertSettings,
   SpeechSettings,
   PushNotificationSettings,
+  SchoolHoliday,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -148,6 +149,7 @@ function App() {
     enabled: false,
     devices: [],
   })
+  const [schoolHolidays, setSchoolHolidays] = useKV<SchoolHoliday[]>('school-holidays', [])
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
@@ -1436,6 +1438,33 @@ Please log in to ChoreQuest to approve or reject this completion.
     toast.success('Report template deleted')
   }
 
+  const handleAddSchoolHoliday = (holidayData: Omit<SchoolHoliday, 'id' | 'createdAt'>) => {
+    const newHoliday: SchoolHoliday = {
+      ...holidayData,
+      id: `holiday_${Date.now()}_${Math.random()}`,
+      createdAt: Date.now(),
+    }
+    setSchoolHolidays((current) => [...(current || []), newHoliday])
+    toast.success(`School holiday "${newHoliday.name}" added!`)
+  }
+
+  const handleEditSchoolHoliday = (
+    id: string,
+    holidayData: Omit<SchoolHoliday, 'id' | 'createdAt'>
+  ) => {
+    setSchoolHolidays((current) =>
+      (current || []).map((h) =>
+        h.id === id ? { ...h, ...holidayData } : h
+      )
+    )
+    toast.success('School holiday updated!')
+  }
+
+  const handleDeleteSchoolHoliday = (id: string) => {
+    setSchoolHolidays((current) => (current || []).filter((h) => h.id !== id))
+    toast.success('School holiday deleted')
+  }
+
   const handleUpdateCalendarRefresh = (childId: string, timestamp: number) => {
     setChildrenList((current) =>
       (current || []).map((child) =>
@@ -1555,6 +1584,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
           currentDeviceId={getDeviceId()}
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
+          schoolHolidays={schoolHolidays || []}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1592,6 +1622,9 @@ Please log in to ChoreQuest to approve or reject this completion.
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
+          onAddSchoolHoliday={handleAddSchoolHoliday}
+          onEditSchoolHoliday={handleEditSchoolHoliday}
+          onDeleteSchoolHoliday={handleDeleteSchoolHoliday}
           onSendDigestNow={sendDigestEmail}
           onExitParentMode={() => {
             setMode('child')
