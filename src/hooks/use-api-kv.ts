@@ -12,7 +12,6 @@ let apiAvailable: boolean | null = null;
 
 // Request queue to throttle concurrent API requests
 interface QueuedRequest {
-  key: string;
   execute: () => Promise<void>;
   resolve: () => void;
   reject: (error: Error) => void;
@@ -21,33 +20,47 @@ interface QueuedRequest {
 const requestQueue: QueuedRequest[] = [];
 let activeRequests = 0;
 const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests to avoid overwhelming the server
+let processingQueue = false; // Prevent race conditions in queue processing
 
 // Process queued requests
 async function processQueue() {
-  if (activeRequests >= MAX_CONCURRENT_REQUESTS || requestQueue.length === 0) {
+  // Prevent multiple simultaneous processQueue calls
+  if (processingQueue) {
     return;
   }
-
-  const request = requestQueue.shift();
-  if (!request) return;
-
-  activeRequests++;
+  
+  processingQueue = true;
+  
   try {
-    await request.execute();
-    request.resolve();
-  } catch (error) {
-    request.reject(error as Error);
+    // Process requests in a loop instead of recursion to avoid stack overflow
+    while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
+      const request = requestQueue.shift();
+      if (!request) continue;
+
+      activeRequests++;
+      
+      // Execute request without await to allow concurrent processing
+      request.execute()
+        .then(() => request.resolve())
+        .catch((error) => request.reject(error))
+        .finally(() => {
+          activeRequests--;
+          // Trigger processing of next batch if needed
+          if (requestQueue.length > 0) {
+            processingQueue = false;
+            processQueue();
+          }
+        });
+    }
   } finally {
-    activeRequests--;
-    // Process next request in queue
-    processQueue();
+    processingQueue = false;
   }
 }
 
 // Queue an API request to avoid rate limiting
-function queueRequest(key: string, execute: () => Promise<void>): Promise<void> {
+function queueRequest(execute: () => Promise<void>): Promise<void> {
   return new Promise((resolve, reject) => {
-    requestQueue.push({ key, execute, resolve, reject });
+    requestQueue.push({ execute, resolve, reject });
     processQueue();
   });
 }
@@ -123,7 +136,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
       if (available) {
         // Load from API using queue to prevent rate limiting
-        await queueRequest(key, async () => {
+        await queueRequest(async () => {
           try {
             const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
               method: 'GET',
