@@ -232,21 +232,23 @@ export function ChildSelector({
                             </Button>
                           )}
                         </div>
-                        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                          {nextChore.timeOfDay && (
-                            <Badge variant="secondary" className="text-xs">
-                              {nextChore.timeOfDay.toUpperCase()}
-                            </Badge>
-                          )}
-                          {(nextChore.assignment.timeWindow || nextChore.chore.timeWindow) && (
-                            <span>
-                              {formatTime12Hour((nextChore.assignment.timeWindow || nextChore.chore.timeWindow)!.startTime)}
-                            </span>
-                          )}
-                          {nextChore.chore.estimatedDuration && (
-                            <span>• {formatDuration(nextChore.chore.estimatedDuration)}</span>
-                          )}
-                        </div>
+                        {(nextChore.timeOfDay || nextChore.assignment.timeWindow || nextChore.chore.timeWindow || nextChore.chore.estimatedDuration) && (
+                          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                            {nextChore.timeOfDay && (
+                              <Badge variant="secondary" className="text-xs">
+                                {nextChore.timeOfDay.toUpperCase()}
+                              </Badge>
+                            )}
+                            {(nextChore.assignment.timeWindow || nextChore.chore.timeWindow) && (
+                              <span>
+                                {formatTime12Hour((nextChore.assignment.timeWindow || nextChore.chore.timeWindow)!.startTime)}
+                              </span>
+                            )}
+                            {nextChore.chore.estimatedDuration && (
+                              <span>• {formatDuration(nextChore.chore.estimatedDuration)}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                     
