@@ -45,6 +45,7 @@ import { EmailSettings } from './EmailSettings'
 import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
+import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { toast } from 'sonner'
 
@@ -76,6 +77,7 @@ interface ParentPanelProps {
   emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
+  hideChildrenWithNoActivity: boolean
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -116,6 +118,7 @@ interface ParentPanelProps {
   onUpdateSMTPSettings: (settings: SMTPSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
+  onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -183,6 +186,8 @@ export function ParentPanel({
   onUpdateEmailAlertSettings,
   speechSettings,
   onUpdateSpeechSettings,
+  hideChildrenWithNoActivity,
+  onUpdateHideChildrenWithNoActivity,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -840,6 +845,11 @@ export function ParentPanel({
             <SpeechSettingsComponent
               settings={speechSettings}
               onUpdate={onUpdateSpeechSettings}
+            />
+
+            <DisplayPreferencesSettings
+              hideChildrenWithNoActivity={hideChildrenWithNoActivity}
+              onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
             />
 
             <UpdateSettings />

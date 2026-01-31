@@ -1311,3 +1311,50 @@ export function isValidIPAddress(ip: string): boolean {
   
   return ipv6Pattern.test(ip)
 }
+
+/**
+ * Check if a child has any chores or "on this day" entries
+ * Returns true if child has assigned chores for today OR has historical completions for this day OR has ICS calendar events for today
+ */
+export function hasChildActivity(
+  childId: string,
+  assignments: ChoreAssignment[],
+  choresMap: Map<string, Chore>,
+  completions: ChoreCompletion[],
+  hasICSEvents: boolean
+): boolean {
+  // Check if child has any chores assigned for today
+  const hasChores = assignments.some(
+    (a) => a.childId === childId && isChoreActive(a) && isChoreActiveToday(a)
+  )
+  
+  if (hasChores) {
+    return true
+  }
+  
+  // Check if child has ICS calendar events for today
+  if (hasICSEvents) {
+    return true
+  }
+  
+  // Check if child has historical completions on this day (from previous years)
+  const today = new Date()
+  const currentMonth = today.getMonth()
+  const currentDay = today.getDate()
+  const currentYear = today.getFullYear()
+  
+  const hasHistoricalCompletions = completions.some(c => {
+    if (c.childId !== childId) return false
+    
+    const completionDate = new Date(c.completedAt)
+    const eventMonth = completionDate.getMonth()
+    const eventDay = completionDate.getDate()
+    const eventYear = completionDate.getFullYear()
+    
+    return eventMonth === currentMonth && 
+           eventDay === currentDay && 
+           eventYear < currentYear
+  })
+  
+  return hasHistoricalCompletions
+}

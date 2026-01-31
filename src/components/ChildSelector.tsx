@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
 import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings } from '@/lib/types'
-import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName } from '@/lib/helpers'
+import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 import { isStandalone } from '@/lib/pwaHelper'
+import { fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -27,6 +28,7 @@ interface ChildSelectorProps {
   weatherSettings?: WeatherSettings
   speechSettings?: SpeechSettings
   biometricSettings?: BiometricSettings
+  hideChildrenWithNoActivity?: boolean
 }
 
 export function ChildSelector({ 
@@ -45,10 +47,53 @@ export function ChildSelector({
   weatherSettings,
   speechSettings,
   biometricSettings,
+  hideChildrenWithNoActivity = false,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
   const [showBiometricBadge, setShowBiometricBadge] = useState(false)
+  const [childICSEventsMap, setChildICSEventsMap] = useState<Map<string, boolean>>(new Map())
+
+  // Load ICS events for all children to determine if they have calendar events
+  useEffect(() => {
+    const loadAllICSFeeds = async () => {
+      const eventsMap = new Map<string, boolean>()
+      
+      for (const child of childrenList) {
+        if (child.icsUrl) {
+          try {
+            const events = await fetchICSFeed(child.icsUrl)
+            const todayEvents = getICSEventsForToday(events)
+            eventsMap.set(child.id, todayEvents.length > 0)
+          } catch (error) {
+            eventsMap.set(child.id, false)
+          }
+        } else {
+          eventsMap.set(child.id, false)
+        }
+      }
+      
+      setChildICSEventsMap(eventsMap)
+    }
+
+    if (hideChildrenWithNoActivity) {
+      loadAllICSFeeds()
+    }
+  }, [childrenList, hideChildrenWithNoActivity])
+
+  // Filter children based on activity if the setting is enabled
+  const filteredChildrenList = useMemo(() => {
+    if (!hideChildrenWithNoActivity) {
+      return childrenList
+    }
+
+    const choresMap = new Map(chores.map(c => [c.id, c]))
+    
+    return childrenList.filter(child => {
+      const hasICSEvents = childICSEventsMap.get(child.id) || false
+      return hasChildActivity(child.id, assignments, choresMap, completions, hasICSEvents)
+    })
+  }, [childrenList, hideChildrenWithNoActivity, assignments, chores, completions, childICSEventsMap])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -136,7 +181,7 @@ export function ChildSelector({
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {childrenList.map((child, index) => {
+          {filteredChildrenList.map((child, index) => {
             const initials = getInitialsFromName(child.name)
 
             const childGoal = trackedGoals.find(g => g.childId === child.id)
@@ -275,7 +320,7 @@ export function ChildSelector({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: childrenList.length * 0.1 }}
+            transition={{ delay: filteredChildrenList.length * 0.1 }}
           >
             <Card
               className="cursor-pointer hover:scale-105 transition-all hover:shadow-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-accent/5"

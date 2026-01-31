@@ -142,6 +142,7 @@ function App() {
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
   })
+  const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
       return parentPin ?? null
@@ -1425,6 +1426,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
+          hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1457,6 +1459,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateSMTPSettings={handleUpdateSMTPSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
+          onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -1586,6 +1589,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
               speechSettings={speechSettings || { enabled: true }}
               biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
+              hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />
