@@ -48,7 +48,19 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       parsedValue = [];
     }
     
-    res.json({ value: parsedValue });
+    // Check if the request is from Spark runtime (sends Content-Type: text/plain on GET requests)
+    // or from our custom API client (expects JSON with {value: ...} wrapper)
+    // Note: Spark client sends Content-Type: text/plain as a request header even on GET requests
+    // to identify itself, which is non-standard but is how we detect Spark requests
+    const contentTypeHeader = req.get('content-type') || '';
+    
+    if (contentTypeHeader.includes('text/plain')) {
+      // Spark runtime format: return raw JSON value as text/plain
+      res.type('text/plain').send(JSON.stringify(parsedValue));
+    } else {
+      // Standard API format: return JSON with value wrapper
+      res.json({ value: parsedValue });
+    }
   } catch (error) {
     console.error('Error getting value:', error);
     res.status(500).json({ error: 'Internal server error' });
