@@ -142,6 +142,16 @@ function App() {
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
   })
+  const normalizedParentPin = (() => {
+    if (typeof parentPin !== 'string') {
+      return parentPin ?? null
+    }
+    const trimmedPin = parentPin.trim()
+    if (!trimmedPin || trimmedPin === 'null' || trimmedPin === 'undefined') {
+      return null
+    }
+    return trimmedPin
+  })()
   const [currentIP, setCurrentIP] = useState<string | null>(null)
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
@@ -183,6 +193,12 @@ function App() {
   useEffect(() => {
     initializePWA()
   }, [])
+
+  useEffect(() => {
+    if (parentPin !== normalizedParentPin) {
+      setParentPin(normalizedParentPin)
+    }
+  }, [parentPin, normalizedParentPin, setParentPin])
 
   // Validate and fix pinSecurity data structure - one-time migration
   useEffect(() => {
@@ -1391,7 +1407,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           purchases={safePurchases}
           history={safeHistory}
           dismissedMissedChores={safeDismissedMissedChores}
-          parentPin={parentPin ?? null}
+          parentPin={normalizedParentPin}
           celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
           biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
           categories={safeCategories}
@@ -1581,7 +1597,7 @@ Please log in to ChoreQuest to approve or reject this completion.
         open={showPinDialog}
         onClose={() => setShowPinDialog(false)}
         onSuccess={handlePinSuccess}
-        storedPin={parentPin ?? null}
+        storedPin={normalizedParentPin}
         onSetPin={handleSetPin}
         pinSecurity={pinSecurity || { attempts: [], lockedUntil: null, failedAttempts: 0 }}
         onUpdatePinSecurity={(security) => setPinSecurity(security)}
