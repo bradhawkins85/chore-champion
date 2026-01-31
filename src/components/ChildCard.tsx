@@ -73,19 +73,21 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, onDow
           </div>
           {categoryPoints && categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {categories.map((category) => {
-                const points = categoryPoints.get(category.id) || 0
-                return (
-                  <Badge
-                    key={category.id}
-                    variant="outline"
-                    className="font-fredoka text-sm"
-                    style={{ borderColor: category.color, color: category.color }}
-                  >
-                    {category.name}: {points}
-                  </Badge>
-                )
-              })}
+              {categories
+                .filter((category) => category.showInUpNext !== false)
+                .map((category) => {
+                  const points = categoryPoints.get(category.id) || 0
+                  return (
+                    <Badge
+                      key={category.id}
+                      variant="outline"
+                      className="font-fredoka text-sm"
+                      style={{ borderColor: category.color, color: category.color }}
+                    >
+                      {category.name}: {points}
+                    </Badge>
+                  )
+                })}
             </div>
           )}
         </div>
