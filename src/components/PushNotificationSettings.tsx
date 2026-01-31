@@ -393,23 +393,6 @@ export function PushNotificationSettingsComponent({
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Chore Completion Alerts</Label>
-                <p className="text-sm text-muted-foreground">
-                  Get notified when chores need approval
-                </p>
-              </div>
-              <Switch
-                checked={currentDeviceSettings.choreCompletionAlerts}
-                onCheckedChange={(checked) =>
-                  handleToggleAlert('choreCompletionAlerts', checked)
-                }
-              />
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
                 <Label>Pending Approval Alerts</Label>
                 <p className="text-sm text-muted-foreground">
                   Get notified when chores are completed and require approval
