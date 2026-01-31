@@ -30,8 +30,8 @@ if [ ! -S /var/run/docker.sock ]; then
 fi
 
 # Get the container's compose project name and working directory
-COMPOSE_PROJECT=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project"}}' $(hostname) 2>/dev/null || echo "")
-COMPOSE_WORKDIR=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}' $(hostname) 2>/dev/null || echo "")
+COMPOSE_PROJECT=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project"}}' "$(hostname)" 2>/dev/null || echo "")
+COMPOSE_WORKDIR=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$(hostname)" 2>/dev/null || echo "")
 
 if [ -z "$COMPOSE_PROJECT" ]; then
     echo "ERROR: Could not determine compose project name"
@@ -45,19 +45,19 @@ echo ""
 
 # Create backup before updating
 echo "Creating pre-update backup..."
-docker exec ${COMPOSE_PROJECT}-backup-1 /scripts/backup.sh 2>/dev/null || \
-    docker exec ${COMPOSE_PROJECT}_backup_1 /scripts/backup.sh 2>/dev/null || \
+docker exec "${COMPOSE_PROJECT}-backup-1" /scripts/backup.sh 2>/dev/null || \
+    docker exec "${COMPOSE_PROJECT}_backup_1" /scripts/backup.sh 2>/dev/null || \
     echo "WARNING: Could not create backup (backup container not found)"
 
 echo ""
 echo "Pulling latest images..."
 # Try to determine which compose file is being used
 COMPOSE_FILE=""
-if docker container inspect ${COMPOSE_PROJECT}-traefik-1 >/dev/null 2>&1 || \
-   docker container inspect ${COMPOSE_PROJECT}_traefik_1 >/dev/null 2>&1; then
+if docker container inspect "${COMPOSE_PROJECT}-traefik-1" >/dev/null 2>&1 || \
+   docker container inspect "${COMPOSE_PROJECT}_traefik_1" >/dev/null 2>&1; then
     COMPOSE_FILE="docker-compose.traefik.yml"
-elif docker container inspect ${COMPOSE_PROJECT}-backup-1 >/dev/null 2>&1 || \
-     docker container inspect ${COMPOSE_PROJECT}_backup_1 >/dev/null 2>&1; then
+elif docker container inspect "${COMPOSE_PROJECT}-backup-1" >/dev/null 2>&1 || \
+     docker container inspect "${COMPOSE_PROJECT}_backup_1" >/dev/null 2>&1; then
     COMPOSE_FILE="docker-compose.prod.yml"
 else
     COMPOSE_FILE="docker-compose.yml"
@@ -83,14 +83,14 @@ echo "Compose file path: $COMPOSE_FILE_PATH"
 
 # Test compose configuration
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    if ! docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" config >/dev/null 2>&1; then
+    if ! docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" config >/dev/null 2>&1; then
         echo "ERROR: Could not validate compose configuration"
         echo "Project: $COMPOSE_PROJECT, File: $COMPOSE_FILE_PATH"
         exit 1
     fi
 else
     # Try without file path
-    if ! docker compose -p ${COMPOSE_PROJECT} config >/dev/null 2>&1; then
+    if ! docker compose -p "${COMPOSE_PROJECT}" config >/dev/null 2>&1; then
         echo "ERROR: Could not validate compose configuration"
         echo "Project: $COMPOSE_PROJECT"
         exit 1
@@ -103,18 +103,18 @@ echo ""
 # Pull the latest images
 echo "Pulling images..."
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" pull
+    docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" pull
 else
-    docker compose -p ${COMPOSE_PROJECT} pull
+    docker compose -p "${COMPOSE_PROJECT}" pull
 fi
 
 echo ""
 echo "Recreating containers..."
 # Recreate containers with new images
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" up -d --force-recreate --remove-orphans
+    docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" up -d --force-recreate --remove-orphans
 else
-    docker compose -p ${COMPOSE_PROJECT} up -d --force-recreate --remove-orphans
+    docker compose -p "${COMPOSE_PROJECT}" up -d --force-recreate --remove-orphans
 fi
 
 echo ""
