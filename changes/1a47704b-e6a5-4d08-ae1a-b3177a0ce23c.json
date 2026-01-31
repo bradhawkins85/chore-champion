@@ -1,0 +1,7 @@
+{
+  "guid": "1a47704b-e6a5-4d08-ae1a-b3177a0ce23c",
+  "occurred_at": "2026-01-31T22:51:24.271129Z",
+  "change_type": "Fix",
+  "summary": "Prevent repeated API KV initialization requests that disrupted PIN entry",
+  "content_hash": "81a3aaeca67fa9599a5f4cc6b163db3cbdf2e833e82eb7e343f4c790d9dd9876"
+}

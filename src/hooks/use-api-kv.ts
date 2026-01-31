@@ -2,7 +2,7 @@
  * API-based KV storage hook
  * Provides the same interface as @github/spark useKV but uses the backend API
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // API base URL from environment or default to /api
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -110,6 +110,11 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
+  const defaultValueRef = useRef(defaultValue);
+
+  useEffect(() => {
+    defaultValueRef.current = defaultValue;
+  }, [defaultValue]);
 
   // Initialize - check API and load data
   useEffect(() => {
@@ -134,12 +139,12 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
               const data = await response.json();
               if (mounted) {
                 // validateLoadedValue handles null values by returning defaultValue
-                setValue(validateLoadedValue(data.value, defaultValue));
+                setValue(validateLoadedValue(data.value, defaultValueRef.current));
               }
             } else if (response.status === 404) {
               // Legacy: Key not found (older API versions returned 404)
               if (mounted) {
-                setValue(defaultValue);
+                setValue(defaultValueRef.current);
               }
             }
           } catch (error) {
@@ -149,9 +154,9 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
             if (stored && mounted) {
               try {
                 const parsedValue = JSON.parse(stored);
-                setValue(validateLoadedValue(parsedValue, defaultValue));
+                setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
               } catch {
-                setValue(defaultValue);
+                setValue(defaultValueRef.current);
               }
             }
           }
@@ -162,9 +167,9 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         if (stored && mounted) {
           try {
             const parsedValue = JSON.parse(stored);
-            setValue(validateLoadedValue(parsedValue, defaultValue));
+            setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
           } catch {
-            setValue(defaultValue);
+            setValue(defaultValueRef.current);
           }
         }
       }
@@ -175,13 +180,13 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     return () => {
       mounted = false;
     };
-  }, [key, defaultValue]);
+  }, [key]);
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
     // Compute the new value using setState's functional form to avoid race conditions
     // Initialize with defaultValue as fallback (setValue executes synchronously, so this should never be used)
-    let computedValue: T = defaultValue;
+    let computedValue: T = defaultValueRef.current;
     setValue(prev => {
       computedValue = typeof newValueOrUpdater === 'function' 
         ? (newValueOrUpdater as (prevValue: T) => T)(prev)
@@ -213,7 +218,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
       // Save to localStorage
       localStorage.setItem(key, JSON.stringify(computedValue));
     }
-  }, [key, useApi, defaultValue]);
+  }, [key, useApi]);
 
   return [value, updateValue];
 }
