@@ -47,6 +47,7 @@ import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
+import { isChoreActive, isChoreActiveToday } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 interface ParentPanelProps {
@@ -222,7 +223,7 @@ export function ParentPanel({
 
       childAssignments.forEach((assignment) => {
         const chore = chores.find((c) => c.id === assignment.choreId)
-        if (!chore) return
+        if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) return
 
         const isDismissed = (timeOfDay?: 'am' | 'pm') =>
           dismissedMissedChores.some(
