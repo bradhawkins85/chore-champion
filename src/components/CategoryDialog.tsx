@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -90,6 +90,12 @@ export function CategoryDialog({
       }
     }
   }, [enableBonus, bonusTargetCategoryId, allCategories, category])
+
+  // Memoize prerequisite category name lookup
+  const prerequisiteCategoryName = useMemo(() => {
+    if (!prerequisiteCategoryId) return null
+    return allCategories.find(c => c.id === prerequisiteCategoryId)?.name || 'prerequisite'
+  }, [prerequisiteCategoryId, allCategories])
 
   // Helper to detect circular prerequisite dependencies
   const wouldCreateCircularDependency = (targetCategoryId: string): boolean => {
@@ -463,7 +469,7 @@ export function CategoryDialog({
               {prerequisiteCategoryId && (
                 <p className="text-xs text-muted-foreground mt-2">
                   Chores in {name || 'this category'} cannot be completed until all{' '}
-                  {allCategories.find(c => c.id === prerequisiteCategoryId)?.name || 'prerequisite'} chores are complete.
+                  {prerequisiteCategoryName} chores are complete.
                 </p>
               )}
             </div>

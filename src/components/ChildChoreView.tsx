@@ -558,8 +558,8 @@ export function ChildChoreView({
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {pendingChores.map(({ chore, assignment, timeOfDay }, index) => {
-                    const blockedByCategory = lockedChoresInfo.get(chore.id)
-                    const isLocked = blockedByCategory !== undefined
+                    const isLocked = lockedChoresInfo.has(chore.id)
+                    const blockedByCategory = isLocked ? lockedChoresInfo.get(chore.id) : null
                     
                     return (
                     <motion.div
