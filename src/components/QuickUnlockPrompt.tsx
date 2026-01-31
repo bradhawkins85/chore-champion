@@ -28,23 +28,9 @@ export function QuickUnlockPrompt({
   const hasAttemptedRef = useRef(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    const shouldShow =
-      isStandalone() &&
-      biometricSettings?.enabled &&
-      biometricSettings?.quickUnlockOnPWA &&
-      biometricSettings?.credentials?.length > 0 &&
-      !hasAttemptedRef.current
-
-    if (shouldShow) {
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-        handleBiometricAuth()
-      }, 800)
-
-      return () => clearTimeout(timer)
-    }
-  }, [biometricSettings])
+  // Quick Unlock auto-trigger has been disabled to prevent automatic authentication on app launch
+  // Quick unlock should only appear when the user explicitly presses the Parent Mode button
+  // The ParentPinDialog component already handles biometric authentication for Parent Mode access
 
   const handleBiometricAuth = async () => {
     if (!biometricSettings?.credentials?.length) {
