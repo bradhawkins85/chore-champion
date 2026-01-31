@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye, EyeSlash } from '@phosphor-icons/react'
 import { Category } from '@/lib/types'
 import { CategoryDialog } from './CategoryDialog'
 import {
@@ -115,7 +115,7 @@ export function CategoryManager({
                       )}
                       {category.showInUpNext === false && (
                         <Badge variant="secondary" className="text-xs">
-                          <Eye className="h-3 w-3 mr-1" />
+                          <EyeSlash className="h-3 w-3 mr-1" />
                           Hidden from up next
                         </Badge>
                       )}
