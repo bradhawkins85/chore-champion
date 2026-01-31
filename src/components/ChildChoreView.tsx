@@ -382,7 +382,7 @@ export function ChildChoreView({
                 History
               </Button>
             )}
-            {onCalendarClick && child.icsUrl && (
+            {onCalendarClick && (
               <Button 
                 size="lg"
                 variant="outline"

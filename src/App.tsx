@@ -1476,6 +1476,10 @@ Please log in to ChoreQuest to approve or reject this completion.
         showCalendar ? (
           <CalendarView
             child={selectedChild}
+            chores={migratedChores || []}
+            assignments={safeAssignments}
+            completions={safeCompletions}
+            categories={safeCategories}
             onBack={() => setShowCalendar(false)}
           />
         ) : showPointsHistory ? (

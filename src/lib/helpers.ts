@@ -27,6 +27,11 @@ export function getCurrentDayOfWeek(): DayOfWeek {
   return days[new Date().getDay()]
 }
 
+export function getDayOfWeekForDate(date: Date): DayOfWeek {
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  return days[date.getDay()]
+}
+
 export function getWeekNumber(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
   const dayNum = d.getUTCDay() || 7
@@ -54,14 +59,14 @@ export function getInitialsFromName(name?: string, fallback: string = '?'): stri
     .slice(0, 2)
 }
 
-export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean {
+export function isRepeatPatternActiveOnDate(assignment: ChoreAssignment, date: Date): boolean {
   if (!assignment.repeatPattern) {
     return true
   }
 
   const pattern = assignment.repeatPattern
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
 
   const anchorDate = pattern.anchorDate 
     ? new Date(pattern.anchorDate)
@@ -72,15 +77,15 @@ export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean
   anchorDate.setHours(0, 0, 0, 0)
 
   if (pattern.unit === 'weeks') {
-    const todayDayOfWeek = getCurrentDayOfWeek()
+    const dayOfWeek = getDayOfWeekForDate(checkDate)
     
     if (pattern.specificDays && pattern.specificDays.length > 0) {
-      if (!pattern.specificDays.includes(todayDayOfWeek)) {
+      if (!pattern.specificDays.includes(dayOfWeek)) {
         return false
       }
     }
 
-    const daysSinceAnchor = Math.floor((today.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24))
+    const daysSinceAnchor = Math.floor((checkDate.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24))
     const weeksSinceAnchor = Math.floor(daysSinceAnchor / 7)
     
     return weeksSinceAnchor % pattern.interval === 0
@@ -89,16 +94,24 @@ export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean
   return true
 }
 
-export function isChoreActiveToday(assignment: ChoreAssignment): boolean {
-  if (!isRepeatPatternActiveToday(assignment)) {
+export function isRepeatPatternActiveToday(assignment: ChoreAssignment): boolean {
+  return isRepeatPatternActiveOnDate(assignment, new Date())
+}
+
+export function isChoreActiveOnDate(assignment: ChoreAssignment, date: Date): boolean {
+  if (!isRepeatPatternActiveOnDate(assignment, date)) {
     return false
   }
 
   if (!assignment.daysOfWeek || assignment.daysOfWeek.length === 0) {
     return true
   }
-  const today = getCurrentDayOfWeek()
-  return assignment.daysOfWeek.includes(today)
+  const dayOfWeek = getDayOfWeekForDate(date)
+  return assignment.daysOfWeek.includes(dayOfWeek)
+}
+
+export function isChoreActiveToday(assignment: ChoreAssignment): boolean {
+  return isChoreActiveOnDate(assignment, new Date())
 }
 
 export function getCurrentTimeOfDay(): 'am' | 'pm' {
@@ -135,6 +148,38 @@ export function isChoreMissed(
   }
   
   return false
+}
+
+export function isChoreCompletedOnDate(
+  completions: ChoreCompletion[],
+  choreId: string,
+  childId: string,
+  date: Date,
+  timeOfDay?: 'am' | 'pm'
+): boolean {
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+  
+  return completions.some(
+    (c) => {
+      if (c.choreId !== choreId || c.childId !== childId || c.undoneAt) {
+        return false
+      }
+      
+      const completionDate = new Date(c.completedAt)
+      completionDate.setHours(0, 0, 0, 0)
+      
+      if (completionDate.getTime() !== targetDate.getTime()) {
+        return false
+      }
+      
+      if (timeOfDay && c.timeOfDay !== timeOfDay) {
+        return false
+      }
+      
+      return true
+    }
+  )
 }
 
 export function isChoreCompletedForTimeOfDay(
@@ -387,6 +432,20 @@ export function isChoreActive(assignment: ChoreAssignment): boolean {
   }
   
   if (assignment.endDate && now > assignment.endDate) {
+    return false
+  }
+  
+  return true
+}
+
+export function isChoreActiveForDate(assignment: ChoreAssignment, date: Date): boolean {
+  const timestamp = date.getTime()
+  
+  if (assignment.startDate && timestamp < assignment.startDate) {
+    return false
+  }
+  
+  if (assignment.endDate && timestamp > assignment.endDate) {
     return false
   }
   
