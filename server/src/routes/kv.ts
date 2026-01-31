@@ -48,7 +48,18 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       parsedValue = [];
     }
     
-    res.json({ value: parsedValue });
+    // Check if the request is from Spark runtime (expects text/plain with raw JSON value)
+    // or from our custom API client (expects JSON with {value: ...} wrapper)
+    const acceptHeader = req.get('accept') || '';
+    const contentTypeHeader = req.get('content-type') || '';
+    
+    if (contentTypeHeader.includes('text/plain') || acceptHeader.includes('text/plain')) {
+      // Spark runtime format: return raw JSON value as text/plain
+      res.type('text/plain').send(JSON.stringify(parsedValue));
+    } else {
+      // Standard API format: return JSON with value wrapper
+      res.json({ value: parsedValue });
+    }
   } catch (error) {
     console.error('Error getting value:', error);
     res.status(500).json({ error: 'Internal server error' });

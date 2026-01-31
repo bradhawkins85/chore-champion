@@ -17,8 +17,14 @@ const CACHE_EXCLUDE_PATTERNS = [
 
 // Check if a URL should be excluded from caching
 function shouldExcludeFromCache(url) {
-  const urlPath = new URL(url).pathname;
-  return CACHE_EXCLUDE_PATTERNS.some(pattern => urlPath.startsWith(pattern));
+  try {
+    const urlPath = new URL(url).pathname;
+    return CACHE_EXCLUDE_PATTERNS.some(pattern => urlPath.startsWith(pattern));
+  } catch (error) {
+    // If URL parsing fails, don't cache the request
+    console.warn('Failed to parse URL for cache exclusion check:', url, error);
+    return true;
+  }
 }
 
 self.addEventListener('install', (event) => {
@@ -80,8 +86,8 @@ self.addEventListener('fetch', (event) => {
       return caches.open(RUNTIME_CACHE).then((cache) => {
         return fetch(event.request)
           .then((response) => {
-            // Only cache successful responses for cacheable content
-            if (response.status === 200 && !shouldExcludeFromCache(requestUrl)) {
+            // Only cache successful responses
+            if (response.status === 200) {
               cache.put(event.request, response.clone());
             }
             return response;
@@ -97,9 +103,12 @@ self.addEventListener('fetch', (event) => {
           });
       });
     }).catch((error) => {
-      console.warn('Cache match failed:', error);
+      console.warn('Cache match failed, attempting network fallback:', requestUrl, error);
       // Fallback to network if cache fails
-      return fetch(event.request);
+      return fetch(event.request).catch((networkError) => {
+        console.error('Both cache and network failed for:', requestUrl, networkError);
+        throw networkError;
+      });
     })
   );
 });
