@@ -94,9 +94,10 @@ export function ChildChoreView({
         return true
       }
       
-      // Show if at least one category has showInUpNext !== false
+      // Show only if ALL categories have showInUpNext !== false
+      // If ANY category has showInUpNext === false, hide the chore
       // Missing categories are treated as showInUpNext: true (default behavior)
-      return chore.categoryIds.some(categoryId => {
+      return chore.categoryIds.every(categoryId => {
         const category = categoryMap.get(categoryId)
         return !category || category.showInUpNext !== false
       })
