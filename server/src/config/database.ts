@@ -22,21 +22,45 @@ const dbConfig = {
 
 export const pool = mysql.createPool(dbConfig);
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function initDatabase() {
-  const connection = await pool.getConnection();
-  try {
-    // Create tables for all data entities
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS kv_store (
-        key_name VARCHAR(255) PRIMARY KEY,
-        value_data LONGTEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `);
-    
-    console.log('Database initialized successfully');
-  } finally {
-    connection.release();
+  const maxRetries = 10;
+  const initialDelay = 1000; // 1 second
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const connection = await pool.getConnection();
+      try {
+        // Create tables for all data entities
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS kv_store (
+            key_name VARCHAR(255) PRIMARY KEY,
+            value_data LONGTEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        
+        console.log('Database initialized successfully');
+        return; // Success, exit the function
+      } finally {
+        connection.release();
+      }
+    } catch (error: any) {
+      const isLastAttempt = attempt === maxRetries;
+      
+      if (isLastAttempt) {
+        console.error(`Failed to initialize database after ${maxRetries} attempts:`, error);
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff: 1s, 2s, 4s, 8s, 16s, etc. (capped at 30s)
+      const delay = Math.min(initialDelay * Math.pow(2, attempt - 1), 30000);
+      console.log(`Database connection attempt ${attempt} failed: ${error.message}. Retrying in ${delay}ms...`);
+      await sleep(delay);
+    }
   }
 }
