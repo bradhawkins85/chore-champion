@@ -59,7 +59,7 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
   
-  const [parentPin, setParentPin] = useKV<string | null>('parent-pin', null)
+  const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
   const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
     attempts: [],
     lockedUntil: null,
