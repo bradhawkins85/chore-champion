@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings } from '@/lib/types'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -42,6 +42,7 @@ import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
 import { EmailSettings } from './EmailSettings'
+import { PushNotificationSettingsComponent } from './PushNotificationSettings'
 import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
@@ -78,6 +79,8 @@ interface ParentPanelProps {
   emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
+  pushNotificationSettings: PushNotificationSettings
+  currentDeviceId: string
   hideChildrenWithNoActivity: boolean
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
@@ -118,6 +121,7 @@ interface ParentPanelProps {
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
   onUpdateSMTPSettings: (settings: SMTPSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
+  onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => void
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
@@ -185,6 +189,9 @@ export function ParentPanel({
   onUpdateWeatherSettings,
   onUpdateSMTPSettings,
   onUpdateEmailAlertSettings,
+  pushNotificationSettings,
+  currentDeviceId,
+  onUpdatePushNotificationSettings,
   speechSettings,
   onUpdateSpeechSettings,
   hideChildrenWithNoActivity,
@@ -836,6 +843,12 @@ export function ParentPanel({
               emailAlertSettings={emailAlertSettings}
               onUpdateSMTPSettings={onUpdateSMTPSettings}
               onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
+            />
+
+            <PushNotificationSettingsComponent
+              pushSettings={pushNotificationSettings}
+              deviceId={currentDeviceId}
+              onUpdatePushSettings={onUpdatePushNotificationSettings}
             />
 
             <CelebrationSettingsComponent 
