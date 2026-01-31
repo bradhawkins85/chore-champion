@@ -39,7 +39,8 @@ const limiter = rateLimit({
   skip: (req) => {
     // Skip rate limiting for all KV requests (both GET and POST)
     // to prevent 429 errors during page load and data persistence
-    return req.path.startsWith('/api/kv');
+    // Note: req.path is relative to the mount point '/api/', so we check for '/kv'
+    return req.path.startsWith('/kv');
   },
 });
 

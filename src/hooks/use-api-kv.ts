@@ -10,6 +10,48 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Track if API is available
 let apiAvailable: boolean | null = null;
 
+// Request queue to throttle concurrent API requests
+interface QueuedRequest {
+  execute: () => Promise<void>;
+  resolve: () => void;
+  reject: (error: Error) => void;
+}
+
+const requestQueue: QueuedRequest[] = [];
+let activeRequests = 0;
+const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests to avoid overwhelming the server
+
+// Process queued requests
+function processQueue() {
+  // Process requests to fill up to MAX_CONCURRENT_REQUESTS slots
+  while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (!request) break; // Guard against race conditions
+
+    activeRequests++;
+    
+    // Execute request without await to allow concurrent processing
+    request.execute()
+      .then(() => request.resolve())
+      .catch((error) => request.reject(error))
+      .finally(() => {
+        activeRequests--;
+        // Process next request from queue if available
+        if (requestQueue.length > 0) {
+          processQueue();
+        }
+      });
+  }
+}
+
+// Queue an API request to avoid rate limiting
+function queueRequest(execute: () => Promise<void>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ execute, resolve, reject });
+    processQueue();
+  });
+}
+
 // Check if API is available
 async function checkApiAvailability(): Promise<boolean> {
   if (apiAvailable !== null) {
@@ -80,38 +122,40 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
       setUseApi(available);
 
       if (available) {
-        // Load from API
-        try {
-          const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-          });
+        // Load from API using queue to prevent rate limiting
+        await queueRequest(async () => {
+          try {
+            const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' },
+            });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (mounted) {
-              // validateLoadedValue handles null values by returning defaultValue
-              setValue(validateLoadedValue(data.value, defaultValue));
+            if (response.ok) {
+              const data = await response.json();
+              if (mounted) {
+                // validateLoadedValue handles null values by returning defaultValue
+                setValue(validateLoadedValue(data.value, defaultValue));
+              }
+            } else if (response.status === 404) {
+              // Legacy: Key not found (older API versions returned 404)
+              if (mounted) {
+                setValue(defaultValue);
+              }
             }
-          } else if (response.status === 404) {
-            // Legacy: Key not found (older API versions returned 404)
-            if (mounted) {
-              setValue(defaultValue);
+          } catch (error) {
+            console.error('Error loading from API:', error);
+            // Fallback to localStorage
+            const stored = localStorage.getItem(key);
+            if (stored && mounted) {
+              try {
+                const parsedValue = JSON.parse(stored);
+                setValue(validateLoadedValue(parsedValue, defaultValue));
+              } catch {
+                setValue(defaultValue);
+              }
             }
           }
-        } catch (error) {
-          console.error('Error loading from API:', error);
-          // Fallback to localStorage
-          const stored = localStorage.getItem(key);
-          if (stored && mounted) {
-            try {
-              const parsedValue = JSON.parse(stored);
-              setValue(validateLoadedValue(parsedValue, defaultValue));
-            } catch {
-              setValue(defaultValue);
-            }
-          }
-        }
+        });
       } else {
         // Load from localStorage
         const stored = localStorage.getItem(key);
