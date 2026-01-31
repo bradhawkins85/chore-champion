@@ -1384,9 +1384,9 @@ Please log in to ChoreQuest to approve or reject this completion.
   }, [safePurchases])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen overflow-y-auto bg-background">
       {isCheckingIP ? (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="h-full flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-fredoka font-bold mb-2">Loading...</h2>
             <p className="text-muted-foreground">Checking access permissions</p>
@@ -1556,7 +1556,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       ) : (
         <>
           {safeChildrenList.length === 0 ? (
-            <div className="min-h-screen flex items-center justify-center p-8">
+            <div className="h-full flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <h1 className="text-4xl font-fredoka font-bold mb-4">
                   Welcome to ChoreQuest!

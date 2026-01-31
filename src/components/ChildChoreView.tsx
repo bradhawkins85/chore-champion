@@ -326,7 +326,7 @@ export function ChildChoreView({
   }, [categoriesWithBonuses, child.id, assignments, chores, completions])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">

@@ -83,7 +83,7 @@ export function RewardShop({
   }, [categories, completions, choresMap, child.id, assignments, purchases, rewardsMap, swaps])
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="h-full overflow-y-auto p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <Button

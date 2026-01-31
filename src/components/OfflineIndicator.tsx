@@ -42,7 +42,10 @@ export function OfflineIndicator() {
   }
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
+    <div 
+      className="fixed left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2"
+      style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
+    >
       <Card
         className={cn(
           'border-2 shadow-lg',

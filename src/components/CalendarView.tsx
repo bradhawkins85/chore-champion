@@ -97,7 +97,7 @@ export function CalendarView({ child, onBack }: CalendarViewProps) {
   const showTimes = child.calendarShowTimes !== false
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="h-full overflow-y-auto bg-background p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
