@@ -1,5 +1,5 @@
-const CACHE_NAME = 'chorequest-v2';
-const RUNTIME_CACHE = 'chorequest-runtime-v2';
+const CACHE_NAME = 'chorequest-v3';
+const RUNTIME_CACHE = 'chorequest-runtime-v3';
 
 const PRECACHE_URLS = [
   '/',

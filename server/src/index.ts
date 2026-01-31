@@ -45,7 +45,17 @@ const limiter = rateLimit({
 });
 
 // Apply rate limiting to all API routes
-app.use('/api/', limiter);
+app.use('/api', limiter);
+
+// Disable caching for all API responses
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  next();
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
