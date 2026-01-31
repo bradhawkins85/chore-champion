@@ -29,8 +29,9 @@ if [ ! -S /var/run/docker.sock ]; then
     exit 1
 fi
 
-# Get the container's compose project name
+# Get the container's compose project name and working directory
 COMPOSE_PROJECT=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project"}}' $(hostname) 2>/dev/null || echo "")
+COMPOSE_WORKDIR=$(docker inspect --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}' $(hostname) 2>/dev/null || echo "")
 
 if [ -z "$COMPOSE_PROJECT" ]; then
     echo "ERROR: Could not determine compose project name"
@@ -39,6 +40,7 @@ if [ -z "$COMPOSE_PROJECT" ]; then
 fi
 
 echo "Compose Project: $COMPOSE_PROJECT"
+echo "Working Directory: $COMPOSE_WORKDIR"
 echo ""
 
 # Create backup before updating
@@ -65,24 +67,55 @@ echo "Using compose file: $COMPOSE_FILE"
 echo ""
 
 # Validate that the compose file exists (it should be in the project directory)
-# Since we're running in a container, we need to check on the host via Docker
-# We'll check if the main service is defined
-if ! docker compose -p ${COMPOSE_PROJECT} config >/dev/null 2>&1; then
-    echo "ERROR: Could not validate compose configuration"
-    echo "The compose file may not be accessible or valid"
-    exit 1
+# Since we're running in a container, we need to use the full path from the host's perspective
+# Construct the full path to the compose file on the host
+if [ -n "$COMPOSE_WORKDIR" ]; then
+    COMPOSE_FILE_PATH="${COMPOSE_WORKDIR}/${COMPOSE_FILE}"
+else
+    # If we couldn't get the working directory, try to use just the project name
+    # Docker Compose V2 can sometimes infer the configuration from the running project
+    COMPOSE_FILE_PATH=""
+    echo "WARNING: Could not determine compose working directory"
+    echo "Will attempt to use project name only"
+fi
+
+echo "Compose file path: $COMPOSE_FILE_PATH"
+
+# Test compose configuration
+if [ -n "$COMPOSE_FILE_PATH" ]; then
+    if ! docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" config >/dev/null 2>&1; then
+        echo "ERROR: Could not validate compose configuration"
+        echo "Project: $COMPOSE_PROJECT, File: $COMPOSE_FILE_PATH"
+        exit 1
+    fi
+else
+    # Try without file path
+    if ! docker compose -p ${COMPOSE_PROJECT} config >/dev/null 2>&1; then
+        echo "ERROR: Could not validate compose configuration"
+        echo "Project: $COMPOSE_PROJECT"
+        exit 1
+    fi
 fi
 
 echo "Compose configuration validated"
 echo ""
 
 # Pull the latest images
-docker compose -p ${COMPOSE_PROJECT} pull
+echo "Pulling images..."
+if [ -n "$COMPOSE_FILE_PATH" ]; then
+    docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" pull
+else
+    docker compose -p ${COMPOSE_PROJECT} pull
+fi
 
 echo ""
 echo "Recreating containers..."
 # Recreate containers with new images
-docker compose -p ${COMPOSE_PROJECT} up -d --force-recreate --remove-orphans
+if [ -n "$COMPOSE_FILE_PATH" ]; then
+    docker compose -p ${COMPOSE_PROJECT} -f "$COMPOSE_FILE_PATH" up -d --force-recreate --remove-orphans
+else
+    docker compose -p ${COMPOSE_PROJECT} up -d --force-recreate --remove-orphans
+fi
 
 echo ""
 echo "Cleaning up old images..."
