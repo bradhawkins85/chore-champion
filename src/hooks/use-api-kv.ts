@@ -134,38 +134,39 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
-    // Use setValue with functional form to avoid race conditions
+    // Compute the new value using setState's functional form to avoid race conditions
+    let computedValue: T;
     setValue(prev => {
-      const newValue = typeof newValueOrUpdater === 'function' 
+      computedValue = typeof newValueOrUpdater === 'function' 
         ? (newValueOrUpdater as (prevValue: T) => T)(prev)
         : newValueOrUpdater;
-      
-      // Save to API or localStorage asynchronously
-      if (useApi) {
-        // Save to API
-        fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+      return computedValue;
+    });
+    
+    // Save to API or localStorage (outside of setState to keep it pure)
+    if (useApi) {
+      // Save to API and await the result
+      try {
+        const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: newValue }),
-        })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Failed to save to API');
-            }
-          })
-          .catch(error => {
-            console.error('Error saving to API:', error);
-            // Fallback to localStorage on error
-            localStorage.setItem(key, JSON.stringify(newValue));
-            console.warn('Saved to localStorage as fallback');
-          });
-      } else {
-        // Save to localStorage
-        localStorage.setItem(key, JSON.stringify(newValue));
+          body: JSON.stringify({ value: computedValue }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save to API');
+        }
+      } catch (error) {
+        console.error('Error saving to API:', error);
+        // Fallback to localStorage on error
+        localStorage.setItem(key, JSON.stringify(computedValue));
+        console.warn('Saved to localStorage as fallback');
+        // Note: The hook continues in API mode; future saves will retry API first
       }
-      
-      return newValue;
-    });
+    } else {
+      // Save to localStorage
+      localStorage.setItem(key, JSON.stringify(computedValue));
+    }
   }, [key, useApi]);
 
   return [value, updateValue];
