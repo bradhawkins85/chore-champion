@@ -98,7 +98,7 @@ Located at `/public/manifest.json`:
 
 **Key Properties:**
 - `display: standalone` - No browser UI
-- `orientation: portrait-primary` - Optimized for tablet use
+- `orientation: any` - Supports both portrait and landscape modes
 - `scope: /` - Entire app is PWA-controlled
 - `theme_color` - Status bar color on mobile
 
