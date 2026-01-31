@@ -79,20 +79,20 @@ else
     echo "Will attempt to use project name only"
 fi
 
-echo "Compose file path: $COMPOSE_FILE_PATH"
+echo "Compose file path: ${COMPOSE_FILE_PATH}"
 
 # Test compose configuration
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    if ! docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" config >/dev/null 2>&1; then
+    if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" config >/dev/null 2>&1; then
         echo "ERROR: Could not validate compose configuration"
-        echo "Project: $COMPOSE_PROJECT, File: $COMPOSE_FILE_PATH"
+        echo "Project: ${COMPOSE_PROJECT}, File: ${COMPOSE_FILE_PATH}"
         exit 1
     fi
 else
     # Try without file path
     if ! docker compose -p "${COMPOSE_PROJECT}" config >/dev/null 2>&1; then
         echo "ERROR: Could not validate compose configuration"
-        echo "Project: $COMPOSE_PROJECT"
+        echo "Project: ${COMPOSE_PROJECT}"
         exit 1
     fi
 fi
@@ -103,7 +103,7 @@ echo ""
 # Pull the latest images
 echo "Pulling images..."
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" pull
+    docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull
 else
     docker compose -p "${COMPOSE_PROJECT}" pull
 fi
@@ -112,7 +112,7 @@ echo ""
 echo "Recreating containers..."
 # Recreate containers with new images
 if [ -n "$COMPOSE_FILE_PATH" ]; then
-    docker compose -p "${COMPOSE_PROJECT}" -f "$COMPOSE_FILE_PATH" up -d --force-recreate --remove-orphans
+    docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" up -d --force-recreate --remove-orphans
 else
     docker compose -p "${COMPOSE_PROJECT}" up -d --force-recreate --remove-orphans
 fi
