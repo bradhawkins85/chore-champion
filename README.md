@@ -419,7 +419,14 @@ When a new version is available, users will be prompted to reload the app.
 
 ### 💻 Local Development Installation
 
-If you prefer to run without Docker:
+If you prefer to run without Docker, ChoreQuest requires three services to run:
+1. MySQL database
+2. Backend API server
+3. Frontend development server
+
+**Quick Start (Recommended):**
+
+Use the included development script that automatically starts all services:
 
 1. **Clone the repository**
    ```bash
@@ -427,22 +434,56 @@ If you prefer to run without Docker:
    cd chorequest
    ```
 
+2. **Run the development script**
+   ```bash
+   ./dev.sh
+   ```
+   
+   This will:
+   - Start MySQL in a Docker container
+   - Install all dependencies
+   - Start the API server (port 3000)
+   - Start the Vite dev server (port 5000)
+
+3. **Access the application**
+   
+   Open your browser and navigate to:
+   ```
+   http://localhost:5000
+   ```
+
+**Manual Setup:**
+
+If you prefer to start services individually:
+
+1. **Start MySQL**
+   ```bash
+   docker run -d --name chorequest-mysql-dev \
+     -e MYSQL_ROOT_PASSWORD=rootpassword \
+     -e MYSQL_DATABASE=chorequest \
+     -e MYSQL_USER=chorequest \
+     -e MYSQL_PASSWORD=chorequest \
+     -p 3306:3306 mysql:8.0
+   ```
+
 2. **Install dependencies**
    ```bash
    npm install
+   cd server && npm install && cd ..
    ```
 
-3. **Start the development server**
+3. **Start API server** (in one terminal)
+   ```bash
+   cd server
+   MYSQL_HOST=localhost MYSQL_USER=chorequest MYSQL_PASSWORD=chorequest npm run dev
+   ```
+
+4. **Start frontend** (in another terminal)
    ```bash
    npm run dev
    ```
 
-4. **Access the application**
-   
-   Open your browser and navigate to:
-   ```
-   http://localhost:5173
-   ```
+5. **Access at:** http://localhost:5000
 
 ### 🏗️ Build for Production
 

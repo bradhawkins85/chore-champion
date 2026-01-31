@@ -53,10 +53,27 @@ docker-compose up -d --build
 
 ### Development
 ```bash
-npm install          # Install dependencies
-npm run dev          # Start dev server (localhost:5173)
-npm run build        # Build for production
-npm run preview      # Preview production build
+# Quick start (recommended - starts MySQL, API, and frontend)
+./dev.sh
+
+# Or manually:
+# 1. Start MySQL
+docker run -d --name chorequest-mysql-dev \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  -e MYSQL_DATABASE=chorequest \
+  -e MYSQL_USER=chorequest \
+  -e MYSQL_PASSWORD=chorequest \
+  -p 3306:3306 mysql:8.0
+
+# 2. Install dependencies
+npm install
+cd server && npm install && cd ..
+
+# 3. Start API server (terminal 1)
+cd server && MYSQL_HOST=localhost MYSQL_USER=chorequest MYSQL_PASSWORD=chorequest npm run dev
+
+# 4. Start frontend (terminal 2)
+npm run dev         # Access at localhost:5000
 ```
 
 ## 🔧 Configuration
