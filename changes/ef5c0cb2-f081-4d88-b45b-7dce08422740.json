@@ -1,0 +1,7 @@
+{
+  "guid": "ef5c0cb2-f081-4d88-b45b-7dce08422740",
+  "occurred_at": "2026-01-31T23:22:04Z",
+  "change_type": "Fix",
+  "summary": "Allow dialog content to scroll when it exceeds the viewport height.",
+  "content_hash": "3b0c5019f3e8cc7c060c5bc00847f5ed3d7e25a8e72ade47b539f4a4f2b5d30c"
+}
