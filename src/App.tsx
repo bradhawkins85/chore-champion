@@ -1471,13 +1471,6 @@ Please log in to ChoreQuest to approve or reject this completion.
     if (weatherSettings?.seasonalThemesEnabled && currentWeather) {
       const theme = getSeasonalTheme(currentWeather)
       applyThemeToDOM(theme)
-      
-      if (mode === 'child' && !selectedChild) {
-        toast.info(`🎨 Theme: ${theme.name}`, {
-          description: `Colors updated based on ${currentWeather.condition.toLowerCase()} weather`,
-          duration: 3000,
-        })
-      }
     } else {
       const defaultTheme = getSeasonalTheme(null)
       applyThemeToDOM(defaultTheme)
