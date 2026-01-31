@@ -57,9 +57,9 @@ export async function initDatabase() {
         throw error;
       }
       
-      // Calculate delay with exponential backoff: 1s, 2s, 4s, 8s, 16s, etc.
-      const delay = initialDelay * Math.pow(2, attempt - 1);
-      console.log(`Database connection attempt ${attempt} failed. Retrying in ${delay}ms...`);
+      // Calculate delay with exponential backoff: 1s, 2s, 4s, 8s, 16s, etc. (capped at 30s)
+      const delay = Math.min(initialDelay * Math.pow(2, attempt - 1), 30000);
+      console.log(`Database connection attempt ${attempt} failed: ${error.message}. Retrying in ${delay}ms...`);
       await sleep(delay);
     }
   }
