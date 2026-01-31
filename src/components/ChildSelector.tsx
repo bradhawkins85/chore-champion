@@ -62,6 +62,12 @@ export function ChildSelector({
 
   // Load ICS events for all children to determine if they have calendar events
   useEffect(() => {
+    if (!hideChildrenWithNoActivity) {
+      // Clear the map when the setting is disabled to avoid stale data
+      setChildICSEventsMap(new Map())
+      return
+    }
+
     const loadAllICSFeeds = async () => {
       const eventsMap = new Map<string, boolean>()
       
@@ -87,11 +93,8 @@ export function ChildSelector({
       setChildICSEventsMap(eventsMap)
     }
 
-    if (hideChildrenWithNoActivity) {
-      loadAllICSFeeds()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childICSKey, hideChildrenWithNoActivity])
+    loadAllICSFeeds()
+  }, [childICSKey, hideChildrenWithNoActivity, childrenList])
 
   // Filter children based on activity if the setting is enabled
   const filteredChildrenList = useMemo(() => {
