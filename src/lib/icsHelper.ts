@@ -24,24 +24,16 @@ export interface ICSEvent {
 
 export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
   try {
-    let response: Response
+    // Use backend proxy to avoid CORS issues and 403 errors
+    // The backend will fetch the ICS feed with proper User-Agent headers
+    const apiUrl = import.meta.env.VITE_API_URL || '/api'
+    const proxyUrl = `${apiUrl}/ics-proxy?url=${encodeURIComponent(url)}`
     
-    try {
-      response = await fetch(url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'text/calendar, text/plain, */*',
-        },
-      })
-    } catch (corsError) {
-      console.warn('Direct fetch failed, trying CORS proxy:', corsError)
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`
-      response = await fetch(proxyUrl, {
-        headers: {
-          'Accept': 'text/calendar, text/plain, */*',
-        },
-      })
-    }
+    const response = await fetch(proxyUrl, {
+      headers: {
+        'Accept': 'text/calendar, text/plain, */*',
+      },
+    })
     
     if (!response.ok) {
       throw new Error(`Failed to fetch ICS feed: ${response.status} ${response.statusText}`)
