@@ -35,6 +35,8 @@ const PRESET_COLORS = [
   'oklch(0.64 0.16 200)',
 ]
 
+const NONE_VALUE = '__none__'
+
 export function CategoryDialog({
   open,
   onClose,
@@ -449,14 +451,14 @@ export function CategoryDialog({
             <div className="pt-2">
               <Label htmlFor="prerequisite-category">Required Category (Optional)</Label>
               <Select
-                value={prerequisiteCategoryId || '__none__'}
-                onValueChange={(value) => setPrerequisiteCategoryId(value === '__none__' ? '' : value)}
+                value={prerequisiteCategoryId || NONE_VALUE}
+                onValueChange={(value) => setPrerequisiteCategoryId(value === NONE_VALUE ? '' : value)}
               >
                 <SelectTrigger id="prerequisite-category">
                   <SelectValue placeholder="None - No prerequisite required" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
+                  <SelectItem value={NONE_VALUE}>None</SelectItem>
                   {allCategories
                     .filter((c) => c.id !== category?.id)
                     .map((cat) => (
