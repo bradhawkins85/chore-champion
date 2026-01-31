@@ -54,24 +54,35 @@ export function ChildSelector({
   const [showBiometricBadge, setShowBiometricBadge] = useState(false)
   const [childICSEventsMap, setChildICSEventsMap] = useState<Map<string, boolean>>(new Map())
 
+  // Create a stable key based on child IDs and ICS URLs to avoid unnecessary refetches
+  const childICSKey = useMemo(
+    () => childrenList.map(c => `${c.id}:${c.icsUrl || ''}`).join('|'),
+    [childrenList]
+  )
+
   // Load ICS events for all children to determine if they have calendar events
   useEffect(() => {
     const loadAllICSFeeds = async () => {
       const eventsMap = new Map<string, boolean>()
       
-      for (const child of childrenList) {
+      // Fetch all ICS feeds concurrently using Promise.all for better performance
+      const fetchPromises = childrenList.map(async (child) => {
         if (child.icsUrl) {
           try {
             const events = await fetchICSFeed(child.icsUrl)
             const todayEvents = getICSEventsForToday(events)
-            eventsMap.set(child.id, todayEvents.length > 0)
+            return { childId: child.id, hasEvents: todayEvents.length > 0 }
           } catch (error) {
-            eventsMap.set(child.id, false)
+            return { childId: child.id, hasEvents: false }
           }
-        } else {
-          eventsMap.set(child.id, false)
         }
-      }
+        return { childId: child.id, hasEvents: false }
+      })
+      
+      const results = await Promise.all(fetchPromises)
+      results.forEach(({ childId, hasEvents }) => {
+        eventsMap.set(childId, hasEvents)
+      })
       
       setChildICSEventsMap(eventsMap)
     }
@@ -79,7 +90,8 @@ export function ChildSelector({
     if (hideChildrenWithNoActivity) {
       loadAllICSFeeds()
     }
-  }, [childrenList, hideChildrenWithNoActivity])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childICSKey, hideChildrenWithNoActivity])
 
   // Filter children based on activity if the setting is enabled
   const filteredChildrenList = useMemo(() => {
