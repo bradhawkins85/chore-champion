@@ -46,8 +46,7 @@ export function CalendarView({ child, chores = [], assignments = [], completions
       return true
     }
     
-    // Show only if ALL categories have showInCalendar !== false
-    // If ANY category has showInCalendar === false, hide the chore
+    // Hide the chore if any of its categories has showInCalendar === false
     // Missing categories are treated as showInCalendar: true (default behavior)
     return chore.categoryIds.every(categoryId => {
       const category = categoriesMap.get(categoryId)
