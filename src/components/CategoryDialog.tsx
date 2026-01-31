@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye, Lock } from '@phosphor-icons/react'
+import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye, Lock, Calendar as CalendarIcon } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
@@ -54,6 +54,7 @@ export function CategoryDialog({
   const [enableExpiry, setEnableExpiry] = useState(false)
   const [expiryInterval, setExpiryInterval] = useState<PointsExpiryInterval>('daily')
   const [showInUpNext, setShowInUpNext] = useState(true)
+  const [showInCalendar, setShowInCalendar] = useState(true)
   const [prerequisiteCategoryId, setPrerequisiteCategoryId] = useState('')
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export function CategoryDialog({
       setEnableExpiry(category.pointsExpiry?.enabled || false)
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
       setShowInUpNext(category.showInUpNext !== false)
+      setShowInCalendar(category.showInCalendar !== false)
       setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
     } else {
       setName('')
@@ -80,6 +82,7 @@ export function CategoryDialog({
       setEnableExpiry(false)
       setExpiryInterval('daily')
       setShowInUpNext(true)
+      setShowInCalendar(true)
       setPrerequisiteCategoryId('')
     }
   }, [category, open])
@@ -153,6 +156,7 @@ export function CategoryDialog({
         interval: expiryInterval,
       },
       showInUpNext,
+      showInCalendar,
       prerequisiteCategoryId: prerequisiteCategoryId || undefined,
     })
     onClose()
@@ -489,6 +493,21 @@ export function CategoryDialog({
                 </div>
               </div>
               <Switch checked={showInUpNext} onCheckedChange={setShowInUpNext} />
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Show in Calendar</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display chores from this category in the child's calendar view
+                  </p>
+                </div>
+              </div>
+              <Switch checked={showInCalendar} onCheckedChange={setShowInCalendar} />
             </div>
           </div>
 

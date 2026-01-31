@@ -1015,7 +1015,8 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
     pointsExpiry: {
       enabled: true,
       interval: 'daily',
-    }
+    },
+    showInCalendar: true,
   },
   {
     name: 'Extra',
@@ -1025,7 +1026,8 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt'>[] = [
     pointsExpiry: {
       enabled: false,
       interval: 'never',
-    }
+    },
+    showInCalendar: false,
   },
 ]
 
