@@ -305,7 +305,7 @@ export function ChildChoreView({
   }, [trackedGoal, rewards])
 
   const categoriesWithBonuses = useMemo(() => {
-    return categories.filter(cat => cat.completionBonus)
+    return categories.filter(cat => cat.completionBonus && cat.showInUpNext !== false)
   }, [categories])
 
   const categoryCompletionProgress = useMemo(() => {

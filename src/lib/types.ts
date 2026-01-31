@@ -31,6 +31,7 @@ export interface Category {
   exchangeRates?: ExchangeRate[]
   completionBonus?: CategoryCompletionBonus
   pointsExpiry?: PointsExpiryConfig
+  showInUpNext?: boolean
 }
 
 export interface RepeatPattern {
