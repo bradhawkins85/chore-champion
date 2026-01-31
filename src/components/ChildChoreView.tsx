@@ -272,8 +272,8 @@ export function ChildChoreView({
   }, [childChores, completions, child.id, currentTimeOfDay])
 
   // Check which chores are locked due to unmet prerequisites
-  const lockedChores = useMemo(() => {
-    const locked = new Set<string>()
+  const lockedChoresInfo = useMemo(() => {
+    const locked = new Map<string, Category | null>() // Map choreId to blockedByCategory
     const choresMap = new Map(chores.map(c => [c.id, c]))
     
     childChores.forEach((chore) => {
@@ -289,7 +289,11 @@ export function ChildChoreView({
         )
         
         if (!prerequisiteMet) {
-          locked.add(chore.id)
+          const category = categories.find(c => c.id === categoryId)
+          const blockedBy = category?.prerequisiteCategoryId 
+            ? categories.find(c => c.id === category.prerequisiteCategoryId) || null
+            : null
+          locked.set(chore.id, blockedBy)
           break
         }
       }
@@ -554,31 +558,8 @@ export function ChildChoreView({
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {pendingChores.map(({ chore, assignment, timeOfDay }, index) => {
-                    const isLocked = lockedChores.has(chore.id)
-                    
-                    // Find the specific category causing the lock
-                    let blockedByCategory: Category | null = null
-                    if (isLocked && chore.categoryIds) {
-                      for (const categoryId of chore.categoryIds) {
-                        const category = categories.find(c => c.id === categoryId)
-                        if (category?.prerequisiteCategoryId) {
-                          const choresMap = new Map(chores.map(c => [c.id, c]))
-                          const prerequisiteMet = isPrerequisiteCategoryCompleted(
-                            child.id,
-                            categoryId,
-                            categories,
-                            assignments,
-                            choresMap,
-                            completions
-                          )
-                          
-                          if (!prerequisiteMet) {
-                            blockedByCategory = categories.find(c => c.id === category.prerequisiteCategoryId) || null
-                            break
-                          }
-                        }
-                      }
-                    }
+                    const blockedByCategory = lockedChoresInfo.get(chore.id)
+                    const isLocked = blockedByCategory !== undefined
                     
                     return (
                     <motion.div
