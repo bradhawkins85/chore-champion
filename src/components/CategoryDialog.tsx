@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye } from '@phosphor-icons/react'
+import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye, Lock } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 
@@ -51,6 +51,7 @@ export function CategoryDialog({
   const [enableExpiry, setEnableExpiry] = useState(false)
   const [expiryInterval, setExpiryInterval] = useState<PointsExpiryInterval>('daily')
   const [showInUpNext, setShowInUpNext] = useState(true)
+  const [prerequisiteCategoryId, setPrerequisiteCategoryId] = useState('')
 
   useEffect(() => {
     if (category) {
@@ -64,6 +65,7 @@ export function CategoryDialog({
       setEnableExpiry(category.pointsExpiry?.enabled || false)
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
       setShowInUpNext(category.showInUpNext !== false)
+      setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
     } else {
       setName('')
       setDescription('')
@@ -75,6 +77,7 @@ export function CategoryDialog({
       setEnableExpiry(false)
       setExpiryInterval('daily')
       setShowInUpNext(true)
+      setPrerequisiteCategoryId('')
     }
   }, [category, open])
 
@@ -108,6 +111,7 @@ export function CategoryDialog({
         interval: expiryInterval,
       },
       showInUpNext,
+      prerequisiteCategoryId: prerequisiteCategoryId || undefined,
     })
     onClose()
   }
@@ -388,6 +392,47 @@ export function CategoryDialog({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Category Prerequisite</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Require another category to be completed first
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="pt-2">
+              <Label htmlFor="prerequisite-category">Required Category (Optional)</Label>
+              <Select
+                value={prerequisiteCategoryId}
+                onValueChange={setPrerequisiteCategoryId}
+              >
+                <SelectTrigger id="prerequisite-category">
+                  <SelectValue placeholder="None - No prerequisite required" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {allCategories
+                    .filter((c) => c.id !== category?.id)
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {prerequisiteCategoryId && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Chores in {name || 'this category'} cannot be completed until all{' '}
+                  {allCategories.find(c => c.id === prerequisiteCategoryId)?.name || 'prerequisite'} chores are complete.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="border rounded-lg p-4 space-y-3">
