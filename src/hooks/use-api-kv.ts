@@ -31,30 +31,27 @@ async function processQueue() {
   
   processingQueue = true;
   
-  try {
-    // Process requests in a loop instead of recursion to avoid stack overflow
-    while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
-      const request = requestQueue.shift();
-      if (!request) continue;
+  // Process requests in a loop instead of recursion to avoid stack overflow
+  while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
+    const request = requestQueue.shift()!; // Safe because we check length > 0
 
-      activeRequests++;
-      
-      // Execute request without await to allow concurrent processing
-      request.execute()
-        .then(() => request.resolve())
-        .catch((error) => request.reject(error))
-        .finally(() => {
-          activeRequests--;
-          // Trigger processing of next batch if needed
-          if (requestQueue.length > 0) {
-            processingQueue = false;
-            processQueue();
-          }
-        });
-    }
-  } finally {
-    processingQueue = false;
+    activeRequests++;
+    
+    // Execute request without await to allow concurrent processing
+    request.execute()
+      .then(() => request.resolve())
+      .catch((error) => request.reject(error))
+      .finally(() => {
+        activeRequests--;
+        // Trigger processing of next batch if queue is not empty
+        // Use setTimeout to avoid deep recursion and ensure processingQueue flag is reset
+        if (requestQueue.length > 0) {
+          setTimeout(() => processQueue(), 0);
+        }
+      });
   }
+  
+  processingQueue = false;
 }
 
 // Queue an API request to avoid rate limiting
