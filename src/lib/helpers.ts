@@ -175,10 +175,10 @@ export function isChoreCompletedByAnyChildToday(
 
 /**
  * Calculate the start time of the current reset period based on the reset period type
- * @param resetPeriod - The reset period ('daily', 'weekly', 'monthly'). Defaults to 'daily'
+ * @param resetPeriod - The reset period ('daily', 'weekly', 'bi-weekly', 'monthly'). Defaults to 'daily'
  * @returns Timestamp of the start of the current reset period
  */
-export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'monthly'): number {
+export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
   const now = new Date()
   const periodStart = new Date(now)
   
@@ -191,6 +191,22 @@ export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'monthly'
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Monday = 0 days to subtract
     periodStart.setDate(now.getDate() - daysToSubtract)
     periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'bi-weekly') {
+    // Reset at midnight on Monday every 2 weeks
+    // Use a fixed epoch (Jan 1, 2024 was a Monday) to calculate bi-weekly periods
+    const epoch = new Date('2024-01-01T00:00:00Z').getTime()
+    const dayOfWeek = now.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisMonday = new Date(now)
+    thisMonday.setDate(now.getDate() - daysToSubtract)
+    thisMonday.setHours(0, 0, 0, 0)
+    
+    // Calculate how many weeks since epoch
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - epoch) / (7 * 24 * 60 * 60 * 1000))
+    const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
+    
+    // Get the start of this bi-weekly period
+    periodStart.setTime(epoch + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
   } else if (resetPeriod === 'monthly') {
     // Reset at midnight on the 1st of the month
     periodStart.setDate(1)
@@ -204,7 +220,7 @@ export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'monthly'
  * Calculate the start time of the reset period for a specific date
  * Used for historical calculations (e.g., expired points)
  */
-function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly' | 'monthly'): number {
+function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
   const periodStart = new Date(date)
   
   if (!resetPeriod || resetPeriod === 'daily') {
@@ -214,6 +230,18 @@ function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly'
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     periodStart.setDate(date.getDate() - daysToSubtract)
     periodStart.setHours(0, 0, 0, 0)
+  } else if (resetPeriod === 'bi-weekly') {
+    const epoch = new Date('2024-01-01T00:00:00Z').getTime()
+    const dayOfWeek = date.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisMonday = new Date(date)
+    thisMonday.setDate(date.getDate() - daysToSubtract)
+    thisMonday.setHours(0, 0, 0, 0)
+    
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - epoch) / (7 * 24 * 60 * 60 * 1000))
+    const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
+    
+    periodStart.setTime(epoch + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
   } else if (resetPeriod === 'monthly') {
     periodStart.setDate(1)
     periodStart.setHours(0, 0, 0, 0)
@@ -225,13 +253,15 @@ function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly'
 /**
  * Calculate the start of the next reset period given a period start time
  */
-function getNextResetPeriodStart(periodStart: number, resetPeriod?: 'daily' | 'weekly' | 'monthly'): number {
+function getNextResetPeriodStart(periodStart: number, resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'): number {
   const nextPeriod = new Date(periodStart)
   
   if (!resetPeriod || resetPeriod === 'daily') {
     nextPeriod.setDate(nextPeriod.getDate() + 1)
   } else if (resetPeriod === 'weekly') {
     nextPeriod.setDate(nextPeriod.getDate() + 7)
+  } else if (resetPeriod === 'bi-weekly') {
+    nextPeriod.setDate(nextPeriod.getDate() + 14)
   } else if (resetPeriod === 'monthly') {
     nextPeriod.setMonth(nextPeriod.getMonth() + 1)
   }
@@ -243,7 +273,7 @@ export function getShareableChoreCompletionCount(
   completions: ChoreCompletion[],
   choreId: string,
   timeOfDay?: 'am' | 'pm',
-  resetPeriod?: 'daily' | 'weekly' | 'monthly'
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): number {
   const periodStart = getResetPeriodStart(resetPeriod)
   
@@ -268,7 +298,7 @@ export function isShareableChoreFullyCompleted(
   choreId: string,
   maxCompletions: number,
   timeOfDay?: 'am' | 'pm',
-  resetPeriod?: 'daily' | 'weekly' | 'monthly'
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): boolean {
   return getShareableChoreCompletionCount(completions, choreId, timeOfDay, resetPeriod) >= maxCompletions
 }
@@ -278,7 +308,7 @@ export function hasChildCompletedShareableChore(
   choreId: string,
   childId: string,
   timeOfDay?: 'am' | 'pm',
-  resetPeriod?: 'daily' | 'weekly' | 'monthly'
+  resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 ): boolean {
   const periodStart = getResetPeriodStart(resetPeriod)
   
@@ -517,7 +547,7 @@ export function isRewardAvailableForChild(
 
 export function getChildTotalPoints(
   completions: ChoreCompletion[],
-  choresMap: Map<string, { points: number; completionType?: string; resetPeriod?: 'daily' | 'weekly' | 'monthly' }>,
+  choresMap: Map<string, { points: number; completionType?: string; resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' }>,
   childId: string,
   assignments?: ChoreAssignment[]
 ): number {
@@ -745,7 +775,7 @@ export function getChildPointsByCategory(
   choresMap: Map<string, {
     points: number
     completionType?: string
-    resetPeriod?: 'daily' | 'weekly' | 'monthly'
+    resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
     categoryIds: string[]
     categoryPoints?: { categoryId: string; points: number }[]
   }>,
@@ -1216,7 +1246,7 @@ export function getExpiredPointsByCategory(
   choresMap: Map<string, { 
     points: number
     completionType?: string
-    resetPeriod?: 'daily' | 'weekly' | 'monthly'
+    resetPeriod?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
     categoryIds: string[]
     categoryPoints?: { categoryId: string; points: number }[]
   }>,

@@ -70,7 +70,7 @@ export function ChoreDialog({
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
   const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
   const [maxCompletions, setMaxCompletions] = useState(editChore?.maxCompletions?.toString() || '')
-  const [resetPeriod, setResetPeriod] = useState<'daily' | 'weekly' | 'monthly'>(editChore?.resetPeriod || 'daily')
+  const [resetPeriod, setResetPeriod] = useState<'daily' | 'weekly' | 'bi-weekly' | 'monthly'>(editChore?.resetPeriod || 'daily')
   const [weatherEnabled, setWeatherEnabled] = useState(!!editChore?.weatherConditions)
   const [weatherConditions, setWeatherConditions] = useState<WeatherConditionFilter[]>(
     editChore?.weatherConditions?.conditions || []
@@ -600,13 +600,14 @@ export function ChoreDialog({
                     </p>
                     
                     <Label htmlFor="reset-period" className="mt-2">Reset Period</Label>
-                    <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'monthly')}>
+                    <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'bi-weekly' | 'monthly')}>
                       <SelectTrigger id="reset-period">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="daily">Daily (resets at midnight)</SelectItem>
                         <SelectItem value="weekly">Weekly (resets Monday)</SelectItem>
+                        <SelectItem value="bi-weekly">Bi-weekly (resets every 2 weeks)</SelectItem>
                         <SelectItem value="monthly">Monthly (resets on 1st)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -999,13 +1000,14 @@ export function ChoreDialog({
                 </p>
                 
                 <Label htmlFor="reset-period-edit" className="mt-2">Reset Period</Label>
-                <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'monthly')}>
+                <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'bi-weekly' | 'monthly')}>
                   <SelectTrigger id="reset-period-edit">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="daily">Daily (resets at midnight)</SelectItem>
                     <SelectItem value="weekly">Weekly (resets Monday)</SelectItem>
+                    <SelectItem value="bi-weekly">Bi-weekly (resets every 2 weeks)</SelectItem>
                     <SelectItem value="monthly">Monthly (resets on 1st)</SelectItem>
                   </SelectContent>
                 </Select>
