@@ -1,5 +1,8 @@
 import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion } from './types'
 
+// Epoch date for bi-weekly period calculations (January 1, 2024 - a Monday)
+const BI_WEEKLY_EPOCH = new Date('2024-01-01T00:00:00Z').getTime()
+
 export function isCompletionApproved(completion: ChoreCompletion): boolean {
   if (!completion.approvalStatus) return true
   return completion.approvalStatus === 'approved'
@@ -193,8 +196,7 @@ export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'bi-weekl
     periodStart.setHours(0, 0, 0, 0)
   } else if (resetPeriod === 'bi-weekly') {
     // Reset at midnight on Monday every 2 weeks
-    // Use a fixed epoch (Jan 1, 2024 was a Monday) to calculate bi-weekly periods
-    const epoch = new Date('2024-01-01T00:00:00Z').getTime()
+    // Use fixed epoch to calculate bi-weekly periods
     const dayOfWeek = now.getDay()
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const thisMonday = new Date(now)
@@ -202,11 +204,11 @@ export function getResetPeriodStart(resetPeriod?: 'daily' | 'weekly' | 'bi-weekl
     thisMonday.setHours(0, 0, 0, 0)
     
     // Calculate how many weeks since epoch
-    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - epoch) / (7 * 24 * 60 * 60 * 1000))
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - BI_WEEKLY_EPOCH) / (7 * 24 * 60 * 60 * 1000))
     const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
     
     // Get the start of this bi-weekly period
-    periodStart.setTime(epoch + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
+    periodStart.setTime(BI_WEEKLY_EPOCH + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
   } else if (resetPeriod === 'monthly') {
     // Reset at midnight on the 1st of the month
     periodStart.setDate(1)
@@ -231,17 +233,16 @@ function getResetPeriodStartForDate(date: Date, resetPeriod?: 'daily' | 'weekly'
     periodStart.setDate(date.getDate() - daysToSubtract)
     periodStart.setHours(0, 0, 0, 0)
   } else if (resetPeriod === 'bi-weekly') {
-    const epoch = new Date('2024-01-01T00:00:00Z').getTime()
     const dayOfWeek = date.getDay()
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const thisMonday = new Date(date)
     thisMonday.setDate(date.getDate() - daysToSubtract)
     thisMonday.setHours(0, 0, 0, 0)
     
-    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - epoch) / (7 * 24 * 60 * 60 * 1000))
+    const weeksSinceEpoch = Math.floor((thisMonday.getTime() - BI_WEEKLY_EPOCH) / (7 * 24 * 60 * 60 * 1000))
     const biWeeklyPeriod = Math.floor(weeksSinceEpoch / 2)
     
-    periodStart.setTime(epoch + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
+    periodStart.setTime(BI_WEEKLY_EPOCH + biWeeklyPeriod * 2 * 7 * 24 * 60 * 60 * 1000)
   } else if (resetPeriod === 'monthly') {
     periodStart.setDate(1)
     periodStart.setHours(0, 0, 0, 0)
