@@ -94,7 +94,10 @@ export function ChildSelector({
     }
 
     loadAllICSFeeds()
-  }, [childICSKey, hideChildrenWithNoActivity, childrenList])
+    // Note: childrenList is accessed in the effect but not in the dependency array
+    // because childICSKey already tracks changes to child IDs and ICS URLs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childICSKey, hideChildrenWithNoActivity])
 
   // Filter children based on activity if the setting is enabled
   const filteredChildrenList = useMemo(() => {
