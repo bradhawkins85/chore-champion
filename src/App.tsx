@@ -43,6 +43,7 @@ import {
   SMTPSettings,
   EmailAlertSettings,
   SpeechSettings,
+  PushNotificationSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -141,6 +142,10 @@ function App() {
   const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
+  })
+  const [pushNotificationSettings, setPushNotificationSettings] = useKV<PushNotificationSettings>('push-notification-settings', {
+    enabled: false,
+    devices: [],
   })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
@@ -1075,6 +1080,10 @@ function App() {
     setEmailAlertSettings(settings)
   }
 
+  const handleUpdatePushNotificationSettings = (settings: PushNotificationSettings) => {
+    setPushNotificationSettings(settings)
+  }
+
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
     if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
       return
@@ -1426,6 +1435,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
+          pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
@@ -1458,6 +1468,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
           onUpdateSMTPSettings={handleUpdateSMTPSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
+          onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onAddReportTemplate={handleAddReportTemplate}
