@@ -1,7 +1,6 @@
 /**
  * API-based KV storage hook
- * Custom implementation that stores data in MySQL via /api/kv endpoints
- * Provides a similar interface to @github/spark useKV for easy migration
+ * Provides the same interface as @github/spark useKV but uses the backend API
  */
 import { useState, useEffect, useCallback } from 'react';
 
