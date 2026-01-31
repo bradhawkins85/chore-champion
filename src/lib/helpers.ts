@@ -1284,7 +1284,24 @@ export function areAllCategoryChoresCompleted(
   // If all chores are missed, consider the category completed
   if (nonMissedChores.length === 0) return true
 
-  return nonMissedChores.every(({ chore, timeOfDay }) => {
+  // Filter out chores whose desired time hasn't been reached yet
+  // These chores should not block other categories until their desired time has passed
+  const currentMinutes = getCurrentTimeInMinutes()
+  const choresRequiringCompletion = nonMissedChores.filter(({ chore }) => {
+    if (!chore.desiredTime) {
+      // No desired time means the chore should be considered for blocking
+      return true
+    }
+    
+    const desiredMinutes = timeToMinutes(chore.desiredTime)
+    // Only require completion if the desired time has passed or is now
+    return currentMinutes >= desiredMinutes
+  })
+
+  // If all chores have future desired times, consider the category completed (for now)
+  if (choresRequiringCompletion.length === 0) return true
+
+  return choresRequiringCompletion.every(({ chore, timeOfDay }) => {
     if (chore.completionType === 'once-per-day') {
       return isChoreCompletedByAnyChildToday(completions, chore.id, timeOfDay)
     }
