@@ -57,7 +57,7 @@ export function PWAInstallPrompt() {
         size="sm"
         onClick={() => setShowPrompt(true)}
         className="fixed z-50 shadow-lg"
-        style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))', right: 'calc(1rem + env(safe-area-inset-right))' }}
+        style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))', right: 'calc(1rem + env(safe-area-inset-right, 0px))' }}
       >
         <Download className="h-4 w-4 mr-2" />
         Install App
@@ -150,7 +150,7 @@ export function PWAStatusIndicator() {
   return (
     <div 
       className="fixed z-50"
-      style={{ top: 'calc(1rem + env(safe-area-inset-top))', left: 'calc(1rem + env(safe-area-inset-left))' }}
+      style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))', left: 'calc(1rem + env(safe-area-inset-left, 0px))' }}
     >
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-2 px-3 flex items-center gap-2">

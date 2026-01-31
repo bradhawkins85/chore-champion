@@ -285,10 +285,10 @@ export function ChoreCompletionCelebration({
       exit={{ scale: 0, opacity: 0 }}
       className="fixed z-50 pointer-events-none flex items-center justify-center"
       style={{
-        top: 'env(safe-area-inset-top)',
-        right: 'env(safe-area-inset-right)',
-        bottom: 'env(safe-area-inset-bottom)',
-        left: 'env(safe-area-inset-left)',
+        top: 'env(safe-area-inset-top, 0px)',
+        right: 'env(safe-area-inset-right, 0px)',
+        bottom: 'env(safe-area-inset-bottom, 0px)',
+        left: 'env(safe-area-inset-left, 0px)',
       }}
     >
       <motion.div
