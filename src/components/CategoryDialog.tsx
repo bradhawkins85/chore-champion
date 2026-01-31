@@ -449,14 +449,14 @@ export function CategoryDialog({
             <div className="pt-2">
               <Label htmlFor="prerequisite-category">Required Category (Optional)</Label>
               <Select
-                value={prerequisiteCategoryId}
-                onValueChange={setPrerequisiteCategoryId}
+                value={prerequisiteCategoryId || '__none__'}
+                onValueChange={(value) => setPrerequisiteCategoryId(value === '__none__' ? '' : value)}
               >
                 <SelectTrigger id="prerequisite-category">
                   <SelectValue placeholder="None - No prerequisite required" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {allCategories
                     .filter((c) => c.id !== category?.id)
                     .map((cat) => (
