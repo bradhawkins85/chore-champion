@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -70,6 +70,7 @@ export function ChoreDialog({
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
   const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
   const [maxCompletions, setMaxCompletions] = useState(editChore?.maxCompletions?.toString() || '')
+  const [resetPeriod, setResetPeriod] = useState<'daily' | 'weekly' | 'monthly'>(editChore?.resetPeriod || 'daily')
   const [weatherEnabled, setWeatherEnabled] = useState(!!editChore?.weatherConditions)
   const [weatherConditions, setWeatherConditions] = useState<WeatherConditionFilter[]>(
     editChore?.weatherConditions?.conditions || []
@@ -102,6 +103,7 @@ export function ChoreDialog({
       setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
       setApprovalConfigs(editChore.approvalConfigs || [])
       setMaxCompletions(editChore.maxCompletions?.toString() || '')
+      setResetPeriod(editChore.resetPeriod || 'daily')
       setWeatherEnabled(!!editChore.weatherConditions)
       setWeatherConditions(editChore.weatherConditions?.conditions || [])
       setWeatherMinTemp(editChore.weatherConditions?.minTemp?.toString() || '')
@@ -185,6 +187,7 @@ export function ChoreDialog({
 
     if (completionType === 'shareable' && maxCompletions && parseInt(maxCompletions) > 0) {
       choreData.maxCompletions = parseInt(maxCompletions)
+      choreData.resetPeriod = resetPeriod
     }
 
     if (weatherEnabled && weatherConditions.length > 0) {
@@ -225,6 +228,7 @@ export function ChoreDialog({
       setEstimatedDuration('')
       setApprovalConfigs([])
       setMaxCompletions('')
+      setResetPeriod('daily')
       setWeatherEnabled(false)
       setWeatherConditions([])
       setWeatherMinTemp('')
@@ -593,6 +597,21 @@ export function ChoreDialog({
                     />
                     <p className="text-xs text-muted-foreground">
                       Limit how many children can complete this chore. The first to complete get points, then it's removed from others' views. Leave blank for no limit.
+                    </p>
+                    
+                    <Label htmlFor="reset-period" className="mt-2">Reset Period</Label>
+                    <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'monthly')}>
+                      <SelectTrigger id="reset-period">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily (resets at midnight)</SelectItem>
+                        <SelectItem value="weekly">Weekly (resets Monday)</SelectItem>
+                        <SelectItem value="monthly">Monthly (resets on 1st)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose when this shareable task resets. Children can complete it anytime during the period.
                     </p>
                   </div>
                 )}
@@ -977,6 +996,21 @@ export function ChoreDialog({
                 />
                 <p className="text-xs text-muted-foreground">
                   Limit how many children can complete this chore. The first to complete get points, then it's removed from others' views. Leave blank for no limit.
+                </p>
+                
+                <Label htmlFor="reset-period-edit" className="mt-2">Reset Period</Label>
+                <Select value={resetPeriod} onValueChange={(v) => setResetPeriod(v as 'daily' | 'weekly' | 'monthly')}>
+                  <SelectTrigger id="reset-period-edit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily (resets at midnight)</SelectItem>
+                    <SelectItem value="weekly">Weekly (resets Monday)</SelectItem>
+                    <SelectItem value="monthly">Monthly (resets on 1st)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose when this shareable task resets. Children can complete it anytime during the period.
                 </p>
               </div>
             )}

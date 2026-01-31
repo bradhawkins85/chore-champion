@@ -92,10 +92,10 @@ export function ChildChoreView({
       
       if (chore.completionType === 'shareable' && chore.maxCompletions) {
         if (chore.timeOfDay === 'both') {
-          const amCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'am')
-          const pmCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'pm')
-          const amFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'am')
-          const pmFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'pm')
+          const amCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'am', chore.resetPeriod)
+          const pmCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, 'pm', chore.resetPeriod)
+          const amFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'am', chore.resetPeriod)
+          const pmFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, 'pm', chore.resetPeriod)
           
           if (currentTimeOfDay === 'am') {
             if (amCompleted) {
@@ -133,8 +133,8 @@ export function ChildChoreView({
           return
         } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
           const timeOfDay = chore.timeOfDay
-          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, timeOfDay)
-          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, timeOfDay)
+          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, timeOfDay, chore.resetPeriod)
+          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, timeOfDay, chore.resetPeriod)
           const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
           const isAvailable = isChoreAvailableNow(chore.timeOfDay)
           
@@ -156,8 +156,8 @@ export function ChildChoreView({
           }
           return
         } else {
-          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id)
-          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions)
+          const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, undefined, chore.resetPeriod)
+          const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, undefined, chore.resetPeriod)
           
           if (isCompleted) {
             completed.push({ chore, assignment })
@@ -555,14 +555,14 @@ export function ChildChoreView({
                                     <div className="flex-1">
                                       <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
                                         <Users className="h-3 w-3" />
-                                        Shareable - {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                        Shareable - {getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod)}/{chore.maxCompletions} completed
                                       </Badge>
                                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                                         <motion.div
                                           className="h-full bg-primary"
                                           initial={{ width: 0 }}
                                           animate={{ 
-                                            width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                            width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod) / chore.maxCompletions) * 100}%` 
                                           }}
                                           transition={{ duration: 0.3 }}
                                         />
@@ -781,13 +781,13 @@ export function ChildChoreView({
                               <div className="mb-2">
                                 <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
                                   <Users className="h-3 w-3" />
-                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod)}/{chore.maxCompletions} completed
                                 </Badge>
                                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-primary"
                                     style={{ 
-                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod) / chore.maxCompletions) * 100}%` 
                                     }}
                                   />
                                 </div>
@@ -890,13 +890,13 @@ export function ChildChoreView({
                               <div className="mb-2">
                                 <Badge variant="secondary" className="flex items-center gap-1 text-xs mb-1.5">
                                   <Users className="h-3 w-3" />
-                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay)}/{chore.maxCompletions} completed
+                                  {getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod)}/{chore.maxCompletions} completed
                                 </Badge>
                                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-primary"
                                     style={{ 
-                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay) / chore.maxCompletions) * 100}%` 
+                                      width: `${(getShareableChoreCompletionCount(completions, chore.id, timeOfDay, chore.resetPeriod) / chore.maxCompletions) * 100}%` 
                                     }}
                                   />
                                 </div>

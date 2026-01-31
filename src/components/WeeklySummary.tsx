@@ -201,13 +201,13 @@ export function WeeklySummary({
       .filter((chore) => chore.completionType === 'shareable' && chore.maxCompletions)
       .map((chore) => {
         const amCount = chore.timeOfDay === 'both' || chore.timeOfDay === 'am' 
-          ? getShareableChoreCompletionCount(completions, chore.id, 'am')
+          ? getShareableChoreCompletionCount(completions, chore.id, 'am', chore.resetPeriod)
           : 0
         const pmCount = chore.timeOfDay === 'both' || chore.timeOfDay === 'pm'
-          ? getShareableChoreCompletionCount(completions, chore.id, 'pm')
+          ? getShareableChoreCompletionCount(completions, chore.id, 'pm', chore.resetPeriod)
           : 0
         const anytimeCount = chore.timeOfDay === 'anytime'
-          ? getShareableChoreCompletionCount(completions, chore.id)
+          ? getShareableChoreCompletionCount(completions, chore.id, undefined, chore.resetPeriod)
           : 0
 
         return {

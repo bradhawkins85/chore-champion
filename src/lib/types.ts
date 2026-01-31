@@ -1,6 +1,7 @@
 export type ChoreFrequency = 'daily' | 'weekly' | 'bi-weekly'
 export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
 export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
+export type ChoreResetPeriod = 'daily' | 'weekly' | 'monthly'
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
 export interface ExchangeRate {
@@ -99,6 +100,7 @@ export interface Chore {
   estimatedDuration?: number
   approvalConfigs?: ApprovalConfig[]
   maxCompletions?: number
+  resetPeriod?: ChoreResetPeriod
   weatherConditions?: WeatherConditionRequirement
   speakDescription?: boolean
 }
