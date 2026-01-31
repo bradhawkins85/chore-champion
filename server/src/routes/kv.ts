@@ -12,6 +12,30 @@ const ARRAY_KEYS = [
   'point-swaps', 'bonus-completions'
 ];
 
+/**
+ * Check if the request is from Spark runtime (@github/spark useKV hook).
+ * 
+ * Spark runtime sends Content-Type: text/plain on GET requests to identify itself,
+ * which is non-standard but is how we detect Spark requests. When detected, we return
+ * raw JSON as text/plain instead of the wrapped JSON format used by the custom API client.
+ */
+function isSparkRequest(req: Request): boolean {
+  const contentTypeHeader = req.get('content-type') || '';
+  return contentTypeHeader.includes('text/plain');
+}
+
+/**
+ * Send a null response in the appropriate format (Spark or standard API).
+ * Used for non-existent keys to avoid 404 errors in the browser console.
+ */
+function sendNullResponse(req: Request, res: Response): void {
+  if (isSparkRequest(req)) {
+    res.type('text/plain').send('null');
+  } else {
+    res.json({ value: null });
+  }
+}
+
 // Get a value by key
 router.get('/kv/:key', async (req: Request, res: Response) => {
   try {
@@ -21,14 +45,16 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       [key]
     );
     
+    // Return null for non-existent keys (standard KV store behavior)
+    // This prevents 404 errors in the browser console during initial page load
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Key not found' });
+      return sendNullResponse(req, res);
     }
     
     // Handle null values from database
     const valueData = rows[0].value_data;
     if (valueData === null || valueData === undefined) {
-      return res.status(404).json({ error: 'Key not found' });
+      return sendNullResponse(req, res);
     }
     
     let parsedValue;
@@ -48,13 +74,8 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       parsedValue = [];
     }
     
-    // Check if the request is from Spark runtime (sends Content-Type: text/plain on GET requests)
-    // or from our custom API client (expects JSON with {value: ...} wrapper)
-    // Note: Spark client sends Content-Type: text/plain as a request header even on GET requests
-    // to identify itself, which is non-standard but is how we detect Spark requests
-    const contentTypeHeader = req.get('content-type') || '';
-    
-    if (contentTypeHeader.includes('text/plain')) {
+    // Send response in appropriate format (Spark runtime or standard API)
+    if (isSparkRequest(req)) {
       // Spark runtime format: return raw JSON value as text/plain
       res.type('text/plain').send(JSON.stringify(parsedValue));
     } else {
