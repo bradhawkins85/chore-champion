@@ -84,6 +84,9 @@ export function ChildChoreView({
     const missed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
     const unavailable: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
+    // Create a Map for O(1) category lookup
+    const categoryMap = new Map(categories.map(c => [c.id, c]))
+
     // Helper function to check if chore should be shown in Up Next
     const shouldShowInUpNext = (chore: Chore): boolean => {
       // If chore has no categories, show it by default
@@ -92,9 +95,10 @@ export function ChildChoreView({
       }
       
       // Show if at least one category has showInUpNext !== false
+      // Missing categories are treated as showInUpNext: true (default behavior)
       return chore.categoryIds.some(categoryId => {
-        const category = categories.find(c => c.id === categoryId)
-        return category && category.showInUpNext !== false
+        const category = categoryMap.get(categoryId)
+        return !category || category.showInUpNext !== false
       })
     }
 
