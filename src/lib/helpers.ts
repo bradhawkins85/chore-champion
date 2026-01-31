@@ -107,12 +107,14 @@ export function isDateOnSchoolHoliday(date: Date, schoolHolidays: SchoolHoliday[
   const checkTime = checkDate.getTime()
   
   return schoolHolidays.some(holiday => {
-    const startDate = new Date(holiday.startDate)
-    startDate.setHours(0, 0, 0, 0)
-    const endDate = new Date(holiday.endDate)
-    endDate.setHours(23, 59, 59, 999)
+    // Holiday dates are already stored as timestamps
+    // Just need to normalize them to start/end of day for comparison
+    const startOfDay = new Date(holiday.startDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(holiday.endDate)
+    endOfDay.setHours(23, 59, 59, 999)
     
-    return checkTime >= startDate.getTime() && checkTime <= endDate.getTime()
+    return checkTime >= startOfDay.getTime() && checkTime <= endOfDay.getTime()
   })
 }
 

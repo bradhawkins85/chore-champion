@@ -213,14 +213,8 @@ export function ChoreDialog({
     }
 
     choreData.speakDescription = speakDescription
-    
-    if (inactiveOnSchoolHolidays) {
-      choreData.inactiveOnSchoolHolidays = true
-    }
-    
-    if (onlyOnSchoolHolidays) {
-      choreData.onlyOnSchoolHolidays = true
-    }
+    choreData.inactiveOnSchoolHolidays = inactiveOnSchoolHolidays
+    choreData.onlyOnSchoolHolidays = onlyOnSchoolHolidays
 
     onSave(choreData)
 
