@@ -1,5 +1,5 @@
-const CACHE_NAME = 'chorequest-v1';
-const RUNTIME_CACHE = 'chorequest-runtime';
+const CACHE_NAME = 'chorequest-v2';
+const RUNTIME_CACHE = 'chorequest-runtime-v2';
 
 const PRECACHE_URLS = [
   '/',
@@ -8,26 +8,40 @@ const PRECACHE_URLS = [
   '/icons/icon.svg'
 ];
 
+// URLs that should never be cached (API endpoints, dynamic data)
+const CACHE_EXCLUDE_PATTERNS = [
+  '/_spark/',
+  '/api/',
+  '/health'
+];
+
+// Check if a URL should be excluded from caching
+function shouldExcludeFromCache(url) {
+  const urlPath = new URL(url).pathname;
+  return CACHE_EXCLUDE_PATTERNS.some(pattern => urlPath.startsWith(pattern));
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        // Try to add all URLs, but don't fail the install if some fail
-        return cache.addAll(PRECACHE_URLS).catch((error) => {
-          console.warn('Failed to cache some resources during install:', error);
-          // Try to cache each resource individually
-          return Promise.all(
-            PRECACHE_URLS.map(url => 
-              cache.add(url).catch(err => {
-                console.warn(`Failed to cache ${url}:`, err);
-                // Don't fail the whole install if one resource fails
-                return Promise.resolve();
-              })
-            )
-          );
-        });
+        // Cache each resource individually to avoid failing the entire install
+        return Promise.all(
+          PRECACHE_URLS.map(url => 
+            cache.add(url).catch(err => {
+              console.warn(`Failed to cache ${url}:`, err);
+              // Don't fail the whole install if one resource fails
+              return Promise.resolve();
+            })
+          )
+        );
       })
       .then(() => self.skipWaiting())
+      .catch((error) => {
+        console.warn('Service worker install encountered an error:', error);
+        // Still skip waiting to allow the service worker to activate
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -45,24 +59,49 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.startsWith(self.location.origin)) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+  const requestUrl = event.request.url;
+  
+  // Don't intercept requests to external origins
+  if (!requestUrl.startsWith(self.location.origin)) {
+    return;
+  }
+  
+  // Don't cache or intercept API requests - let them pass through to the network
+  if (shouldExcludeFromCache(requestUrl)) {
+    return;
+  }
 
-        return caches.open(RUNTIME_CACHE).then((cache) => {
-          return fetch(event.request).then((response) => {
-            if (response.status === 200) {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return caches.open(RUNTIME_CACHE).then((cache) => {
+        return fetch(event.request)
+          .then((response) => {
+            // Only cache successful responses for cacheable content
+            if (response.status === 200 && !shouldExcludeFromCache(requestUrl)) {
               cache.put(event.request, response.clone());
             }
             return response;
+          })
+          .catch((error) => {
+            console.warn('Fetch failed for:', requestUrl, error);
+            // Return a basic offline response for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+            // Re-throw the error for other types of requests
+            throw error;
           });
-        });
-      })
-    );
-  }
+      });
+    }).catch((error) => {
+      console.warn('Cache match failed:', error);
+      // Fallback to network if cache fails
+      return fetch(event.request);
+    })
+  );
 });
 
 self.addEventListener('message', (event) => {
