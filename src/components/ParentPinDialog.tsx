@@ -52,7 +52,8 @@ export function ParentPinDialog({
       setPin('')
       setConfirmPin('')
       setError('')
-      setIsSettingPin(!storedPin)
+      const shouldSetPin = !storedPin
+      setIsSettingPin(shouldSetPin)
       setShowPinInput(false)
       
       const lockStatus = isAccountLocked(pinSecurity)
@@ -62,8 +63,9 @@ export function ParentPinDialog({
         setLockoutTime(null)
       }
       
+      // Only attempt biometric auth if NOT setting a new PIN
       if (
-        !isSettingPin &&
+        !shouldSetPin &&
         biometricSettings?.enabled &&
         biometricSettings.credentials.length > 0 &&
         !lockStatus.isLocked
