@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval } from '@/lib/types'
-import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh } from '@phosphor-icons/react'
+import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 
@@ -50,6 +50,7 @@ export function CategoryDialog({
   const [bonusTargetCategoryId, setBonusTargetCategoryId] = useState('')
   const [enableExpiry, setEnableExpiry] = useState(false)
   const [expiryInterval, setExpiryInterval] = useState<PointsExpiryInterval>('daily')
+  const [showInUpNext, setShowInUpNext] = useState(true)
 
   useEffect(() => {
     if (category) {
@@ -62,6 +63,7 @@ export function CategoryDialog({
       setBonusTargetCategoryId(category.completionBonus?.targetCategoryId || '')
       setEnableExpiry(category.pointsExpiry?.enabled || false)
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
+      setShowInUpNext(category.showInUpNext !== false)
     } else {
       setName('')
       setDescription('')
@@ -72,6 +74,7 @@ export function CategoryDialog({
       setBonusTargetCategoryId('')
       setEnableExpiry(false)
       setExpiryInterval('daily')
+      setShowInUpNext(true)
     }
   }, [category, open])
 
@@ -104,6 +107,7 @@ export function CategoryDialog({
         enabled: enableExpiry,
         interval: expiryInterval,
       },
+      showInUpNext,
     })
     onClose()
   }
@@ -384,6 +388,21 @@ export function CategoryDialog({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                <div>
+                  <Label>Show in Up Next</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display this category in the "Category Bonuses" section on child's main page
+                  </p>
+                </div>
+              </div>
+              <Switch checked={showInUpNext} onCheckedChange={setShowInUpNext} />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
