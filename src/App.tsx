@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { useApiKV as useKV } from '@/hooks/use-api-kv'
+import { useApiKV } from '@/hooks/use-api-kv'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
@@ -62,28 +62,28 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
   
-  const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
-  const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
+  const [parentPin, setParentPin] = useApiKV<string | null>('parent-pin', '0000')
+  const [pinSecurity, setPinSecurity] = useApiKV<PinSecurity>('pin-security', {
     attempts: [],
     lockedUntil: null,
     failedAttempts: 0,
   })
-  const [biometricSettings, setBiometricSettings] = useKV<BiometricSettings>('biometric-settings', {
+  const [biometricSettings, setBiometricSettings] = useApiKV<BiometricSettings>('biometric-settings', {
     enabled: false,
     credentials: [],
     requirePinFallback: true,
     quickUnlockOnPWA: true,
   })
 
-  const [chores, setChores] = useKV<Chore[]>('chores', [])
-  const [childrenList, setChildrenList] = useKV<Child[]>('children', [])
-  const [assignments, setAssignments] = useKV<ChoreAssignment[]>('assignments', [])
-  const [completions, setCompletions] = useKV<ChoreCompletion[]>('completions', [])
-  const [rewards, setRewards] = useKV<Reward[]>('rewards', [])
-  const [purchases, setPurchases] = useKV<RewardPurchase[]>('purchases', [])
-  const [history, setHistory] = useKV<ChoreHistoryEvent[]>('chore-history', [])
-  const [dismissedMissedChores, setDismissedMissedChores] = useKV<MissedChore[]>('dismissed-missed-chores', [])
-  const [celebrationSettings, setCelebrationSettings] = useKV<CelebrationSettings>('celebration-settings', {
+  const [chores, setChores] = useApiKV<Chore[]>('chores', [])
+  const [childrenList, setChildrenList] = useApiKV<Child[]>('children', [])
+  const [assignments, setAssignments] = useApiKV<ChoreAssignment[]>('assignments', [])
+  const [completions, setCompletions] = useApiKV<ChoreCompletion[]>('completions', [])
+  const [rewards, setRewards] = useApiKV<Reward[]>('rewards', [])
+  const [purchases, setPurchases] = useApiKV<RewardPurchase[]>('purchases', [])
+  const [history, setHistory] = useApiKV<ChoreHistoryEvent[]>('chore-history', [])
+  const [dismissedMissedChores, setDismissedMissedChores] = useApiKV<MissedChore[]>('dismissed-missed-chores', [])
+  const [celebrationSettings, setCelebrationSettings] = useApiKV<CelebrationSettings>('celebration-settings', {
     enabled: true,
     animations: {
       confetti: true,
@@ -95,26 +95,26 @@ function App() {
     },
     showUndoButton: true,
   })
-  const [trackedGoals, setTrackedGoals] = useKV<GoalTracker[]>('tracked-goals', [])
-  const [categories, setCategories] = useKV<Category[]>('categories', [])
-  const [pointSwaps, setPointSwaps] = useKV<PointSwap[]>('point-swaps', [])
-  const [bonusCompletions, setBonusCompletions] = useKV<CategoryBonusCompletion[]>('bonus-completions', [])
-  const [ipRestrictions, setIPRestrictions] = useKV<IPRestrictionSettings>('ip-restrictions', {
+  const [trackedGoals, setTrackedGoals] = useApiKV<GoalTracker[]>('tracked-goals', [])
+  const [categories, setCategories] = useApiKV<Category[]>('categories', [])
+  const [pointSwaps, setPointSwaps] = useApiKV<PointSwap[]>('point-swaps', [])
+  const [bonusCompletions, setBonusCompletions] = useApiKV<CategoryBonusCompletion[]>('bonus-completions', [])
+  const [ipRestrictions, setIPRestrictions] = useApiKV<IPRestrictionSettings>('ip-restrictions', {
     enabled: false,
     allowedIPs: [],
     overridePin: null,
     requirePinForUnapproved: false,
   })
-  const [accessHistory, setAccessHistory] = useKV<IPAccessAttempt[]>('access-history', [])
-  const [weeklyReportSettings, setWeeklyReportSettings] = useKV<WeeklyReportSettings>('weekly-report-settings', {
+  const [accessHistory, setAccessHistory] = useApiKV<IPAccessAttempt[]>('access-history', [])
+  const [weeklyReportSettings, setWeeklyReportSettings] = useApiKV<WeeklyReportSettings>('weekly-report-settings', {
     enabled: false,
     parentEmail: null,
     sendDay: 'sunday',
     sendTime: '18:00',
     lastSent: null,
   })
-  const [reportTemplates, setReportTemplates] = useKV<ReportTemplate[]>('report-templates', [])
-  const [weatherSettings, setWeatherSettings] = useKV<WeatherSettings>('weather-settings', {
+  const [reportTemplates, setReportTemplates] = useApiKV<ReportTemplate[]>('report-templates', [])
+  const [weatherSettings, setWeatherSettings] = useApiKV<WeatherSettings>('weather-settings', {
     enabled: false,
     location: '',
     latitude: null,
@@ -122,7 +122,7 @@ function App() {
     temperatureUnit: 'auto',
     seasonalThemesEnabled: false,
   })
-  const [smtpSettings, setSMTPSettings] = useKV<SMTPSettings>('smtp-settings', {
+  const [smtpSettings, setSMTPSettings] = useApiKV<SMTPSettings>('smtp-settings', {
     enabled: false,
     host: '',
     port: 587,
@@ -132,7 +132,7 @@ function App() {
     fromEmail: '',
     fromName: 'ChoreQuest',
   })
-  const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
+  const [emailAlertSettings, setEmailAlertSettings] = useApiKV<EmailAlertSettings>('email-alert-settings', {
     rewardPurchaseAlerts: false,
     choreCompletionAlerts: false,
     weeklyReportAlerts: false,
@@ -141,16 +141,16 @@ function App() {
     digestMode: 'immediate',
     lastDigestSent: null,
   })
-  const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
-  const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
+  const [pendingDigestItems, setPendingDigestItems] = useApiKV<any[]>('pending-digest-items', [])
+  const [speechSettings, setSpeechSettings] = useApiKV<SpeechSettings>('speech-settings', {
     enabled: true,
   })
-  const [pushNotificationSettings, setPushNotificationSettings] = useKV<PushNotificationSettings>('push-notification-settings', {
+  const [pushNotificationSettings, setPushNotificationSettings] = useApiKV<PushNotificationSettings>('push-notification-settings', {
     enabled: false,
     devices: [],
   })
-  const [schoolHolidays, setSchoolHolidays] = useKV<SchoolHoliday[]>('school-holidays', [])
-  const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
+  const [schoolHolidays, setSchoolHolidays] = useApiKV<SchoolHoliday[]>('school-holidays', [])
+  const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useApiKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
       return parentPin ?? null

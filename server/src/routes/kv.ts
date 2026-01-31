@@ -48,17 +48,17 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
       parsedValue = [];
     }
     
-    // Check if the request is from Spark runtime (sends Content-Type: text/plain on GET requests)
-    // or from our custom API client (expects JSON with {value: ...} wrapper)
-    // Note: Spark client sends Content-Type: text/plain as a request header even on GET requests
-    // to identify itself, which is non-standard but is how we detect Spark requests
+    // Check if the request is from legacy Spark runtime (sends Content-Type: text/plain on GET requests)
+    // or from our custom useApiKV hook (expects JSON with {value: ...} wrapper)
+    // Note: Legacy Spark client sends Content-Type: text/plain as a request header even on GET requests
+    // to identify itself, which is non-standard but maintained for backward compatibility
     const contentTypeHeader = req.get('content-type') || '';
     
     if (contentTypeHeader.includes('text/plain')) {
-      // Spark runtime format: return raw JSON value as text/plain
+      // Legacy Spark runtime format: return raw JSON value as text/plain
       res.type('text/plain').send(JSON.stringify(parsedValue));
     } else {
-      // Standard API format: return JSON with value wrapper
+      // useApiKV format: return JSON with value wrapper
       res.json({ value: parsedValue });
     }
   } catch (error) {
@@ -73,11 +73,11 @@ router.post('/kv/:key', async (req: Request, res: Response) => {
     const { key } = req.params;
     let value;
     
-    // Handle both Spark runtime format (text/plain with raw JSON) and standard format (application/json with {value: ...})
+    // Handle both legacy Spark runtime format (text/plain with raw JSON) and useApiKV format (application/json with {value: ...})
     const contentType = req.get('content-type') || '';
     
     if (contentType.includes('text/plain')) {
-      // Spark runtime sends raw JSON as text/plain
+      // Legacy Spark runtime sends raw JSON as text/plain
       if (typeof req.body === 'string') {
         try {
           value = JSON.parse(req.body);
@@ -89,7 +89,7 @@ router.post('/kv/:key', async (req: Request, res: Response) => {
         value = req.body;
       }
     } else {
-      // Standard format: {value: ...}
+      // useApiKV format: {value: ...}
       value = req.body.value;
     }
     
