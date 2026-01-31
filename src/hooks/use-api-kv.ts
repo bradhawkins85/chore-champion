@@ -134,38 +134,39 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
-    // Determine the new value by checking if it's a function
-    const newValue = typeof newValueOrUpdater === 'function' 
-      ? (newValueOrUpdater as (prevValue: T) => T)(value)
-      : newValueOrUpdater;
-    
-    const previousValue = value;
-    setValue(newValue);
-
-    if (useApi) {
-      // Save to API
-      try {
-        const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+    // Use setValue with functional form to avoid race conditions
+    setValue(prev => {
+      const newValue = typeof newValueOrUpdater === 'function' 
+        ? (newValueOrUpdater as (prevValue: T) => T)(prev)
+        : newValueOrUpdater;
+      
+      // Save to API or localStorage asynchronously
+      if (useApi) {
+        // Save to API
+        fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ value: newValue }),
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to save to API');
-        }
-      } catch (error) {
-        console.error('Error saving to API:', error);
-        // Rollback state and fallback to localStorage
-        setValue(previousValue);
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to save to API');
+            }
+          })
+          .catch(error => {
+            console.error('Error saving to API:', error);
+            // Fallback to localStorage on error
+            localStorage.setItem(key, JSON.stringify(newValue));
+            console.warn('Saved to localStorage as fallback');
+          });
+      } else {
+        // Save to localStorage
         localStorage.setItem(key, JSON.stringify(newValue));
-        console.warn('Saved to localStorage as fallback');
       }
-    } else {
-      // Save to localStorage
-      localStorage.setItem(key, JSON.stringify(newValue));
-    }
-  }, [key, useApi, value]);
+      
+      return newValue;
+    });
+  }, [key, useApi]);
 
   return [value, updateValue];
 }
