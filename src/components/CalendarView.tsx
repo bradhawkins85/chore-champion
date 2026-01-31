@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, Circle } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, Category } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, Category, SchoolHoliday } from '@/lib/types'
 import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
-import { isChoreActiveForDate, isChoreActiveOnDate, isChoreCompletedOnDate, getChorePointsForChild } from '@/lib/helpers'
+import { isChoreActiveForDate, isChoreActiveOnDate, isChoreCompletedOnDate, getChorePointsForChild, isChoreActiveOnDateWithHolidays } from '@/lib/helpers'
 
 interface CalendarViewProps {
   child: Child
@@ -13,10 +13,11 @@ interface CalendarViewProps {
   assignments?: ChoreAssignment[]
   completions?: ChoreCompletion[]
   categories?: Category[]
+  schoolHolidays?: SchoolHoliday[]
   onBack: () => void
 }
 
-export function CalendarView({ child, chores = [], assignments = [], completions = [], categories = [], onBack }: CalendarViewProps) {
+export function CalendarView({ child, chores = [], assignments = [], completions = [], categories = [], schoolHolidays = [], onBack }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
 
   // Filter assignments for this child
@@ -67,8 +68,8 @@ export function CalendarView({ child, chores = [], assignments = [], completions
       // Check if assignment is active for this date
       if (!isChoreActiveForDate(assignment, date)) return
       
-      // Check if chore is scheduled for this date
-      if (!isChoreActiveOnDate(assignment, date)) return
+      // Check if chore is scheduled for this date considering school holidays
+      if (!isChoreActiveOnDateWithHolidays(chore, assignment, date, schoolHolidays)) return
 
       const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
       const points = getChorePointsForChild(chore, assignment, child.id)

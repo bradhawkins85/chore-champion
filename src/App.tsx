@@ -1642,6 +1642,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             assignments={safeAssignments}
             completions={safeCompletions}
             categories={safeCategories}
+            schoolHolidays={schoolHolidays || []}
             onBack={() => setShowCalendar(false)}
           />
         ) : showPointsHistory ? (
@@ -1702,6 +1703,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
             currentWeather={currentWeather}
+            schoolHolidays={schoolHolidays || []}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
