@@ -1084,6 +1084,45 @@ function App() {
     setPushNotificationSettings(settings)
   }
 
+  const sendPushNotification = async (title: string, body: string, data?: any) => {
+    if (!pushNotificationSettings?.enabled) {
+      return
+    }
+
+    // Get all enabled devices
+    const enabledDevices = pushNotificationSettings.devices.filter(d => d.enabled && d.subscription)
+
+    if (enabledDevices.length === 0) {
+      return
+    }
+
+    // Check if service worker is ready
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        
+        // Send notification to each enabled device
+        for (const device of enabledDevices) {
+          try {
+            await registration.showNotification(title, {
+              body,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              tag: 'chorequest-notification',
+              data,
+            })
+          } catch (error) {
+            console.error('Failed to send push notification:', error)
+          }
+        }
+        
+        console.log('Push notification sent to', enabledDevices.length, 'device(s)')
+      } catch (error) {
+        console.error('Service worker not ready:', error)
+      }
+    }
+  }
+
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
     if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
       return
@@ -1119,6 +1158,21 @@ Please fulfill this reward when you get a chance!
     toast.info('Email notification sent to parents', {
       description: `${child.name}'s reward claim notification sent`,
     })
+
+    // Also send push notification if enabled
+    if (pushNotificationSettings?.enabled) {
+      const enabledDevices = pushNotificationSettings.devices.filter(
+        d => d.enabled && d.rewardPurchaseAlerts && d.subscription
+      )
+      
+      if (enabledDevices.length > 0) {
+        await sendPushNotification(
+          '🎁 Reward Claimed!',
+          `${child.name} claimed ${reward.name}`,
+          { type: 'reward-purchase', childId, rewardId }
+        )
+      }
+    }
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
@@ -1157,6 +1211,21 @@ Please log in to ChoreQuest to approve or reject this completion.
       toast.info('Approval notification sent to parents', {
         description: `${child.name}'s chore pending approval`,
       })
+
+      // Also send push notification if enabled (immediate mode)
+      if (pushNotificationSettings?.enabled) {
+        const enabledDevices = pushNotificationSettings.devices.filter(
+          d => d.enabled && d.pendingApprovalAlerts && d.digestMode === 'immediate' && d.subscription
+        )
+        
+        if (enabledDevices.length > 0) {
+          await sendPushNotification(
+            '✅ Chore Needs Approval',
+            `${child.name} completed ${chore.name}`,
+            { type: 'pending-approval', childId, choreId, completionId }
+          )
+        }
+      }
     } else {
       setPendingDigestItems((current) => [
         ...(current || []),
@@ -1241,6 +1310,26 @@ Please log in to ChoreQuest to approve or reject this completion.
     toast.success('Digest email sent to parents', {
       description: `${items.length} pending approval${items.length > 1 ? 's' : ''} notified`,
     })
+
+    // Also send push notification digest if enabled
+    if (pushNotificationSettings?.enabled) {
+      const enabledDevices = pushNotificationSettings.devices.filter(
+        d => d.enabled && d.pendingApprovalAlerts && d.subscription
+      )
+      
+      if (enabledDevices.length > 0) {
+        const childrenCount = groupedByChild.size
+        const summaryText = childrenCount === 1
+          ? `${items.length} chore${items.length > 1 ? 's' : ''} pending approval`
+          : `${items.length} chore${items.length > 1 ? 's' : ''} from ${childrenCount} children pending approval`
+        
+        await sendPushNotification(
+          '⏳ Chores Pending Approval',
+          summaryText,
+          { type: 'digest', count: items.length }
+        )
+      }
+    }
   }
 
   const getDigestIntervalMs = (interval: string): number => {
