@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useApiKV as useKV } from '@/hooks/use-api-kv'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'

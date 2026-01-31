@@ -37,8 +37,9 @@ const limiter = rateLimit({
   // Skip rate limiting for KV endpoints to prevent 429 errors during page load
   // The app makes many simultaneous KV requests on initialization
   skip: (req) => {
-    // Skip rate limiting for KV GET requests (reading data on load)
-    return req.method === 'GET' && req.path.startsWith('/api/kv');
+    // Skip rate limiting for all KV requests (both GET and POST)
+    // to prevent 429 errors during page load and data persistence
+    return req.path.startsWith('/api/kv');
   },
 });
 

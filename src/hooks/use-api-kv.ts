@@ -65,7 +65,7 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
   return defaultValue;
 }
 
-export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
+export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
 
@@ -132,18 +132,26 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
     };
   }, [key, defaultValue]);
 
-  // Update function
-  const updateValue = useCallback(async (newValue: T) => {
-    const previousValue = value;
-    setValue(newValue);
-
+  // Update function - supports both direct values and updater functions
+  const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
+    // Compute the new value using setState's functional form to avoid race conditions
+    // Initialize with defaultValue as fallback (setValue executes synchronously, so this should never be used)
+    let computedValue: T = defaultValue;
+    setValue(prev => {
+      computedValue = typeof newValueOrUpdater === 'function' 
+        ? (newValueOrUpdater as (prevValue: T) => T)(prev)
+        : newValueOrUpdater;
+      return computedValue;
+    });
+    
+    // Save to API or localStorage (outside of setState to keep it pure)
     if (useApi) {
-      // Save to API
+      // Save to API and await the result
       try {
         const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: newValue }),
+          body: JSON.stringify({ value: computedValue }),
         });
         
         if (!response.ok) {
@@ -151,16 +159,16 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
         }
       } catch (error) {
         console.error('Error saving to API:', error);
-        // Rollback state and fallback to localStorage
-        setValue(previousValue);
-        localStorage.setItem(key, JSON.stringify(newValue));
+        // Fallback to localStorage to ensure data persistence
+        // The app remains in API mode and will attempt API saves on subsequent updates
+        localStorage.setItem(key, JSON.stringify(computedValue));
         console.warn('Saved to localStorage as fallback');
       }
     } else {
       // Save to localStorage
-      localStorage.setItem(key, JSON.stringify(newValue));
+      localStorage.setItem(key, JSON.stringify(computedValue));
     }
-  }, [key, useApi, value]);
+  }, [key, useApi, defaultValue]);
 
   return [value, updateValue];
 }
