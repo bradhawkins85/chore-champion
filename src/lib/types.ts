@@ -86,6 +86,14 @@ export interface WeatherConditionRequirement {
   unit?: 'celsius' | 'fahrenheit'
 }
 
+export interface SchoolHoliday {
+  id: string
+  name: string
+  startDate: number
+  endDate: number
+  createdAt: number
+}
+
 export interface Chore {
   id: string
   name: string
@@ -105,6 +113,8 @@ export interface Chore {
   resetPeriod?: ChoreResetPeriod
   weatherConditions?: WeatherConditionRequirement
   speakDescription?: boolean
+  inactiveOnSchoolHolidays?: boolean
+  onlyOnSchoolHolidays?: boolean
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'
