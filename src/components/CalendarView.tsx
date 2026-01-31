@@ -32,6 +32,29 @@ export function CalendarView({ child, chores = [], assignments = [], completions
     return map
   }, [chores])
 
+  // Create a map of categories for quick lookup
+  const categoriesMap = useMemo(() => {
+    const map = new Map<string, Category>()
+    categories.forEach(category => map.set(category.id, category))
+    return map
+  }, [categories])
+
+  // Helper function to check if chore should be shown in calendar
+  const shouldShowInCalendar = (chore: Chore): boolean => {
+    // If chore has no categories, show it by default
+    if (!chore.categoryIds || chore.categoryIds.length === 0) {
+      return true
+    }
+    
+    // Show only if ALL categories have showInCalendar !== false
+    // If ANY category has showInCalendar === false, hide the chore
+    // Missing categories are treated as showInCalendar: true (default behavior)
+    return chore.categoryIds.every(categoryId => {
+      const category = categoriesMap.get(categoryId)
+      return !category || category.showInCalendar !== false
+    })
+  }
+
   // Get days to display based on view mode
   const daysToDisplay = useMemo(() => {
     const days: Date[] = []
@@ -64,6 +87,9 @@ export function CalendarView({ child, chores = [], assignments = [], completions
     childAssignments.forEach(assignment => {
       const chore = choresMap.get(assignment.choreId)
       if (!chore) return
+
+      // Filter out chores from categories that are hidden from calendar
+      if (!shouldShowInCalendar(chore)) return
 
       // Check if assignment is active for this date
       if (!isChoreActiveForDate(assignment, date)) return
