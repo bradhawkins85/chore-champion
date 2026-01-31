@@ -42,7 +42,7 @@ export function ParentPinDialog({
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [error, setError] = useState('')
-  const [isSettingPin, setIsSettingPin] = useState(false)
+  const [isSettingPin, setIsSettingPin] = useState(() => !storedPin)
   const [lockoutTime, setLockoutTime] = useState<number | null>(null)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [showPinInput, setShowPinInput] = useState(false)
