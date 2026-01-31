@@ -65,7 +65,7 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
   return defaultValue;
 }
 
-export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Promise<void>] {
+export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
 
@@ -132,8 +132,13 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T) => Pro
     };
   }, [key, defaultValue]);
 
-  // Update function
-  const updateValue = useCallback(async (newValue: T) => {
+  // Update function - supports both direct values and updater functions
+  const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
+    // Determine the new value by checking if it's a function
+    const newValue = typeof newValueOrUpdater === 'function' 
+      ? (newValueOrUpdater as (prevValue: T) => T)(value)
+      : newValueOrUpdater;
+    
     const previousValue = value;
     setValue(newValue);
 
