@@ -44,7 +44,7 @@ import {
   EmailAlertSettings,
   SpeechSettings,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
@@ -557,6 +557,34 @@ function App() {
 
   const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
     const chore = (migratedChores || []).find((c) => c.id === choreId)
+    if (!chore) return
+    
+    // Check if all category prerequisites are met
+    const choreCategories = chore.categoryIds || []
+    for (const categoryId of choreCategories) {
+      const prerequisiteMet = isPrerequisiteCategoryCompleted(
+        childId,
+        categoryId,
+        safeCategories,
+        safeAssignments,
+        choresMap,
+        safeCompletions
+      )
+      
+      if (!prerequisiteMet) {
+        const category = safeCategories.find((c) => c.id === categoryId)
+        const prerequisiteCategory = safeCategories.find(
+          (c) => c.id === category?.prerequisiteCategoryId
+        )
+        toast.error('Cannot complete this chore', {
+          description: prerequisiteCategory
+            ? `You must complete all ${prerequisiteCategory.name} chores first.`
+            : 'Category prerequisites not met.',
+        })
+        return
+      }
+    }
+    
     const requiresApproval = chore ? chore.approvalConfigs?.find(c => c.childId === childId)?.requiresApproval : false
     
     const completionId = `completion_${Date.now()}_${Math.random()}`
