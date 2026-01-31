@@ -1222,7 +1222,16 @@ export function areAllCategoryChoresCompleted(
   // If there are no chores in this category for this child, consider it completed (vacuously true)
   if (categoryChores.length === 0) return true
 
-  return categoryChores.every(({ chore, timeOfDay }) => {
+  // Filter out missed chores - they should not block prerequisite completion
+  const nonMissedChores = categoryChores.filter(({ chore, timeOfDay }) => {
+    const choreTimeOfDay = timeOfDay || chore.timeOfDay || 'anytime'
+    return !isChoreMissed(choreTimeOfDay, completions, chore.id, childId)
+  })
+
+  // If all chores are missed, consider the category completed
+  if (nonMissedChores.length === 0) return true
+
+  return nonMissedChores.every(({ chore, timeOfDay }) => {
     if (chore.completionType === 'once-per-day') {
       return isChoreCompletedByAnyChildToday(completions, chore.id, timeOfDay)
     }
