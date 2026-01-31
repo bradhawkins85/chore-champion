@@ -39,7 +39,7 @@ if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
     
     for port in "${PORTS_IN_USE[@]}"; do
         PID=$(lsof -ti:$port 2>/dev/null)
-        if [ ! -z "$PID" ]; then
+        if [ -n "$PID" ]; then
             kill $PID 2>/dev/null || true
             echo -e "${GREEN}✓${NC} Stopped process on port $port"
         fi
@@ -54,12 +54,12 @@ cleanup() {
     echo -e "${YELLOW}🛑 Shutting down services...${NC}"
     
     # Kill background processes
-    if [ ! -z "$API_PID" ]; then
+    if [ -n "$API_PID" ]; then
         kill $API_PID 2>/dev/null || true
         echo -e "${GREEN}✓${NC} API server stopped"
     fi
     
-    if [ ! -z "$VITE_PID" ]; then
+    if [ -n "$VITE_PID" ]; then
         kill $VITE_PID 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Vite dev server stopped"
     fi
@@ -94,7 +94,8 @@ else
     # Stop and remove any existing container
     docker rm -f chorequest-mysql-dev 2>/dev/null || true
     
-    # Start MySQL container
+    # Start MySQL container with development credentials
+    # Note: These are development-only credentials. For production, use docker-compose with .env configuration
     docker run -d \
         --name chorequest-mysql-dev \
         -e MYSQL_ROOT_PASSWORD=rootpassword \

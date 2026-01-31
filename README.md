@@ -443,7 +443,7 @@ Use the included development script that automatically starts all services:
    - Start MySQL in a Docker container
    - Install all dependencies
    - Start the API server (port 3000)
-   - Start the Vite dev server (port 5173)
+   - Start the Vite dev server (port 5000)
 
 3. **Access the application**
    
