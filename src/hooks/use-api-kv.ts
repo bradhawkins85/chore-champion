@@ -135,7 +135,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
     // Compute the new value using setState's functional form to avoid race conditions
-    let computedValue: T;
+    let computedValue: T = value; // Initialize with current value as fallback
     setValue(prev => {
       computedValue = typeof newValueOrUpdater === 'function' 
         ? (newValueOrUpdater as (prevValue: T) => T)(prev)
@@ -158,16 +158,16 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         }
       } catch (error) {
         console.error('Error saving to API:', error);
-        // Fallback to localStorage on error
+        // Fallback to localStorage on error - data is still persisted locally
+        // API will be retried on next save since the service may recover
         localStorage.setItem(key, JSON.stringify(computedValue));
         console.warn('Saved to localStorage as fallback');
-        // Note: The hook continues in API mode; future saves will retry API first
       }
     } else {
       // Save to localStorage
       localStorage.setItem(key, JSON.stringify(computedValue));
     }
-  }, [key, useApi]);
+  }, [key, useApi, value]);
 
   return [value, updateValue];
 }
