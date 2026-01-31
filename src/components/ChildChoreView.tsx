@@ -555,17 +555,30 @@ export function ChildChoreView({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {pendingChores.map(({ chore, assignment, timeOfDay }, index) => {
                     const isLocked = lockedChores.has(chore.id)
-                    const prerequisiteCategory = isLocked 
-                      ? categories.find(cat => 
-                          chore.categoryIds?.some(cId => {
-                            const c = categories.find(x => x.id === cId)
-                            return c?.prerequisiteCategoryId
-                          })
-                        )
-                      : null
-                    const blockedByCategory = prerequisiteCategory
-                      ? categories.find(c => c.id === prerequisiteCategory.prerequisiteCategoryId)
-                      : null
+                    
+                    // Find the specific category causing the lock
+                    let blockedByCategory: Category | null = null
+                    if (isLocked && chore.categoryIds) {
+                      for (const categoryId of chore.categoryIds) {
+                        const category = categories.find(c => c.id === categoryId)
+                        if (category?.prerequisiteCategoryId) {
+                          const choresMap = new Map(chores.map(c => [c.id, c]))
+                          const prerequisiteMet = isPrerequisiteCategoryCompleted(
+                            child.id,
+                            categoryId,
+                            categories,
+                            assignments,
+                            choresMap,
+                            completions
+                          )
+                          
+                          if (!prerequisiteMet) {
+                            blockedByCategory = categories.find(c => c.id === category.prerequisiteCategoryId) || null
+                            break
+                          }
+                        }
+                      }
+                    }
                     
                     return (
                     <motion.div

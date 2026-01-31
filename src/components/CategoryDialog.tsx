@@ -14,6 +14,7 @@ import { Category, ExchangeRate, CategoryCompletionBonus, PointsExpiryInterval }
 import { Plus, Trash, ArrowsLeftRight, Trophy, HourglassHigh, Eye, Lock } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 
 interface CategoryDialogProps {
   open: boolean
@@ -90,8 +91,41 @@ export function CategoryDialog({
     }
   }, [enableBonus, bonusTargetCategoryId, allCategories, category])
 
+  // Helper to detect circular prerequisite dependencies
+  const wouldCreateCircularDependency = (targetCategoryId: string): boolean => {
+    if (!targetCategoryId || !category) return false
+    
+    // Check if the target category (or any of its prerequisites) points back to this category
+    const visited = new Set<string>()
+    let currentId: string | undefined = targetCategoryId
+    
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId)
+      
+      // If we reach back to the current category, there's a circular dependency
+      if (currentId === category.id) {
+        return true
+      }
+      
+      // Move to the next prerequisite in the chain
+      const currentCategory = allCategories.find(c => c.id === currentId)
+      currentId = currentCategory?.prerequisiteCategoryId
+    }
+    
+    return false
+  }
+
   const handleSave = () => {
     if (!name.trim()) return
+
+    // Check for circular prerequisite dependency
+    if (prerequisiteCategoryId && wouldCreateCircularDependency(prerequisiteCategoryId)) {
+      const prerequisiteCategory = allCategories.find(c => c.id === prerequisiteCategoryId)
+      toast.error('Cannot create circular dependency', {
+        description: `Setting ${prerequisiteCategory?.name} as a prerequisite would create a circular dependency chain.`,
+      })
+      return
+    }
 
     const completionBonus: CategoryCompletionBonus | undefined = enableBonus && bonusTargetCategoryId
       ? {
