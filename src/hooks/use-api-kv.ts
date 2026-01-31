@@ -90,10 +90,11 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
           if (response.ok) {
             const data = await response.json();
             if (mounted) {
+              // validateLoadedValue handles null values by returning defaultValue
               setValue(validateLoadedValue(data.value, defaultValue));
             }
           } else if (response.status === 404) {
-            // Key not found, use default
+            // Legacy: Key not found (older API versions returned 404)
             if (mounted) {
               setValue(defaultValue);
             }
