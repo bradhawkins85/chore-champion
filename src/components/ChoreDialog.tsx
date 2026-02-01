@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh } from '@phosphor-icons/react'
+import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus } from '@phosphor-icons/react'
 import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
@@ -150,6 +150,34 @@ export function ChoreDialog({
       setWeatherMinTemp('')
       setWeatherMaxTemp('')
     }
+  }
+
+  const handleQuickAddTemplate = (template: ChoreTemplate) => {
+    const choreData: Omit<Chore, 'id' | 'createdAt'> = {
+      name: template.name,
+      description: template.description,
+      points: template.points,
+      frequency: template.frequency,
+      timeOfDay: template.timeOfDay || 'anytime',
+      completionType: 'individual',
+      categoryIds: [],
+      categoryPoints: undefined,
+    }
+
+    if (template.estimatedDuration) {
+      choreData.estimatedDuration = template.estimatedDuration
+    }
+
+    if (template.weatherConditions) {
+      choreData.weatherConditions = template.weatherConditions
+    }
+
+    choreData.speakDescription = true
+    choreData.inactiveOnSchoolHolidays = false
+    choreData.onlyOnSchoolHolidays = false
+
+    onSave(choreData)
+    // Keep modal open by not calling onOpenChange(false)
   }
 
   const toggleCategoryId = (id: string) => {
@@ -320,8 +348,7 @@ export function ChoreDialog({
                       filteredTemplates.map((template, index) => (
                         <Card
                           key={index}
-                          className="cursor-pointer hover:bg-accent transition-colors"
-                          onClick={() => handleTemplateSelect(template)}
+                          className="hover:bg-accent transition-colors"
                         >
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-4">
@@ -350,6 +377,14 @@ export function ChoreDialog({
                                   )}
                                 </div>
                               </div>
+                              <Button
+                                size="icon"
+                                variant="default"
+                                onClick={() => handleQuickAddTemplate(template)}
+                                className="flex-shrink-0"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
@@ -1298,7 +1333,7 @@ export function ChoreDialog({
           </>
         )}
 
-        {childrenList.length > 0 && (
+        {editChore && childrenList.length > 0 && (
           <>
             <Separator className="my-4" />
             <div className="space-y-3">
