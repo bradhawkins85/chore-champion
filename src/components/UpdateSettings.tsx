@@ -15,7 +15,7 @@ import {
 import { ArrowsClockwise, CheckCircle, WarningCircle, CloudArrowDown } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
-const CURRENT_VERSION = '1.0.0'
+const CURRENT_VERSION = __APP_VERSION__
 const GITHUB_REPO = 'bradhawkins85/chore-champion'
 
 interface GitHubRelease {

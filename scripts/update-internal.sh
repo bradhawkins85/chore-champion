@@ -154,13 +154,20 @@ if [ "$SOURCE_BASED" = "true" ]; then
     
     echo ""
     echo "Building latest images with updated code..."
+    
+    # Determine the version to build
+    # Try to get the version from the latest git tag
+    VERSION=$(docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
+    echo "Building with version: ${VERSION}"
+    
     # Build new images with the updated code
     # Using --pull to ensure base images are up to date
     # Not using --no-cache to leverage Docker's layer caching for faster builds
+    # Pass the version as a build argument
     if [ -n "$COMPOSE_FILE_PATH" ]; then
-        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
+        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
     else
-        docker compose -p "${COMPOSE_PROJECT}" build --pull
+        docker compose -p "${COMPOSE_PROJECT}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
     fi
 else
     echo ""
