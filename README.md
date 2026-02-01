@@ -37,6 +37,7 @@
 - Per-child chore assignments
 - Custom point rewards per child per chore
 - Shareable chores (multiple children can complete together)
+- **Rotational chores** (automatically rotate chores between children) - [See Guide](ROTATIONAL_CHORES_GUIDE.md)
 - Missed chore tracking and management
 - Chore completion approval workflow
 
@@ -533,6 +534,7 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
    - Click "Add Chore"
    - Set name, description, points, and schedule
    - Assign to children
+   - **Optional:** Set Completion Type to "Rotational" to automatically rotate the chore between children ([Learn more](ROTATIONAL_CHORES_GUIDE.md))
 
 7. **Create Rewards**
    - Navigate to "Rewards" tab
@@ -734,6 +736,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ChoreQuest includes comprehensive documentation:
 
 - **[README.md](./README.md)** - Main project overview (you are here)
+- **[ROTATIONAL_CHORES_GUIDE.md](./ROTATIONAL_CHORES_GUIDE.md)** - How to configure rotational chores
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
 - **[CI-CD.md](./CI-CD.md)** - CI/CD pipeline configuration
 - **[GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)** - Docker secrets setup (detailed)
