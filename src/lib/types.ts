@@ -209,7 +209,7 @@ export interface MissedChore {
 
 export interface ChoreHistoryEvent {
   id: string
-  type: 'complete' | 'undo' | 'override-complete' | 'override-dismiss' | 'approve' | 'reject'
+  type: 'complete' | 'undo' | 'override-complete' | 'override-dismiss' | 'undo-dismiss' | 'approve' | 'reject'
   childId: string
   choreId: string
   timestamp: number

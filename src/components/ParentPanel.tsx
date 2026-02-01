@@ -123,6 +123,7 @@ interface ParentPanelProps {
   onApproveCompletion: (completionId: string) => void
   onRejectCompletion: (completionId: string, reason?: string) => void
   onUndoCompletion: (completionId: string) => void
+  onUndoDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
@@ -194,6 +195,7 @@ export function ParentPanel({
   onApproveCompletion,
   onRejectCompletion,
   onUndoCompletion,
+  onUndoDismissMissed,
   ipRestrictions,
   currentIP,
   accessHistory,
@@ -545,6 +547,7 @@ export function ParentPanel({
             swaps={pointSwaps || []}
             history={history}
             onUndoCompletion={onUndoCompletion}
+            onUndoDismissMissed={onUndoDismissMissed}
           />
         </TabsContent>
 

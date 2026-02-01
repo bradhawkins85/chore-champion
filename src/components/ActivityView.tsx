@@ -64,6 +64,7 @@ interface ActivityViewProps {
   swaps: PointSwap[]
   history: ChoreHistoryEvent[]
   onUndoCompletion: (completionId: string) => void
+  onUndoDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
 }
 
 type HistoryEventType = 'earned' | 'expired' | 'spent' | 'bonus' | 'swap-in' | 'swap-out'
@@ -93,6 +94,7 @@ export function ActivityView({
   swaps,
   history,
   onUndoCompletion,
+  onUndoDismissMissed,
 }: ActivityViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedChild, setSelectedChild] = useState<string>('all')
@@ -100,6 +102,7 @@ export function ActivityView({
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [undoConfirmId, setUndoConfirmId] = useState<string | null>(null)
+  const [undoDismissConfirm, setUndoDismissConfirm] = useState<{ childId: string; choreId: string; timeOfDay?: 'am' | 'pm' } | null>(null)
 
   const choresMap = useMemo(() => {
     return new Map(chores.map((c) => [c.id, c]))
@@ -434,6 +437,17 @@ export function ActivityView({
     if (undoConfirmId) {
       onUndoCompletion(undoConfirmId)
       setUndoConfirmId(null)
+    }
+  }
+
+  const handleUndoDismissClick = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    setUndoDismissConfirm({ childId, choreId, timeOfDay })
+  }
+
+  const handleConfirmUndoDismiss = () => {
+    if (undoDismissConfirm) {
+      onUndoDismissMissed(undoDismissConfirm.childId, undoDismissConfirm.choreId, undoDismissConfirm.timeOfDay)
+      setUndoDismissConfirm(null)
     }
   }
 
@@ -861,6 +875,10 @@ export function ActivityView({
                               <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
                             ) : event.type === 'override-complete' ? (
                               <Warning className="h-5 w-5 text-primary" weight="fill" />
+                            ) : event.type === 'override-dismiss' ? (
+                              <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
+                            ) : event.type === 'undo-dismiss' ? (
+                              <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
                             ) : event.type === 'approve' ? (
                               <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
                             ) : event.type === 'reject' ? (
@@ -880,6 +898,10 @@ export function ActivityView({
                                   ? 'undid' 
                                   : event.type === 'override-complete'
                                   ? 'was awarded points for'
+                                  : event.type === 'override-dismiss'
+                                  ? 'had dismissed'
+                                  : event.type === 'undo-dismiss'
+                                  ? 'had dismiss undone for'
                                   : event.type === 'approve'
                                   ? 'had approved'
                                   : event.type === 'reject'
@@ -908,12 +930,25 @@ export function ActivityView({
                             )}
                           </div>
 
-                          {child && (
-                            <div
-                              className="w-8 h-8 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: child.avatarColor }}
-                            />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {child && (
+                              <div
+                                className="w-8 h-8 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: child.avatarColor }}
+                              />
+                            )}
+                            {event.type === 'override-dismiss' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUndoDismissClick(event.childId, event.choreId, event.timeOfDay)}
+                                className="flex-shrink-0"
+                              >
+                                <ArrowCounterClockwise className="h-4 w-4 mr-2" />
+                                Undo
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -937,6 +972,23 @@ export function ActivityView({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmUndo}>
               Undo Completion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={undoDismissConfirm !== null} onOpenChange={() => setUndoDismissConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Dismissed Missed Chore</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to undo this dismissal? The missed chore will reappear in the missed chores list for today.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmUndoDismiss}>
+              Undo Dismissal
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
