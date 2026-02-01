@@ -101,6 +101,7 @@ echo ""
 
 # Check if this is a source-based deployment (has Dockerfile in working directory)
 SOURCE_BASED=false
+GIT_REPO=false
 if [ -n "$COMPOSE_WORKDIR" ]; then
     # Check if Dockerfile exists in the working directory
     # Using a pinned Alpine version for predictable behavior
@@ -111,6 +112,7 @@ if [ -n "$COMPOSE_WORKDIR" ]; then
         # Check if it's a git repository
         if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:3.19 test -d .git 2>/dev/null; then
             echo "Git repository detected"
+            GIT_REPO=true
         fi
     fi
 fi
@@ -118,33 +120,47 @@ fi
 # Update strategy: pull latest code from GitHub if source-based, otherwise pull images
 if [ "$SOURCE_BASED" = "true" ]; then
     echo ""
-    echo "Pulling latest code from GitHub..."
-    # Use a container with git to pull the latest code
-    if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest pull 2>&1; then
-        echo "✓ Code updated from GitHub"
-        echo ""
-        echo "Building latest images with updated code..."
-        # Build new images with the updated code
-        # Using --pull to ensure base images are up to date
-        # Not using --no-cache to leverage Docker's layer caching for faster builds
-        if [ -n "$COMPOSE_FILE_PATH" ]; then
-            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
+    
+    # If this is a git repository, try to update from GitHub
+    if [ "$GIT_REPO" = "true" ]; then
+        echo "Updating code from GitHub repository..."
+        
+        # Get the current branch name
+        CURRENT_BRANCH=$(docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+        echo "Current branch: ${CURRENT_BRANCH}"
+        
+        # Fetch the latest changes
+        echo "Fetching latest changes..."
+        if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest fetch origin 2>&1; then
+            echo "✓ Fetched latest changes from origin"
+            
+            # Reset to the latest version of the current branch
+            echo "Updating to latest version..."
+            if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest reset --hard "origin/${CURRENT_BRANCH}" 2>&1; then
+                echo "✓ Code updated to latest version from GitHub"
+            else
+                echo "WARNING: Failed to reset to origin/${CURRENT_BRANCH}"
+                echo "Will continue with current code..."
+            fi
         else
-            docker compose -p "${COMPOSE_PROJECT}" build --pull
+            echo "WARNING: Git fetch failed. This might be expected if:"
+            echo "  - Network connectivity issues"
+            echo "  - Remote repository is not accessible"
+            echo "  - Authentication is required"
+            echo ""
+            echo "Continuing with current code..."
         fi
+    fi
+    
+    echo ""
+    echo "Building latest images with updated code..."
+    # Build new images with the updated code
+    # Using --pull to ensure base images are up to date
+    # Not using --no-cache to leverage Docker's layer caching for faster builds
+    if [ -n "$COMPOSE_FILE_PATH" ]; then
+        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
     else
-        echo "WARNING: Git pull failed. This might be expected if:"
-        echo "  - The repository is already up to date"
-        echo "  - Authentication is required"
-        echo "  - Not a git repository"
-        echo ""
-        echo "Continuing with image rebuild using current code..."
-        # Still try to rebuild with current code
-        if [ -n "$COMPOSE_FILE_PATH" ]; then
-            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
-        else
-            docker compose -p "${COMPOSE_PROJECT}" build --pull
-        fi
+        docker compose -p "${COMPOSE_PROJECT}" build --pull
     fi
 else
     echo ""
