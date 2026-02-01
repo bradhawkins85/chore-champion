@@ -458,7 +458,7 @@ export function ChoreDialog({
                     value={emoji}
                     onChange={(e) => setEmoji(e.target.value)}
                     placeholder="🛏️"
-                    maxLength={4}
+                    maxLength={10}
                   />
                   <p className="text-xs text-muted-foreground">
                     Add an emoji to represent this chore (e.g., 🧹 🍽️ 🧺)
@@ -1001,7 +1001,7 @@ export function ChoreDialog({
                 value={emoji}
                 onChange={(e) => setEmoji(e.target.value)}
                 placeholder="🛏️"
-                maxLength={4}
+                maxLength={10}
               />
               <p className="text-xs text-muted-foreground">
                 Add an emoji to represent this chore (e.g., 🧹 🍽️ 🧺)

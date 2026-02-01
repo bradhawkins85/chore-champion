@@ -863,7 +863,7 @@ export function ChildChoreView({
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              {chore.emoji && <span className="text-2xl line-through">{chore.emoji}</span>}
+                              {chore.emoji && <span className="text-2xl opacity-60">{chore.emoji}</span>}
                               <h3 className="text-xl font-fredoka font-bold line-through">
                                 {chore.name}
                               </h3>
