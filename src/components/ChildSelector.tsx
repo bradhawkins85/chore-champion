@@ -210,7 +210,8 @@ export function ChildSelector({
             const childCategoryPoints = categoryPoints?.get(child.id)
             
             const choresMap = new Map(chores.map(c => [c.id, c]))
-            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions)
+            const categoriesMap = new Map(categories.map((category) => [category.id, category]))
+            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions, categoriesMap)
 
             return (
               <motion.div
