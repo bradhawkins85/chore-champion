@@ -9,7 +9,7 @@ const router = Router();
 const ARRAY_KEYS = [
   'chores', 'children', 'assignments', 'completions', 'rewards', 'purchases',
   'chore-history', 'dismissed-missed-chores', 'tracked-goals', 'categories',
-  'point-swaps', 'bonus-completions'
+  'point-swaps', 'bonus-completions', 'child-availability'
 ];
 
 /**

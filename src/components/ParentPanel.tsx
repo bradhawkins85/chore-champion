@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -48,8 +48,9 @@ import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
 import { SchoolHolidaySettings } from './SchoolHolidaySettings'
+import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
-import { isChoreActive, isChoreActiveToday } from '@/lib/helpers'
+import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 interface ParentPanelProps {
@@ -84,12 +85,16 @@ interface ParentPanelProps {
   currentDeviceId: string
   hideChildrenWithNoActivity: boolean
   schoolHolidays: SchoolHoliday[]
+  childAvailability: ChildAvailabilityEntry[]
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
   onAddChild: (child: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>) => void
   onEditChild: (id: string, child: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>) => void
   onDeleteChild: (id: string) => void
+  onAddChildAvailability: (entry: Omit<ChildAvailabilityEntry, 'id'>) => void
+  onUpdateChildAvailability: (id: string, updates: Omit<ChildAvailabilityEntry, 'id'>) => void
+  onDeleteChildAvailability: (id: string) => void
   onAssignChore: (childId: string, choreId: string) => void
   onUnassignChore: (assignmentId: string) => void
   onEditAssignment: (
@@ -165,6 +170,9 @@ export function ParentPanel({
   onAddChild,
   onEditChild,
   onDeleteChild,
+  onAddChildAvailability,
+  onUpdateChildAvailability,
+  onDeleteChildAvailability,
   onAssignChore,
   onUnassignChore,
   onEditAssignment,
@@ -205,6 +213,7 @@ export function ParentPanel({
   onEditReportTemplate,
   onDeleteReportTemplate,
   schoolHolidays,
+  childAvailability,
   onAddSchoolHoliday,
   onEditSchoolHoliday,
   onDeleteSchoolHoliday,
@@ -240,7 +249,6 @@ export function ParentPanel({
       childAssignments.forEach((assignment) => {
         const chore = chores.find((c) => c.id === assignment.choreId)
         if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) return
-
         const isDismissed = (timeOfDay?: 'am' | 'pm') =>
           dismissedMissedChores.some(
             (d) =>
@@ -261,6 +269,7 @@ export function ParentPanel({
           )
           
           if (currentTimeOfDay === 'pm' && !amCompleted && !isDismissed('am')) {
+            if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'am')) return
             count++
           }
         } else if (chore.timeOfDay === 'am') {
@@ -273,15 +282,20 @@ export function ParentPanel({
                 c.timeOfDay === 'am'
             )
             if (!amCompleted && !isDismissed('am')) {
+              if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'am')) return
               count++
             }
           }
+        } else if (chore.timeOfDay === 'pm') {
+          if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'pm')) return
+        } else if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'anytime')) {
+          return
         }
       })
     })
 
     return count
-  }, [childrenList, chores, assignments, completions, dismissedMissedChores])
+  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
 
   const handleQuickAddTemplate = (template: ChoreTemplate) => {
     const firstCategoryId = categories[0]?.id
@@ -505,6 +519,7 @@ export function ParentPanel({
             assignments={assignments}
             completions={completions}
             dismissedMissedChores={dismissedMissedChores}
+            childAvailability={childAvailability}
             onOverrideComplete={onOverrideComplete}
             onDismissMissed={onDismissMissed}
           />
@@ -569,6 +584,14 @@ export function ParentPanel({
               ))}
             </div>
           )}
+
+          <ChildAvailabilitySchedule
+            childrenList={childrenList}
+            entries={childAvailability}
+            onAddEntry={onAddChildAvailability}
+            onUpdateEntry={onUpdateChildAvailability}
+            onDeleteEntry={onDeleteChildAvailability}
+          />
         </TabsContent>
 
         <TabsContent value="chores" className="space-y-4">

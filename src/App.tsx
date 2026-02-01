@@ -46,6 +46,7 @@ import {
   SpeechSettings,
   PushNotificationSettings,
   SchoolHoliday,
+  ChildAvailabilityEntry,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -150,6 +151,7 @@ function App() {
     devices: [],
   })
   const [schoolHolidays, setSchoolHolidays] = useKV<SchoolHoliday[]>('school-holidays', [])
+  const [childAvailability, setChildAvailability] = useKV<ChildAvailabilityEntry[]>('child-availability', [])
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
@@ -189,6 +191,7 @@ function App() {
   const safeAccessHistory = coerceArray<IPAccessAttempt>(accessHistory)
   const safeReportTemplates = coerceArray<ReportTemplate>(reportTemplates)
   const safePendingDigestItems = coerceArray<any>(pendingDigestItems)
+  const safeChildAvailability = coerceArray<ChildAvailabilityEntry>(childAvailability)
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
@@ -522,8 +525,37 @@ function App() {
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
+    setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
     
     toast.success('Child removed')
+  }
+
+  const handleAddChildAvailability = (
+    entryData: Omit<ChildAvailabilityEntry, 'id'>
+  ) => {
+    const newEntry: ChildAvailabilityEntry = {
+      ...entryData,
+      id: `availability_${Date.now()}_${Math.random()}`,
+    }
+    setChildAvailability((current) => [...(current || []), newEntry])
+    toast.success('Availability added')
+  }
+
+  const handleUpdateChildAvailability = (
+    id: string,
+    updates: Omit<ChildAvailabilityEntry, 'id'>
+  ) => {
+    setChildAvailability((current) =>
+      (current || []).map((entry) =>
+        entry.id === id ? { ...entry, ...updates } : entry
+      )
+    )
+    toast.success('Availability updated')
+  }
+
+  const handleDeleteChildAvailability = (id: string) => {
+    setChildAvailability((current) => (current || []).filter((entry) => entry.id !== id))
+    toast.success('Availability removed')
   }
 
   const handleAssignChore = (childId: string, choreId: string) => {
@@ -1585,12 +1617,16 @@ Please log in to ChoreQuest to approve or reject this completion.
           currentDeviceId={getDeviceId()}
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           schoolHolidays={schoolHolidays || []}
+          childAvailability={safeChildAvailability}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
           onAddChild={handleAddChild}
           onEditChild={handleEditChild}
           onDeleteChild={handleDeleteChild}
+          onAddChildAvailability={handleAddChildAvailability}
+          onUpdateChildAvailability={handleUpdateChildAvailability}
+          onDeleteChildAvailability={handleDeleteChildAvailability}
           onAssignChore={handleAssignChore}
           onUnassignChore={handleUnassignChore}
           onEditAssignment={handleEditAssignment}
@@ -1643,6 +1679,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             completions={safeCompletions}
             categories={safeCategories}
             schoolHolidays={schoolHolidays || []}
+            childAvailability={safeChildAvailability}
             onBack={() => setShowCalendar(false)}
           />
         ) : showPointsHistory ? (
@@ -1704,6 +1741,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
             currentWeather={currentWeather}
             schoolHolidays={schoolHolidays || []}
+            childAvailability={safeChildAvailability}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
@@ -1754,6 +1792,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               assignments={safeAssignments}
               chores={migratedChores || []}
               completions={safeCompletions}
+              childAvailability={safeChildAvailability}
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
               speechSettings={speechSettings || { enabled: true }}
               biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}

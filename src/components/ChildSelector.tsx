@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings } from '@/lib/types'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, ChildAvailabilityEntry } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 import { isStandalone } from '@/lib/pwaHelper'
@@ -25,6 +25,7 @@ interface ChildSelectorProps {
   assignments?: ChoreAssignment[]
   chores?: Chore[]
   completions?: ChoreCompletion[]
+  childAvailability?: ChildAvailabilityEntry[]
   weatherSettings?: WeatherSettings
   speechSettings?: SpeechSettings
   biometricSettings?: BiometricSettings
@@ -44,6 +45,7 @@ export function ChildSelector({
   assignments = [],
   chores = [],
   completions = [],
+  childAvailability = [],
   weatherSettings,
   speechSettings,
   biometricSettings,
@@ -109,9 +111,9 @@ export function ChildSelector({
     
     return childrenList.filter(child => {
       const hasICSEvents = childICSEventsMap.get(child.id) || false
-      return hasChildActivity(child.id, assignments, choresMap, completions, hasICSEvents)
+      return hasChildActivity(child.id, assignments, choresMap, completions, hasICSEvents, childAvailability)
     })
-  }, [childrenList, hideChildrenWithNoActivity, assignments, chores, completions, childICSEventsMap])
+  }, [childrenList, hideChildrenWithNoActivity, assignments, chores, completions, childICSEventsMap, childAvailability])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -211,7 +213,7 @@ export function ChildSelector({
             
             const choresMap = new Map(chores.map(c => [c.id, c]))
             const categoriesMap = new Map(categories.map((category) => [category.id, category]))
-            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions, categoriesMap)
+            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions, categoriesMap, childAvailability)
 
             return (
               <motion.div

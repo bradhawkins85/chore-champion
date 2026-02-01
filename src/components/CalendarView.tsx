@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, Circle } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, Category, SchoolHoliday } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, Category, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
 import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
-import { isChoreActiveForDate, isChoreActiveOnDate, isChoreCompletedOnDate, getChorePointsForChild, isChoreActiveOnDateWithHolidays } from '@/lib/helpers'
+import { isChoreActiveForDate, isChoreCompletedOnDate, getChorePointsForChild, isChoreActiveOnDateWithHolidays, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 
 interface CalendarViewProps {
   child: Child
@@ -14,10 +14,11 @@ interface CalendarViewProps {
   completions?: ChoreCompletion[]
   categories?: Category[]
   schoolHolidays?: SchoolHoliday[]
+  childAvailability?: ChildAvailabilityEntry[]
   onBack: () => void
 }
 
-export function CalendarView({ child, chores = [], assignments = [], completions = [], categories = [], schoolHolidays = [], onBack }: CalendarViewProps) {
+export function CalendarView({ child, chores = [], assignments = [], completions = [], categories = [], schoolHolidays = [], childAvailability = [], onBack }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
 
   // Filter assignments for this child
@@ -98,6 +99,8 @@ export function CalendarView({ child, chores = [], assignments = [], completions
 
       const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
       const points = getChorePointsForChild(chore, assignment, child.id)
+
+      if (!isChildAvailableForTimeOfDay(child.id, childAvailability, date, effectiveTimeOfDay)) return
 
       // Handle different time of day scenarios
       if (effectiveTimeOfDay === 'both') {
