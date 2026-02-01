@@ -6,9 +6,10 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings } from '@/lib/types'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
+import { SchoolHolidayCountdownCard } from '@/components/SchoolHolidayCountdownCard'
 import { isStandalone } from '@/lib/pwaHelper'
 import { fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
 
@@ -29,6 +30,8 @@ interface ChildSelectorProps {
   speechSettings?: SpeechSettings
   biometricSettings?: BiometricSettings
   hideChildrenWithNoActivity?: boolean
+  schoolHolidays?: SchoolHoliday[]
+  schoolHolidayCountdownSettings?: SchoolHolidayCountdownSettings
 }
 
 export function ChildSelector({ 
@@ -48,6 +51,8 @@ export function ChildSelector({
   speechSettings,
   biometricSettings,
   hideChildrenWithNoActivity = false,
+  schoolHolidays = [],
+  schoolHolidayCountdownSettings,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
@@ -187,14 +192,26 @@ export function ChildSelector({
           {formatDateTime(currentDateTime)}
         </motion.p>
 
-        {weatherSettings && (
+        {(weatherSettings || schoolHolidayCountdownSettings?.enabled) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mb-8 max-w-md mx-auto"
+            className="mb-8 flex flex-col items-center justify-center gap-4 md:flex-row"
           >
-            <WeatherDisplay settings={weatherSettings} />
+            {weatherSettings && (
+              <div className="w-full max-w-md">
+                <WeatherDisplay settings={weatherSettings} />
+              </div>
+            )}
+            {schoolHolidayCountdownSettings && (
+              <div className="w-full max-w-md">
+                <SchoolHolidayCountdownCard
+                  holidays={schoolHolidays}
+                  settings={schoolHolidayCountdownSettings}
+                />
+              </div>
+            )}
           </motion.div>
         )}
 
