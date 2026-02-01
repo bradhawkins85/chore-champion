@@ -303,6 +303,9 @@ export function ChoreDialog({
       setSpeakDescription(true)
       setInactiveOnSchoolHolidays(false)
       setOnlyOnSchoolHolidays(false)
+      setRotationMode('one-child-per-interval')
+      setRotationOrder('specific')
+      setRotationChildOrder([])
     }
     onOpenChange(false)
   }
