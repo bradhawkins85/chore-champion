@@ -103,12 +103,13 @@ echo ""
 SOURCE_BASED=false
 if [ -n "$COMPOSE_WORKDIR" ]; then
     # Check if Dockerfile exists in the working directory
-    if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:latest test -f Dockerfile 2>/dev/null; then
+    # Using a pinned Alpine version for predictable behavior
+    if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:3.19 test -f Dockerfile 2>/dev/null; then
         SOURCE_BASED=true
         echo "Detected source-based deployment at ${COMPOSE_WORKDIR}"
         
         # Check if it's a git repository
-        if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:latest test -d .git 2>/dev/null; then
+        if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:3.19 test -d .git 2>/dev/null; then
             echo "Git repository detected"
         fi
     fi
@@ -124,10 +125,12 @@ if [ "$SOURCE_BASED" = "true" ]; then
         echo ""
         echo "Building latest images with updated code..."
         # Build new images with the updated code
+        # Using --pull to ensure base images are up to date
+        # Not using --no-cache to leverage Docker's layer caching for faster builds
         if [ -n "$COMPOSE_FILE_PATH" ]; then
-            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --no-cache --pull
+            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
         else
-            docker compose -p "${COMPOSE_PROJECT}" build --no-cache --pull
+            docker compose -p "${COMPOSE_PROJECT}" build --pull
         fi
     else
         echo "WARNING: Git pull failed. This might be expected if:"
