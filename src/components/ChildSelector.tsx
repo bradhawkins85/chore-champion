@@ -199,15 +199,15 @@ export function ChildSelector({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mb-8 flex flex-col items-center justify-center gap-4 md:flex-row"
+            className="mb-8 flex flex-col items-center justify-center gap-4 md:flex-row md:items-stretch"
           >
             {weatherSettings && (
-              <div className="w-full max-w-md">
+              <div className="flex w-full max-w-md">
                 <WeatherDisplay settings={weatherSettings} />
               </div>
             )}
             {schoolHolidayCountdownSettings && (
-              <div className="w-full max-w-md">
+              <div className="flex w-full max-w-md">
                 <SchoolHolidayCountdownCard
                   holidays={schoolHolidays}
                   settings={schoolHolidayCountdownSettings}

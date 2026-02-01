@@ -90,6 +90,7 @@ export interface WeatherConditionRequirement {
 export interface SchoolHoliday {
   id: string
   name: string
+  emoji?: string
   startDate: number
   endDate: number
   createdAt: number
