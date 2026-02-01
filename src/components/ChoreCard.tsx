@@ -105,6 +105,7 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
+              {chore.emoji && <span className="text-2xl">{chore.emoji}</span>}
               <CardTitle className="text-lg font-fredoka">{chore.name}</CardTitle>
             </div>
             {chore.description && (

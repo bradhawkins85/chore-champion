@@ -91,6 +91,7 @@ export function ChoreDialog({
   const [rotationMode, setRotationMode] = useState<RotationMode>(editChore?.rotationConfig?.mode || 'one-child-per-interval')
   const [rotationOrder, setRotationOrder] = useState<RotationOrder>(editChore?.rotationConfig?.order || 'specific')
   const [rotationChildOrder, setRotationChildOrder] = useState<string[]>(editChore?.rotationConfig?.childOrder || [])
+  const [emoji, setEmoji] = useState(editChore?.emoji || '')
 
   useEffect(() => {
     if (editChore) {
@@ -121,6 +122,7 @@ export function ChoreDialog({
       setRotationMode(editChore.rotationConfig?.mode || 'one-child-per-interval')
       setRotationOrder(editChore.rotationConfig?.order || 'specific')
       setRotationChildOrder(editChore.rotationConfig?.childOrder || [])
+      setEmoji(editChore.emoji || '')
     }
   }, [editChore])
 
@@ -136,6 +138,7 @@ export function ChoreDialog({
     setPoints(template.points.toString())
     setFrequency(template.frequency)
     setTimeOfDay(template.timeOfDay || 'anytime')
+    setEmoji(template.icon || '')
     if (template.estimatedDuration) {
       setEstimatedDuration(template.estimatedDuration.toString())
     }
@@ -168,6 +171,7 @@ export function ChoreDialog({
       completionType: 'individual',
       categoryIds: [],
       categoryPoints: undefined,
+      emoji: template.icon || undefined,
     }
 
     if (template.estimatedDuration) {
@@ -220,6 +224,10 @@ export function ChoreDialog({
       completionType,
       categoryIds,
       categoryPoints: categoryPoints.length > 0 ? categoryPoints : undefined,
+    }
+
+    if (emoji) {
+      choreData.emoji = emoji
     }
 
     if (desiredTime) {
@@ -442,6 +450,19 @@ export function ChoreDialog({
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Make your bed"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="emoji">Emoji (optional)</Label>
+                  <Input
+                    id="emoji"
+                    value={emoji}
+                    onChange={(e) => setEmoji(e.target.value)}
+                    placeholder="🛏️"
+                    maxLength={4}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Add an emoji to represent this chore (e.g., 🧹 🍽️ 🧺)
+                  </p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description (optional)</Label>
@@ -972,6 +993,19 @@ export function ChoreDialog({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Make your bed"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="emoji">Emoji (optional)</Label>
+              <Input
+                id="emoji"
+                value={emoji}
+                onChange={(e) => setEmoji(e.target.value)}
+                placeholder="🛏️"
+                maxLength={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Add an emoji to represent this chore (e.g., 🧹 🍽️ 🧺)
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description (optional)</Label>
