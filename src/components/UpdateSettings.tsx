@@ -53,6 +53,26 @@ export function UpdateSettings() {
   const [checkError, setCheckError] = useState<string | null>(null)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
 
+  const clearCachesAndReload = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(registrations.map((registration) => registration.unregister()))
+      }
+
+      if ('caches' in window) {
+        const cacheNames = await caches.keys()
+        await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
+      }
+    } catch (error) {
+      console.warn('Failed to clear caches after update:', error)
+    } finally {
+      const url = new URL(window.location.href)
+      url.searchParams.set('updated', Date.now().toString())
+      window.location.replace(url.toString())
+    }
+  }
+
   const checkForUpdates = async () => {
     setIsChecking(true)
     setCheckError(null)
@@ -128,7 +148,7 @@ export function UpdateSettings() {
         // Reload the page after a delay to get the new version
         // Use a longer timeout to allow the update to complete
         setTimeout(() => {
-          window.location.reload()
+          void clearCachesAndReload()
         }, 20000)
       } else {
         throw new Error(result.message || 'Update failed')

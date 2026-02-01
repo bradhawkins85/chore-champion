@@ -1,0 +1,7 @@
+{
+  "guid": "c932da8c-fe2a-4884-aee3-296bc6967d39",
+  "occurred_at": "2026-02-01T08:08:54.514239Z",
+  "change_type": "Fix",
+  "summary": "Clear service worker and cache storage after update to ensure the latest version loads.",
+  "content_hash": "554d6b17e77a5c582bf68f576a4af943d99219bea144c84d5f8130fd043b747c"
+}
