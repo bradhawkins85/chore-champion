@@ -974,6 +974,41 @@ function App() {
     toast.info('Missed chore dismissed')
   }
 
+  const handleUndoDismissMissed = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayTimestamp = today.getTime()
+    
+    // Remove the dismissed chore from the list
+    setDismissedMissedChores((current) =>
+      (current || []).filter(
+        (c) => !(
+          c.childId === childId &&
+          c.choreId === choreId &&
+          c.timeOfDay === timeOfDay &&
+          c.missedDate === todayTimestamp
+        )
+      )
+    )
+    
+    // Add history event for the undo action
+    const historyEvent: ChoreHistoryEvent = {
+      id: `history_${Date.now()}_${Math.random()}`,
+      type: 'undo-dismiss',
+      childId,
+      choreId,
+      timestamp: Date.now(),
+      timeOfDay,
+    }
+    setHistory((current) => [...(current || []), historyEvent])
+    
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+    const child = safeChildrenList.find((c) => c.id === childId)
+    toast.success('Missed chore dismiss undone', {
+      description: `${child?.name}'s "${chore?.name}" is now back in missed chores`,
+    })
+  }
+
   const handleToggleGoalTracking = (childId: string, rewardId: string) => {
     setTrackedGoals((current) => {
       const currentGoals = current || []
@@ -1708,6 +1743,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}
+          onUndoDismissMissed={handleUndoDismissMissed}
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
