@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh } from '@phosphor-icons/react'
 import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
+import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
@@ -131,6 +132,23 @@ export function ChoreDialog({
     setTimeOfDay(template.timeOfDay || 'anytime')
     if (template.estimatedDuration) {
       setEstimatedDuration(template.estimatedDuration.toString())
+    }
+    // Copy weather conditions from template
+    if (template.weatherConditions) {
+      setWeatherEnabled(true)
+      setWeatherConditions(template.weatherConditions.conditions || [])
+      if (template.weatherConditions.minTemp !== undefined) {
+        setWeatherMinTemp(template.weatherConditions.minTemp.toString())
+      }
+      if (template.weatherConditions.maxTemp !== undefined) {
+        setWeatherMaxTemp(template.weatherConditions.maxTemp.toString())
+      }
+      setWeatherTempUnit(template.weatherConditions.unit || 'fahrenheit')
+    } else {
+      setWeatherEnabled(false)
+      setWeatherConditions([])
+      setWeatherMinTemp('')
+      setWeatherMaxTemp('')
     }
   }
 
@@ -311,17 +329,25 @@ export function ChoreDialog({
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-2xl">{template.icon}</span>
                                   <h4 className="font-fredoka font-semibold">{template.name}</h4>
+                                  {template.weatherConditions && (
+                                    <CloudSun className="h-4 w-4 text-blue-500" />
+                                  )}
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2">
                                   {template.description}
                                 </p>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                   <Badge variant="secondary" className="text-xs">
                                     {template.frequency}
                                   </Badge>
                                   <Badge variant="outline" className="text-xs">
                                     {template.points} pts
                                   </Badge>
+                                  {template.weatherConditions && (
+                                    <Badge variant="outline" className="text-xs text-blue-600">
+                                      {getWeatherConditionLabel(template.weatherConditions.conditions)}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             </div>
