@@ -43,7 +43,6 @@ import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
 import { EmailSettings } from './EmailSettings'
 import { PushNotificationSettingsComponent } from './PushNotificationSettings'
-import { WeatherChoreSuggestions } from './WeatherChoreSuggestions'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { UpdateSettings } from './UpdateSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
@@ -658,14 +657,6 @@ export function ParentPanel({
               </Button>
             </div>
           </div>
-
-          <WeatherChoreSuggestions
-            currentWeather={currentWeather}
-            existingChores={chores}
-            categories={categories}
-            weatherEnabled={weatherSettings?.enabled || false}
-            onAddChore={onAddChore}
-          />
 
           {chores.length === 0 ? (
             <Card>

@@ -1,4 +1,4 @@
-import { ChoreFrequency, ChoreTimeOfDay } from './types'
+import { ChoreFrequency, ChoreTimeOfDay, WeatherConditionRequirement } from './types'
 
 export interface ChoreTemplate {
   name: string
@@ -9,6 +9,7 @@ export interface ChoreTemplate {
   category: string
   icon: string
   estimatedDuration?: number
+  weatherConditions?: WeatherConditionRequirement
 }
 
 export const choreTemplates: ChoreTemplate[] = [
@@ -261,6 +262,9 @@ export const choreTemplates: ChoreTemplate[] = [
     category: 'Outdoor',
     icon: '🪴',
     estimatedDuration: 10,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy'],
+    },
   },
   {
     name: 'Rake Leaves',
@@ -271,6 +275,9 @@ export const choreTemplates: ChoreTemplate[] = [
     category: 'Outdoor',
     icon: '🍂',
     estimatedDuration: 45,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy'],
+    },
   },
   {
     name: 'Mow Lawn',
@@ -281,6 +288,9 @@ export const choreTemplates: ChoreTemplate[] = [
     category: 'Outdoor',
     icon: '🌱',
     estimatedDuration: 60,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy'],
+    },
   },
   {
     name: 'Pull Weeds',
@@ -291,6 +301,9 @@ export const choreTemplates: ChoreTemplate[] = [
     category: 'Outdoor',
     icon: '🌿',
     estimatedDuration: 30,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy'],
+    },
   },
   {
     name: 'Organize Toys',
@@ -361,6 +374,11 @@ export const choreTemplates: ChoreTemplate[] = [
     category: 'Outdoor',
     icon: '🚗',
     estimatedDuration: 45,
+    weatherConditions: {
+      conditions: ['clear'],
+      minTemp: 50,
+      unit: 'fahrenheit',
+    },
   },
   {
     name: 'Clean Windows',
@@ -432,6 +450,153 @@ export const choreTemplates: ChoreTemplate[] = [
     icon: '🥣',
     estimatedDuration: 5,
   },
+  // Weather-based chores
+  {
+    name: 'Shovel Snow',
+    description: 'Shovel snow from driveway and walkway',
+    points: 40,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '⛄',
+    estimatedDuration: 60,
+    weatherConditions: {
+      conditions: ['snowy'],
+    },
+  },
+  {
+    name: 'Salt Driveway',
+    description: 'Spread salt or ice melt on driveway and walkway',
+    points: 15,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🧂',
+    estimatedDuration: 15,
+    weatherConditions: {
+      conditions: ['snowy', 'cold'],
+      maxTemp: 32,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Bring in Outdoor Furniture',
+    description: 'Bring outdoor furniture inside or cover it',
+    points: 20,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🪑',
+    estimatedDuration: 25,
+    weatherConditions: {
+      conditions: ['rainy', 'snowy'],
+    },
+  },
+  {
+    name: 'Set Up Sprinkler',
+    description: 'Set up and run the lawn sprinkler',
+    points: 10,
+    frequency: 'weekly',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '💧',
+    estimatedDuration: 15,
+    weatherConditions: {
+      conditions: ['clear'],
+      minTemp: 60,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Clean Outdoor Windows',
+    description: 'Wash the outside of windows',
+    points: 20,
+    frequency: 'weekly',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🪟',
+    estimatedDuration: 30,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy'],
+      minTemp: 50,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Fill Bird Feeders',
+    description: 'Refill outdoor bird feeders',
+    points: 10,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🐦',
+    estimatedDuration: 10,
+    weatherConditions: {
+      conditions: ['any'],
+    },
+  },
+  {
+    name: 'Walk the Dog (Weather)',
+    description: 'Take the dog for a walk in pleasant weather',
+    points: 15,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🐕',
+    estimatedDuration: 20,
+    weatherConditions: {
+      conditions: ['clear', 'cloudy', 'mild'],
+      minTemp: 40,
+      maxTemp: 85,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Play Outside',
+    description: 'Spend time playing outdoors',
+    points: 10,
+    frequency: 'daily',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '⚽',
+    estimatedDuration: 30,
+    weatherConditions: {
+      conditions: ['clear', 'mild'],
+      minTemp: 50,
+      maxTemp: 85,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Put Away Winter Gear',
+    description: 'Organize and put away coats, boots, and winter items',
+    points: 15,
+    frequency: 'weekly',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🧥',
+    estimatedDuration: 20,
+    weatherConditions: {
+      conditions: ['hot', 'mild'],
+      minTemp: 60,
+      unit: 'fahrenheit',
+    },
+  },
+  {
+    name: 'Organize Cold Weather Clothes',
+    description: 'Sort and organize winter clothing',
+    points: 15,
+    frequency: 'weekly',
+    timeOfDay: 'anytime',
+    category: 'Weather',
+    icon: '🧤',
+    estimatedDuration: 20,
+    weatherConditions: {
+      conditions: ['cold', 'snowy'],
+      maxTemp: 40,
+      unit: 'fahrenheit',
+    },
+  },
 ]
 
 export const choreCategories = [
@@ -443,6 +608,7 @@ export const choreCategories = [
   'Laundry',
   'Pet Care',
   'Outdoor',
+  'Weather',
   'School',
   'Activities',
   'Errands',
