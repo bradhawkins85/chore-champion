@@ -1035,7 +1035,8 @@ export function getNextUpcomingChore(
   childId: string,
   assignments: ChoreAssignment[],
   choresMap: Map<string, Chore>,
-  completions: ChoreCompletion[]
+  completions: ChoreCompletion[],
+  categoriesMap?: Map<string, Category>
 ): { chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' } | null {
   const currentMinutes = getCurrentTimeInMinutes()
   const currentTimeOfDay = getCurrentTimeOfDay()
@@ -1048,6 +1049,7 @@ export function getNextUpcomingChore(
     .map((assignment) => {
       const chore = choresMap.get(assignment.choreId)
       if (!chore) return null
+      if (!shouldShowChoreInUpNext(chore, categoriesMap)) return null
 
       const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
       const effectiveTimeWindow = assignment.timeWindow || chore.timeWindow
@@ -1127,6 +1129,14 @@ export function getNextUpcomingChore(
     assignment: firstChore.assignment,
     timeOfDay: firstChore.timeOfDay,
   }
+}
+
+function shouldShowChoreInUpNext(chore: Chore, categoriesMap?: Map<string, Category>): boolean {
+  if (!categoriesMap || chore.categoryIds.length === 0) {
+    return true
+  }
+
+  return !chore.categoryIds.some((categoryId) => categoriesMap.get(categoryId)?.showInUpNext === false)
 }
 
 export function isRewardActive(reward: { startDate?: number; expiryDate?: number }): boolean {

@@ -1,0 +1,7 @@
+{
+  "guid": "b72fbe02-504b-4f2e-866a-2d50b02084e0",
+  "occurred_at": "2026-02-01T00:53:06.146962Z",
+  "change_type": "Fix",
+  "summary": "Hide Next Up chores when any assigned category is marked as hidden in Up Next.",
+  "content_hash": "f6a63e6aaeea9ce2b4d5d61971472f2dcc27269238f36f8ea2fcb26050abd5a2"
+}
