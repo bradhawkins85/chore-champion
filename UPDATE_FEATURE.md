@@ -81,9 +81,44 @@ These requirements are automatically met if you deployed using:
 3. **Update Script** (`update-internal.sh`):
    - Runs inside the API container
    - Uses Docker socket to control host Docker
-   - Pulls latest images
-   - Recreates containers
+   - Detects deployment type (source-based or registry-based)
+   - **For source-based deployments:**
+     - Pulls latest code from GitHub repository
+     - Rebuilds Docker images with updated code
+     - Recreates containers
+   - **For registry-based deployments:**
+     - Pulls latest images from container registry (ghcr.io)
+     - Recreates containers
    - Cleans up old images
+
+### Deployment Types
+
+#### Source-Based Deployment (Recommended)
+This is the default deployment method where you clone the repository and run docker-compose:
+```bash
+git clone https://github.com/bradhawkins85/chore-champion.git
+cd chore-champion
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+With source-based deployment, the "Update Now" button will:
+1. Pull the latest code from GitHub
+2. Rebuild images with the new code
+3. Restart containers
+
+#### Registry-Based Deployment
+This method pulls pre-built images from GitHub Container Registry:
+```bash
+# Set in .env file:
+DOCKER_IMAGE=ghcr.io/bradhawkins85/chorequest:latest
+# Note: API image is still built from source
+```
+
+With registry-based deployment, the "Update Now" button will:
+1. Pull the latest images from the registry
+2. Restart containers
+
+**Note:** Currently, only the main application image is published to the registry. The API is built from source in both deployment types.
 
 ### Configuration
 
@@ -182,6 +217,27 @@ The update script encountered an error.
 1. Check update logs: `docker exec chorequest-api cat /tmp/update.log`
 2. Manually run the update: `make update` or `./scripts/update.sh`
 3. Restore from backup if needed: `make restore BACKUP=filename.tar.gz`
+
+### "Git pull failed" or "Failed to pull images from registry"
+
+The update script couldn't pull the latest code or images.
+
+**For source-based deployments:**
+1. Ensure your deployment directory is a git repository with a remote configured
+2. Check git remote: `git remote -v` (should show GitHub repository)
+3. If the git pull requires authentication, you may need to configure git credentials
+4. Alternatively, manually pull and rebuild:
+   ```bash
+   cd /path/to/chore-champion
+   git pull
+   docker-compose -f docker-compose.prod.yml build --pull
+   docker-compose -f docker-compose.prod.yml up -d --force-recreate
+   ```
+
+**For registry-based deployments:**
+1. Verify the image exists in the registry
+2. Check your DOCKER_IMAGE environment variable in .env
+3. Ensure you have network access to ghcr.io
 
 ### Application doesn't load after update
 
