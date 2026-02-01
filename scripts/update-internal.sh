@@ -50,7 +50,6 @@ docker exec "${COMPOSE_PROJECT}-backup-1" /scripts/backup.sh 2>/dev/null || \
     echo "WARNING: Could not create backup (backup container not found)"
 
 echo ""
-echo "Pulling latest images..."
 # Try to determine which compose file is being used
 COMPOSE_FILE=""
 if docker container inspect "${COMPOSE_PROJECT}-traefik-1" >/dev/null 2>&1 || \
@@ -100,12 +99,78 @@ fi
 echo "Compose configuration validated"
 echo ""
 
-# Pull the latest images
-echo "Pulling images..."
-if [ -n "$COMPOSE_FILE_PATH" ]; then
-    docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull
+# Check if this is a source-based deployment (has Dockerfile in working directory)
+SOURCE_BASED=false
+if [ -n "$COMPOSE_WORKDIR" ]; then
+    # Check if Dockerfile exists in the working directory
+    # Using a pinned Alpine version for predictable behavior
+    if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:3.19 test -f Dockerfile 2>/dev/null; then
+        SOURCE_BASED=true
+        echo "Detected source-based deployment at ${COMPOSE_WORKDIR}"
+        
+        # Check if it's a git repository
+        if docker run --rm -v "${COMPOSE_WORKDIR}:/workdir" -w /workdir alpine:3.19 test -d .git 2>/dev/null; then
+            echo "Git repository detected"
+        fi
+    fi
+fi
+
+# Update strategy: pull latest code from GitHub if source-based, otherwise pull images
+if [ "$SOURCE_BASED" = "true" ]; then
+    echo ""
+    echo "Pulling latest code from GitHub..."
+    # Use a container with git to pull the latest code
+    if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest pull 2>&1; then
+        echo "✓ Code updated from GitHub"
+        echo ""
+        echo "Building latest images with updated code..."
+        # Build new images with the updated code
+        # Using --pull to ensure base images are up to date
+        # Not using --no-cache to leverage Docker's layer caching for faster builds
+        if [ -n "$COMPOSE_FILE_PATH" ]; then
+            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
+        else
+            docker compose -p "${COMPOSE_PROJECT}" build --pull
+        fi
+    else
+        echo "WARNING: Git pull failed. This might be expected if:"
+        echo "  - The repository is already up to date"
+        echo "  - Authentication is required"
+        echo "  - Not a git repository"
+        echo ""
+        echo "Continuing with image rebuild using current code..."
+        # Still try to rebuild with current code
+        if [ -n "$COMPOSE_FILE_PATH" ]; then
+            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull
+        else
+            docker compose -p "${COMPOSE_PROJECT}" build --pull
+        fi
+    fi
 else
-    docker compose -p "${COMPOSE_PROJECT}" pull
+    echo ""
+    echo "Pulling latest images from container registry..."
+    # Pull the latest images from registry
+    if [ -n "$COMPOSE_FILE_PATH" ]; then
+        if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull; then
+            echo ""
+            echo "WARNING: Failed to pull images from registry."
+            echo "This might happen if:"
+            echo "  - Images are not published to a registry"
+            echo "  - You're using local-only images"
+            echo ""
+            echo "For source-based deployments, ensure your deployment directory contains"
+            echo "the Dockerfile so the update can pull and rebuild from source."
+            exit 1
+        fi
+    else
+        if ! docker compose -p "${COMPOSE_PROJECT}" pull; then
+            echo ""
+            echo "WARNING: Failed to pull images from registry."
+            echo "For source-based deployments, ensure your deployment directory contains"
+            echo "the Dockerfile so the update can pull and rebuild from source."
+            exit 1
+        fi
+    fi
 fi
 
 echo ""
