@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, isChoreActiveToday, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays } from '@/lib/helpers'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -35,6 +35,7 @@ interface ChildChoreViewProps {
   onUpdateCalendarRefresh?: (timestamp: number) => void
   currentWeather?: WeatherData | null
   schoolHolidays?: SchoolHoliday[]
+  childAvailability?: ChildAvailabilityEntry[]
 }
 
 export function ChildChoreView({
@@ -59,6 +60,7 @@ export function ChildChoreView({
   onUpdateCalendarRefresh,
   currentWeather,
   schoolHolidays = [],
+  childAvailability = [],
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -71,15 +73,20 @@ export function ChildChoreView({
     .filter((c) => {
       const assignment = childAssignments.find((a) => a.choreId === c.id)
       if (!assignment) return false
+
+      const effectiveTimeOfDay = assignment.timeOfDay || c.timeOfDay || 'anytime'
       
       // Check if the chore is active today considering school holidays
       if (!isChoreActiveTodayWithHolidays(c, assignment, schoolHolidays)) return false
+
+      if (!isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), effectiveTimeOfDay)) return false
       
       // Check weather conditions
       return shouldShowChore(c, currentWeather || null)
     })
 
   const currentTimeOfDay = getCurrentTimeOfDay()
+  const isAvailableToday = isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), 'anytime')
 
   const pendingApprovalCompletions = useMemo(() => {
     return completions.filter((c) => 
@@ -440,6 +447,14 @@ export function ChildChoreView({
           </div>
         </div>
 
+        {!isAvailableToday && (
+          <Alert className="mb-6">
+            <AlertDescription>
+              {child.name} is marked away right now. Chores will return when they are home.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {trackedReward && (
           <div className="mb-8">
             <GoalProgress
@@ -528,12 +543,25 @@ export function ChildChoreView({
         {childChores.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
-              <p className="text-2xl font-fredoka text-muted-foreground">
-                No chores assigned yet!
-              </p>
-              <p className="text-lg text-muted-foreground mt-2">
-                Ask a parent to assign some chores.
-              </p>
+              {isAvailableToday ? (
+                <>
+                  <p className="text-2xl font-fredoka text-muted-foreground">
+                    No chores assigned yet!
+                  </p>
+                  <p className="text-lg text-muted-foreground mt-2">
+                    Ask a parent to assign some chores.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-fredoka text-muted-foreground">
+                    You're away right now.
+                  </p>
+                  <p className="text-lg text-muted-foreground mt-2">
+                    Chores will appear when you're marked as home.
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         ) : (

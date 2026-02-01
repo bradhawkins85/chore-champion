@@ -141,6 +141,20 @@ export interface Child {
   calendarShowTimes?: boolean
 }
 
+export type ChildAvailabilityType = 'home' | 'away'
+export type ChildAvailabilityScheduleType = 'one-time' | 'recurring'
+
+export interface ChildAvailabilityEntry {
+  id: string
+  childId: string
+  type: ChildAvailabilityType
+  scheduleType: ChildAvailabilityScheduleType
+  startDate: number
+  endDate: number
+  repeatPattern?: RepeatPattern
+  note?: string
+}
+
 export interface ChoreAssignment {
   id: string
   childId: string

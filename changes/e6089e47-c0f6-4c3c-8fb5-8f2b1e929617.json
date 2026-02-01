@@ -1,0 +1,7 @@
+{
+  "guid": "e6089e47-c0f6-4c3c-8fb5-8f2b1e929617",
+  "occurred_at": "2026-02-01T02:33:22Z",
+  "change_type": "Feature",
+  "summary": "Add child availability schedules to pause chores while children are away.",
+  "content_hash": "fea5af702feea4694c98d8e9faf2155e5f1a08c3ede64af98b2e85bd87ff0dbf"
+}

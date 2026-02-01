@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion, SchoolHoliday } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion, SchoolHoliday, ChildAvailabilityEntry } from './types'
 
 // Epoch date for bi-weekly period calculations (January 1, 2024 - a Monday)
 const BI_WEEKLY_EPOCH = new Date('2024-01-01T00:00:00Z').getTime()
@@ -204,6 +204,87 @@ export function isChoreActiveOnDate(assignment: ChoreAssignment, date: Date): bo
 
 export function isChoreActiveToday(assignment: ChoreAssignment): boolean {
   return isChoreActiveOnDate(assignment, new Date())
+}
+
+const AVAILABILITY_CHECK_HOURS: Record<'am' | 'pm' | 'anytime', number> = {
+  am: 9,
+  pm: 17,
+  anytime: 12,
+}
+
+function getAvailabilityCheckTimestamps(date: Date, timeOfDay: ChoreTimeOfDay = 'anytime'): number[] {
+  const baseDate = new Date(date)
+  const buildTimestamp = (hour: number) => {
+    const checkDate = new Date(baseDate)
+    checkDate.setHours(hour, 0, 0, 0)
+    return checkDate.getTime()
+  }
+
+  if (timeOfDay === 'both') {
+    return [buildTimestamp(AVAILABILITY_CHECK_HOURS.am), buildTimestamp(AVAILABILITY_CHECK_HOURS.pm)]
+  }
+
+  const hour = timeOfDay === 'am'
+    ? AVAILABILITY_CHECK_HOURS.am
+    : timeOfDay === 'pm'
+      ? AVAILABILITY_CHECK_HOURS.pm
+      : AVAILABILITY_CHECK_HOURS.anytime
+  return [buildTimestamp(hour)]
+}
+
+function isAvailabilityEntryActiveAt(entry: ChildAvailabilityEntry, timestamp: number): boolean {
+  if (entry.endDate <= entry.startDate) {
+    return false
+  }
+
+  if (entry.scheduleType === 'one-time' || !entry.repeatPattern) {
+    return timestamp >= entry.startDate && timestamp <= entry.endDate
+  }
+
+  const intervalWeeks = Math.max(entry.repeatPattern.interval, 1)
+  const intervalMs = intervalWeeks * 7 * 24 * 60 * 60 * 1000
+  if (timestamp < entry.startDate) {
+    return false
+  }
+
+  const duration = entry.endDate - entry.startDate
+  const offset = (timestamp - entry.startDate) % intervalMs
+  return offset >= 0 && offset <= duration
+}
+
+export function isChildAvailableAtTimestamp(
+  childId: string,
+  entries: ChildAvailabilityEntry[],
+  timestamp: number
+): boolean {
+  const childEntries = entries.filter(entry => entry.childId === childId)
+  if (childEntries.length === 0) {
+    return true
+  }
+
+  const hasHomeEntries = childEntries.some(entry => entry.type === 'home')
+  const isAway = childEntries
+    .filter(entry => entry.type === 'away')
+    .some(entry => isAvailabilityEntryActiveAt(entry, timestamp))
+
+  if (hasHomeEntries) {
+    const isHome = childEntries
+      .filter(entry => entry.type === 'home')
+      .some(entry => isAvailabilityEntryActiveAt(entry, timestamp))
+    return isHome && !isAway
+  }
+
+  return !isAway
+}
+
+export function isChildAvailableForTimeOfDay(
+  childId: string,
+  entries: ChildAvailabilityEntry[],
+  date: Date,
+  timeOfDay: ChoreTimeOfDay = 'anytime'
+): boolean {
+  const timestamps = getAvailabilityCheckTimestamps(date, timeOfDay)
+  return timestamps.every((timestamp) => isChildAvailableAtTimestamp(childId, entries, timestamp))
 }
 
 export function isChoreActiveOnDateWithHolidays(
@@ -1108,10 +1189,12 @@ export function getNextUpcomingChore(
   assignments: ChoreAssignment[],
   choresMap: Map<string, Chore>,
   completions: ChoreCompletion[],
-  categoriesMap?: Map<string, Category>
+  categoriesMap?: Map<string, Category>,
+  childAvailability: ChildAvailabilityEntry[] = []
 ): { chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' } | null {
   const currentMinutes = getCurrentTimeInMinutes()
   const currentTimeOfDay = getCurrentTimeOfDay()
+  const now = new Date()
   
   const childAssignments = assignments.filter(
     (a) => a.childId === childId && isChoreActive(a) && isChoreActiveToday(a)
@@ -1126,6 +1209,10 @@ export function getNextUpcomingChore(
       const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
       const effectiveTimeWindow = assignment.timeWindow || chore.timeWindow
 
+      if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, effectiveTimeOfDay)) {
+        return null
+      }
+
       if (chore.completionType === 'once-per-day') {
         const completedByAnyone = isChoreCompletedByAnyChildToday(completions, chore.id)
         if (completedByAnyone) return null
@@ -1136,15 +1223,18 @@ export function getNextUpcomingChore(
         const pmCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'pm')
         
         if (!amCompleted && currentTimeOfDay === 'am') {
+          if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'am')) return null
           return { chore, assignment, timeOfDay: 'am' as const, effectiveTimeWindow, sortTime: 0 }
         }
         if (!pmCompleted && currentTimeOfDay === 'pm') {
+          if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'pm')) return null
           return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
         }
         if (!amCompleted && currentTimeOfDay === 'pm') {
           return null
         }
         if (!pmCompleted && currentTimeOfDay === 'am') {
+          if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'pm')) return null
           return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
         }
         return null
@@ -1154,15 +1244,18 @@ export function getNextUpcomingChore(
         if (currentTimeOfDay === 'pm') return null
         const completed = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'am')
         if (completed) return null
+        if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'am')) return null
         return { chore, assignment, timeOfDay: 'am' as const, effectiveTimeWindow, sortTime: 0 }
       }
 
       if (effectiveTimeOfDay === 'pm') {
         if (currentTimeOfDay === 'am') {
+          if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'pm')) return null
           return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
         }
         const completed = isChoreCompletedForTimeOfDay(completions, chore.id, childId, 'pm')
         if (completed) return null
+        if (!isChildAvailableForTimeOfDay(childId, childAvailability, now, 'pm')) return null
         return { chore, assignment, timeOfDay: 'pm' as const, effectiveTimeWindow, sortTime: 720 }
       }
 
@@ -1679,12 +1772,19 @@ export function hasChildActivity(
   assignments: ChoreAssignment[],
   choresMap: Map<string, Chore>,
   completions: ChoreCompletion[],
-  hasICSEvents: boolean
+  hasICSEvents: boolean,
+  childAvailability: ChildAvailabilityEntry[] = []
 ): boolean {
   // Check if child has any chores assigned for today
-  const hasChores = assignments.some(
-    (a) => a.childId === childId && isChoreActive(a) && isChoreActiveToday(a)
-  )
+  const today = new Date()
+  const hasChores = assignments.some((assignment) => {
+    if (assignment.childId !== childId || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
+      return false
+    }
+    const chore = choresMap.get(assignment.choreId)
+    const effectiveTimeOfDay = assignment.timeOfDay || chore?.timeOfDay || 'anytime'
+    return isChildAvailableForTimeOfDay(childId, childAvailability, today, effectiveTimeOfDay)
+  })
   
   if (hasChores) {
     return true
@@ -1696,7 +1796,6 @@ export function hasChildActivity(
   }
   
   // Check if child has historical completions on this day (from previous years)
-  const today = new Date()
   const currentMonth = today.getMonth()
   const currentDay = today.getDate()
   const currentYear = today.getFullYear()

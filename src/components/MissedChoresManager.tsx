@@ -13,8 +13,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Warning, CheckCircle, XCircle, SunHorizon, MoonStars } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, MissedChore } from '@/lib/types'
-import { isChoreMissed, isChoreCompletedForTimeOfDay, isChoreActive, isChoreActiveToday, getCurrentTimeOfDay } from '@/lib/helpers'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, MissedChore, ChildAvailabilityEntry } from '@/lib/types'
+import { isChoreMissed, isChoreCompletedForTimeOfDay, isChoreActive, isChoreActiveToday, getCurrentTimeOfDay, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 
 interface MissedChoresManagerProps {
   childrenList: Child[]
@@ -22,6 +22,7 @@ interface MissedChoresManagerProps {
   assignments: ChoreAssignment[]
   completions: ChoreCompletion[]
   dismissedMissedChores: MissedChore[]
+  childAvailability: ChildAvailabilityEntry[]
   onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
 }
@@ -38,6 +39,7 @@ export function MissedChoresManager({
   assignments,
   completions,
   dismissedMissedChores,
+  childAvailability,
   onOverrideComplete,
   onDismissMissed,
 }: MissedChoresManagerProps) {
@@ -61,7 +63,6 @@ export function MissedChoresManager({
         if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
           return
         }
-
         const isDismissed = (timeOfDay?: 'am' | 'pm') =>
           dismissedMissedChores.some(
             (d) =>
@@ -76,20 +77,28 @@ export function MissedChoresManager({
           const amCompleted = isChoreCompletedForTimeOfDay(completions, chore.id, child.id, 'am')
           
           if (currentTimeOfDay === 'pm' && !amCompleted && !isDismissed('am')) {
+            if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'am')) {
+              return
+            }
             missed.push({ child, chore, timeOfDay: 'am' })
           }
         } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
           const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
           
           if (isMissedChore && !isDismissed(chore.timeOfDay)) {
+            if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, chore.timeOfDay)) {
+              return
+            }
             missed.push({ child, chore, timeOfDay: chore.timeOfDay })
           }
+        } else if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'anytime')) {
+          return
         }
       })
     })
 
     return missed
-  }, [childrenList, chores, assignments, completions, dismissedMissedChores])
+  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
 
   const handleCompleteClick = (item: MissedChoreItem) => {
     setConfirmAction({ type: 'complete', item })
