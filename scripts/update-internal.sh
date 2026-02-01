@@ -158,6 +158,8 @@ if [ "$SOURCE_BASED" = "true" ]; then
     # Determine the version to build
     # Try to get the version from the latest git tag
     VERSION=$(docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
+    # Strip 'v' prefix if present (e.g., v1.2.0 -> 1.2.0)
+    VERSION=${VERSION#v}
     echo "Building with version: ${VERSION}"
     
     # Build new images with the updated code
