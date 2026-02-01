@@ -83,7 +83,9 @@ These requirements are automatically met if you deployed using:
    - Uses Docker socket to control host Docker
    - Detects deployment type (source-based or registry-based)
    - **For source-based deployments:**
-     - Pulls latest code from GitHub repository
+     - Detects if the deployment is a git repository
+     - Fetches latest changes from GitHub using `git fetch`
+     - Resets to the latest version using `git reset --hard origin/<branch>`
      - Rebuilds Docker images with updated code
      - Recreates containers
    - **For registry-based deployments:**
@@ -102,9 +104,13 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 With source-based deployment, the "Update Now" button will:
-1. Pull the latest code from GitHub
-2. Rebuild images with the new code
-3. Restart containers
+1. Detect the current git branch
+2. Fetch the latest code from GitHub using `git fetch origin`
+3. Reset to the latest version using `git reset --hard origin/<branch>`
+4. Rebuild images with the new code
+5. Restart containers
+
+This approach is more reliable than `git pull` as it doesn't require merge operations or worry about local changes.
 
 #### Registry-Based Deployment
 This method pulls pre-built images from GitHub Container Registry:
@@ -218,18 +224,20 @@ The update script encountered an error.
 2. Manually run the update: `make update` or `./scripts/update.sh`
 3. Restore from backup if needed: `make restore BACKUP=filename.tar.gz`
 
-### "Git pull failed" or "Failed to pull images from registry"
+### "Git fetch failed" or "Failed to pull images from registry"
 
-The update script couldn't pull the latest code or images.
+The update script couldn't fetch the latest code or images.
 
 **For source-based deployments:**
 1. Ensure your deployment directory is a git repository with a remote configured
 2. Check git remote: `git remote -v` (should show GitHub repository)
-3. If the git pull requires authentication, you may need to configure git credentials
-4. Alternatively, manually pull and rebuild:
+3. The update script uses `git fetch` and `git reset --hard`, which doesn't require authentication for public repositories
+4. If you see "Failed to reset" errors, ensure there are no file permission issues in your deployment directory
+5. Alternatively, manually update and rebuild:
    ```bash
    cd /path/to/chore-champion
-   git pull
+   git fetch origin
+   git reset --hard origin/main  # or your branch name
    docker-compose -f docker-compose.prod.yml build --pull
    docker-compose -f docker-compose.prod.yml up -d --force-recreate
    ```
