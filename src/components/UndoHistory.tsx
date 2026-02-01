@@ -101,6 +101,14 @@ export function UndoHistory({ history, childrenList, chores, onUndoDismissMissed
                       <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
                     ) : event.type === 'override-complete' ? (
                       <Warning className="h-5 w-5 text-primary" weight="fill" />
+                    ) : event.type === 'override-dismiss' ? (
+                      <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
+                    ) : event.type === 'undo-dismiss' ? (
+                      <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
+                    ) : event.type === 'approve' ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
+                    ) : event.type === 'reject' ? (
+                      <XCircle className="h-5 w-5 text-red-600" weight="fill" />
                     ) : (
                       <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
                     )}
@@ -116,6 +124,14 @@ export function UndoHistory({ history, childrenList, chores, onUndoDismissMissed
                           ? 'undid' 
                           : event.type === 'override-complete'
                           ? 'was awarded points for'
+                          : event.type === 'override-dismiss'
+                          ? 'had dismissed'
+                          : event.type === 'undo-dismiss'
+                          ? 'had dismiss undone for'
+                          : event.type === 'approve'
+                          ? 'had approved'
+                          : event.type === 'reject'
+                          ? 'had rejected'
                           : 'had dismissed'}
                       </span>
                       <span className="font-medium">{getChoreName(event.choreId)}</span>
