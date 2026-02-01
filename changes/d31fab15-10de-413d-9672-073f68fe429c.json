@@ -1,0 +1,7 @@
+{
+  "guid": "d31fab15-10de-413d-9672-073f68fe429c",
+  "occurred_at": "2026-02-01T07:26:14.384766Z",
+  "change_type": "Fix",
+  "summary": "Install Docker CLI in the API container so dashboard-triggered updates can run.",
+  "content_hash": "e8b25d66b5dbea6b51573b7ed00e713033eca94fd8acc4ed96aa2642aa461f1c"
+}

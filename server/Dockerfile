@@ -16,6 +16,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache docker-cli docker-cli-compose
+
 COPY package*.json ./
 
 RUN npm ci --only=production
