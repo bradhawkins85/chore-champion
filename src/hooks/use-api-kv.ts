@@ -215,8 +215,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         toast.error('Failed to save data', {
           description: `Unable to save to server: ${errorMessage}. Please check your connection and try again.`
         });
-        // Re-throw the error to allow callers to handle it if needed
-        throw error;
       }
     } else {
       // Save to localStorage
