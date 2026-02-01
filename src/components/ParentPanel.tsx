@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -84,6 +84,7 @@ interface ParentPanelProps {
   currentDeviceId: string
   hideChildrenWithNoActivity: boolean
   schoolHolidays: SchoolHoliday[]
+  schoolHolidayCountdownSettings: SchoolHolidayCountdownSettings
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -132,6 +133,7 @@ interface ParentPanelProps {
   onAddSchoolHoliday: (holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
   onEditSchoolHoliday: (id: string, holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
   onDeleteSchoolHoliday: (id: string) => void
+  onUpdateSchoolHolidayCountdownSettings: (settings: SchoolHolidayCountdownSettings) => void
   onSendDigestNow: () => void
   onExitParentMode: () => void
 }
@@ -205,9 +207,11 @@ export function ParentPanel({
   onEditReportTemplate,
   onDeleteReportTemplate,
   schoolHolidays,
+  schoolHolidayCountdownSettings,
   onAddSchoolHoliday,
   onEditSchoolHoliday,
   onDeleteSchoolHoliday,
+  onUpdateSchoolHolidayCountdownSettings,
   onSendDigestNow,
   onExitParentMode,
 }: ParentPanelProps) {
@@ -836,6 +840,8 @@ export function ParentPanel({
 
             <SchoolHolidaySettings
               holidays={schoolHolidays}
+              displaySettings={schoolHolidayCountdownSettings}
+              onUpdateDisplaySettings={onUpdateSchoolHolidayCountdownSettings}
               onAdd={onAddSchoolHoliday}
               onEdit={onEditSchoolHoliday}
               onDelete={onDeleteSchoolHoliday}
