@@ -202,12 +202,12 @@ export function ChildSelector({
             className="mb-8 flex flex-col items-center justify-center gap-4 md:flex-row md:items-stretch"
           >
             {weatherSettings && (
-              <div className="flex w-full max-w-md">
+              <div className="flex w-full md:flex-1">
                 <WeatherDisplay settings={weatherSettings} />
               </div>
             )}
             {schoolHolidayCountdownSettings && (
-              <div className="flex w-full max-w-md">
+              <div className="flex w-full md:flex-1">
                 <SchoolHolidayCountdownCard
                   holidays={schoolHolidays}
                   settings={schoolHolidayCountdownSettings}
