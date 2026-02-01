@@ -1,8 +1,10 @@
 export type ChoreFrequency = 'daily' | 'weekly' | 'bi-weekly'
 export type ChoreTimeOfDay = 'am' | 'pm' | 'both' | 'anytime'
-export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day'
+export type ChoreCompletionType = 'individual' | 'shareable' | 'once-per-day' | 'rotational'
 export type ChoreResetPeriod = 'daily' | 'weekly' | 'bi-weekly' | 'monthly'
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+export type RotationMode = 'one-child-per-interval' | 'all-children'
+export type RotationOrder = 'random' | 'specific'
 
 export interface ExchangeRate {
   fromCategoryId: string
@@ -104,6 +106,12 @@ export interface SchoolHolidayCountdownSettings {
   showRemainingDays: boolean
 }
 
+export interface RotationConfig {
+  mode: RotationMode
+  order: RotationOrder
+  childOrder?: string[] // Only used when order is 'specific'
+}
+
 export interface Chore {
   id: string
   name: string
@@ -125,6 +133,7 @@ export interface Chore {
   speakDescription?: boolean
   inactiveOnSchoolHolidays?: boolean
   onlyOnSchoolHolidays?: boolean
+  rotationConfig?: RotationConfig
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'
@@ -169,6 +178,11 @@ export interface ChoreAssignment {
   timeWindow?: TimeWindow
   pointOverrides?: ChorePointOverride[]
   categoryPointOverrides?: CategoryPointOverride[]
+  rotationState?: {
+    currentChildId?: string // For rotational chores, who is currently assigned
+    lastRotationDate?: number // When the last rotation occurred
+    completedByChildIds?: string[] // For all-children mode, track who has completed
+  }
 }
 
 export interface ChoreCompletion {
