@@ -74,6 +74,7 @@ services:
       args:
         - NODE_ENV=production
         - VITE_API_URL=/api
+        - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0}
     image: chorequest:latest
     container_name: chorequest-app
     restart: unless-stopped
@@ -98,7 +99,7 @@ services:
       - chorequest-network
     labels:
       - "com.chorequest.description=Family Chore Tracking Application"
-      - "com.chorequest.version=1.0.0"
+      - "com.chorequest.version=${VITE_APP_VERSION:-1.0.0}"
       - "com.chorequest.maintainer=ChoreQuest Team"
     logging:
       driver: "json-file"

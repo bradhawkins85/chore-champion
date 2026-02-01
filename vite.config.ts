@@ -29,5 +29,8 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || '1.0.0')
   }
 });
