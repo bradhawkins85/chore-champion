@@ -41,6 +41,7 @@ export function SchoolHolidaySettings({
   const [showDialog, setShowDialog] = useState(false)
   const [editingHoliday, setEditingHoliday] = useState<SchoolHoliday | null>(null)
   const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
@@ -48,11 +49,13 @@ export function SchoolHolidaySettings({
     if (holiday) {
       setEditingHoliday(holiday)
       setName(holiday.name)
+      setEmoji(holiday.emoji ?? '')
       setStartDate(format(new Date(holiday.startDate), 'yyyy-MM-dd'))
       setEndDate(format(new Date(holiday.endDate), 'yyyy-MM-dd'))
     } else {
       setEditingHoliday(null)
       setName('')
+      setEmoji('')
       setStartDate('')
       setEndDate('')
     }
@@ -80,6 +83,7 @@ export function SchoolHolidaySettings({
 
     const holidayData = {
       name: name.trim(),
+      emoji: emoji.trim() ? emoji.trim() : undefined,
       startDate: start.getTime(),
       endDate: end.getTime(),
     }
@@ -92,6 +96,7 @@ export function SchoolHolidaySettings({
 
     setShowDialog(false)
     setName('')
+    setEmoji('')
     setStartDate('')
     setEndDate('')
     setEditingHoliday(null)
@@ -153,6 +158,9 @@ export function SchoolHolidaySettings({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
+                            {holiday.emoji && (
+                              <span className="text-xl" aria-hidden="true">{holiday.emoji}</span>
+                            )}
                             <h3 className="font-semibold">{holiday.name}</h3>
                             {isCurrent && (
                               <Badge variant="default" className="text-xs">
@@ -279,6 +287,18 @@ export function SchoolHolidaySettings({
           </DialogHeader>
 
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="holiday-emoji">Holiday Emoji (optional)</Label>
+              <Input
+                id="holiday-emoji"
+                value={emoji}
+                onChange={(e) => setEmoji(e.target.value)}
+                placeholder="🎉"
+                maxLength={8}
+                className="text-2xl text-center"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="holiday-name">Holiday Name</Label>
               <Input

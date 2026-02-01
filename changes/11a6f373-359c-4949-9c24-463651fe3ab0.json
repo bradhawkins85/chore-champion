@@ -1,0 +1,7 @@
+{
+  "guid": "11a6f373-359c-4949-9c24-463651fe3ab0",
+  "occurred_at": "2026-02-01T02:52:04.859708Z",
+  "change_type": "Feature",
+  "summary": "Add emoji support for school holiday entries and align weather/holiday card heights.",
+  "content_hash": "fc33596f0915ba270d1707f8db75ae47e8f151e64f31516ec42add190f8adf56"
+}

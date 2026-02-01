@@ -41,7 +41,7 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
 
   if (loading) {
     return (
-      <Card className="p-3 bg-gradient-to-br from-sky-50 to-blue-50">
+      <Card className="h-full p-3 bg-gradient-to-br from-sky-50 to-blue-50">
         <div className="text-center text-sm text-muted-foreground">
           Loading weather...
         </div>
@@ -54,7 +54,7 @@ export function WeatherDisplay({ settings }: WeatherDisplayProps) {
   const unitSymbol = weather.unit === 'celsius' ? 'C' : 'F'
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200">
+    <Card className="h-full p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="text-4xl">{weatherEmoji}</div>
