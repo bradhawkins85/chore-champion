@@ -1,0 +1,7 @@
+{
+  "guid": "be800ca1-ddd0-4f92-841c-0e7d28f3f844",
+  "occurred_at": "2026-01-31T23:47:54Z",
+  "change_type": "Fix",
+  "summary": "Allow chores hidden from Up Next to still display inside the child chore view.",
+  "content_hash": "43fd9d7406131b9a19ff3529fe07f7f9d2f86fa34cff0e95953dd76b28f56919"
+}
