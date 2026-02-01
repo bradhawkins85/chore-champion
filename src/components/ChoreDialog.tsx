@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -88,6 +88,9 @@ export function ChoreDialog({
   const [speakDescription, setSpeakDescription] = useState(editChore?.speakDescription ?? true)
   const [inactiveOnSchoolHolidays, setInactiveOnSchoolHolidays] = useState(editChore?.inactiveOnSchoolHolidays ?? false)
   const [onlyOnSchoolHolidays, setOnlyOnSchoolHolidays] = useState(editChore?.onlyOnSchoolHolidays ?? false)
+  const [rotationMode, setRotationMode] = useState<RotationMode>(editChore?.rotationConfig?.mode || 'one-child-per-interval')
+  const [rotationOrder, setRotationOrder] = useState<RotationOrder>(editChore?.rotationConfig?.order || 'specific')
+  const [rotationChildOrder, setRotationChildOrder] = useState<string[]>(editChore?.rotationConfig?.childOrder || [])
 
   useEffect(() => {
     if (editChore) {
@@ -115,6 +118,9 @@ export function ChoreDialog({
       setSpeakDescription(editChore.speakDescription ?? true)
       setInactiveOnSchoolHolidays(editChore.inactiveOnSchoolHolidays ?? false)
       setOnlyOnSchoolHolidays(editChore.onlyOnSchoolHolidays ?? false)
+      setRotationMode(editChore.rotationConfig?.mode || 'one-child-per-interval')
+      setRotationOrder(editChore.rotationConfig?.order || 'specific')
+      setRotationChildOrder(editChore.rotationConfig?.childOrder || [])
     }
   }, [editChore])
 
@@ -261,6 +267,14 @@ export function ChoreDialog({
     choreData.speakDescription = speakDescription
     choreData.inactiveOnSchoolHolidays = inactiveOnSchoolHolidays
     choreData.onlyOnSchoolHolidays = onlyOnSchoolHolidays
+
+    if (completionType === 'rotational') {
+      choreData.rotationConfig = {
+        mode: rotationMode,
+        order: rotationOrder,
+        childOrder: rotationOrder === 'specific' ? rotationChildOrder : undefined,
+      }
+    }
 
     onSave(choreData)
 
@@ -645,12 +659,14 @@ export function ChoreDialog({
                       <SelectItem value="individual">Individual</SelectItem>
                       <SelectItem value="shareable">Shareable</SelectItem>
                       <SelectItem value="once-per-day">Once Per Day</SelectItem>
+                      <SelectItem value="rotational">Rotational</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {completionType === 'individual' && 'Each child completes independently for full points'}
                     {completionType === 'shareable' && 'Multiple children can complete, with optional limit on max completers'}
                     {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
+                    {completionType === 'rotational' && 'Chore rotates between assigned children based on order and availability'}
                   </p>
                 </div>
                 {completionType === 'shareable' && (
@@ -683,6 +699,144 @@ export function ChoreDialog({
                     <p className="text-xs text-muted-foreground">
                       Choose when this shareable task resets. Children can complete it anytime during the period.
                     </p>
+                  </div>
+                )}
+                {completionType === 'rotational' && (
+                  <div className="grid gap-4 pl-4 border-l-2 border-primary">
+                    <div className="grid gap-2">
+                      <Label htmlFor="rotation-mode">Rotation Mode</Label>
+                      <Select value={rotationMode} onValueChange={(v) => setRotationMode(v as RotationMode)}>
+                        <SelectTrigger id="rotation-mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one-child-per-interval">One Child Per Interval</SelectItem>
+                          <SelectItem value="all-children">All Children</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {rotationMode === 'one-child-per-interval' && 'Only one child is assigned at a time. Rotates after completion.'}
+                        {rotationMode === 'all-children' && 'All assigned children must complete it before rotation.'}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="rotation-order">Rotation Order</Label>
+                      <Select value={rotationOrder} onValueChange={(v) => setRotationOrder(v as RotationOrder)}>
+                        <SelectTrigger id="rotation-order">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="specific">Specific Order</SelectItem>
+                          <SelectItem value="random">Random Order</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {rotationOrder === 'specific' && 'Children rotate in a specific order you define below.'}
+                        {rotationOrder === 'random' && 'Children are randomly selected, considering availability.'}
+                      </p>
+                    </div>
+
+                    {rotationOrder === 'specific' && childrenList.length > 0 && (
+                      <div className="grid gap-2">
+                        <Label>Child Order (Drag to Reorder)</Label>
+                        {!editChore ? (
+                          <p className="text-sm text-muted-foreground">
+                            Save the chore and assign children first, then edit it to define rotation order.
+                          </p>
+                        ) : (
+                        <div className="space-y-2">
+                          {(() => {
+                            const chore = editChore as Chore
+                            const currentChoreId = chore.id
+                            return childrenList
+                              .filter(child => {
+                                return assignments.some(a => a.choreId === currentChoreId && a.childId === child.id)
+                              })
+                            .sort((a, b) => {
+                              const aIndex = rotationChildOrder.indexOf(a.id)
+                              const bIndex = rotationChildOrder.indexOf(b.id)
+                              if (aIndex === -1 && bIndex === -1) return 0
+                              if (aIndex === -1) return 1
+                              if (bIndex === -1) return -1
+                              return aIndex - bIndex
+                            })
+                            .map((child, index) => (
+                              <div
+                                key={child.id}
+                                className="flex items-center gap-2 p-2 bg-muted rounded-md"
+                              >
+                                <span className="text-sm font-semibold w-6">{index + 1}.</span>
+                                <div
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold"
+                                  style={{ backgroundColor: child.avatarColor }}
+                                >
+                                  {child.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-sm flex-1">{child.name}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={index === 0}
+                                    onClick={() => {
+                                      const newOrder = [...rotationChildOrder]
+                                      const currentIndex = newOrder.indexOf(child.id)
+                                      if (currentIndex > 0) {
+                                        [newOrder[currentIndex], newOrder[currentIndex - 1]] = 
+                                        [newOrder[currentIndex - 1], newOrder[currentIndex]]
+                                        setRotationChildOrder(newOrder)
+                                      }
+                                    }}
+                                  >
+                                    ↑
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={index === childrenList.filter(c => 
+                                      assignments.some(a => a.choreId === currentChoreId && a.childId === c.id)
+                                    ).length - 1}
+                                    onClick={() => {
+                                      const newOrder = [...rotationChildOrder]
+                                      const currentIndex = newOrder.indexOf(child.id)
+                                      const maxIndex = childrenList.filter(c => 
+                                        assignments.some(a => a.choreId === currentChoreId && a.childId === c.id)
+                                      ).length - 1
+                                      if (currentIndex < maxIndex && currentIndex !== -1) {
+                                        [newOrder[currentIndex], newOrder[currentIndex + 1]] = 
+                                        [newOrder[currentIndex + 1], newOrder[currentIndex]]
+                                        setRotationChildOrder(newOrder)
+                                      }
+                                    }}
+                                  >
+                                    ↓
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          })()}
+                          {(() => {
+                            if (!editChore) return null
+                            const chore = editChore as Chore
+                            const currentChoreId = chore.id
+                            return childrenList.filter(child => {
+                              return assignments.some(a => a.choreId === currentChoreId && a.childId === child.id)
+                            }).length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                Assign children to this chore first to define rotation order.
+                              </p>
+                            ) : null
+                          })()}
+                        </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Define the order in which children will take turns with this chore. The system will automatically consider child availability when rotating.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 <Separator />
@@ -1045,12 +1199,14 @@ export function ChoreDialog({
                   <SelectItem value="individual">Individual</SelectItem>
                   <SelectItem value="shareable">Shareable</SelectItem>
                   <SelectItem value="once-per-day">Once Per Day</SelectItem>
+                  <SelectItem value="rotational">Rotational</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {completionType === 'individual' && 'Each child completes independently for full points'}
                 {completionType === 'shareable' && 'Multiple children can complete, with optional limit on max completers'}
                 {completionType === 'once-per-day' && 'Only the first child to complete gets the points'}
+                {completionType === 'rotational' && 'Chore rotates between assigned children based on order and availability'}
               </p>
             </div>
             {completionType === 'shareable' && (
@@ -1083,6 +1239,144 @@ export function ChoreDialog({
                 <p className="text-xs text-muted-foreground">
                   Choose when this shareable task resets. Children can complete it anytime during the period.
                 </p>
+              </div>
+            )}
+            {completionType === 'rotational' && (
+              <div className="grid gap-4 pl-4 border-l-2 border-primary">
+                <div className="grid gap-2">
+                  <Label htmlFor="rotation-mode-edit">Rotation Mode</Label>
+                  <Select value={rotationMode} onValueChange={(v) => setRotationMode(v as RotationMode)}>
+                    <SelectTrigger id="rotation-mode-edit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="one-child-per-interval">One Child Per Interval</SelectItem>
+                      <SelectItem value="all-children">All Children</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {rotationMode === 'one-child-per-interval' && 'Only one child is assigned at a time. Rotates after completion.'}
+                    {rotationMode === 'all-children' && 'All assigned children must complete it before rotation.'}
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="rotation-order-edit">Rotation Order</Label>
+                  <Select value={rotationOrder} onValueChange={(v) => setRotationOrder(v as RotationOrder)}>
+                    <SelectTrigger id="rotation-order-edit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Specific Order</SelectItem>
+                      <SelectItem value="random">Random Order</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {rotationOrder === 'specific' && 'Children rotate in a specific order you define below.'}
+                    {rotationOrder === 'random' && 'Children are randomly selected, considering availability.'}
+                  </p>
+                </div>
+
+                {rotationOrder === 'specific' && childrenList.length > 0 && (
+                  <div className="grid gap-2">
+                    <Label>Child Order (Drag to Reorder)</Label>
+                    {!editChore ? (
+                      <p className="text-sm text-muted-foreground">
+                        Save the chore and assign children first, then edit it to define rotation order.
+                      </p>
+                    ) : (
+                    <div className="space-y-2">
+                      {(() => {
+                        const chore = editChore as Chore
+                        const currentChoreId = chore.id
+                        return childrenList
+                          .filter(child => {
+                            return assignments.some(a => a.choreId === currentChoreId && a.childId === child.id)
+                          })
+                        .sort((a, b) => {
+                          const aIndex = rotationChildOrder.indexOf(a.id)
+                          const bIndex = rotationChildOrder.indexOf(b.id)
+                          if (aIndex === -1 && bIndex === -1) return 0
+                          if (aIndex === -1) return 1
+                          if (bIndex === -1) return -1
+                          return aIndex - bIndex
+                        })
+                        .map((child, index) => (
+                          <div
+                            key={child.id}
+                            className="flex items-center gap-2 p-2 bg-muted rounded-md"
+                          >
+                            <span className="text-sm font-semibold w-6">{index + 1}.</span>
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold"
+                              style={{ backgroundColor: child.avatarColor }}
+                            >
+                              {child.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm flex-1">{child.name}</span>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={index === 0}
+                                onClick={() => {
+                                  const newOrder = [...rotationChildOrder]
+                                  const currentIndex = newOrder.indexOf(child.id)
+                                  if (currentIndex > 0) {
+                                    [newOrder[currentIndex], newOrder[currentIndex - 1]] = 
+                                    [newOrder[currentIndex - 1], newOrder[currentIndex]]
+                                    setRotationChildOrder(newOrder)
+                                  }
+                                }}
+                              >
+                                ↑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={index === childrenList.filter(c => 
+                                  assignments.some(a => a.choreId === currentChoreId && a.childId === c.id)
+                                ).length - 1}
+                                onClick={() => {
+                                  const newOrder = [...rotationChildOrder]
+                                  const currentIndex = newOrder.indexOf(child.id)
+                                  const maxIndex = childrenList.filter(c => 
+                                    assignments.some(a => a.choreId === currentChoreId && a.childId === c.id)
+                                  ).length - 1
+                                  if (currentIndex < maxIndex && currentIndex !== -1) {
+                                    [newOrder[currentIndex], newOrder[currentIndex + 1]] = 
+                                    [newOrder[currentIndex + 1], newOrder[currentIndex]]
+                                    setRotationChildOrder(newOrder)
+                                  }
+                                }}
+                              >
+                                ↓
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      })()}
+                      {(() => {
+                        if (!editChore) return null
+                        const chore = editChore as Chore
+                        const currentChoreId = chore.id
+                        return childrenList.filter(child => {
+                          return assignments.some(a => a.choreId === currentChoreId && a.childId === child.id)
+                        }).length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Assign children to this chore first to define rotation order.
+                          </p>
+                        ) : null
+                      })()}
+                    </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Define the order in which children will take turns with this chore. The system will automatically consider child availability when rotating.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             <Separator />

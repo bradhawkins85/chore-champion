@@ -49,7 +49,7 @@ import {
   ChildAvailabilityEntry,
   SchoolHolidayCountdownSettings,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
@@ -565,12 +565,41 @@ function App() {
   }
 
   const handleAssignChore = (childId: string, choreId: string) => {
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
     const newAssignment: ChoreAssignment = {
       id: `assignment_${Date.now()}_${Math.random()}`,
       childId,
       choreId,
       assignedAt: Date.now(),
     }
+    
+    // Initialize rotation state for rotational chores
+    if (chore?.completionType === 'rotational' && chore.rotationConfig) {
+      const { mode, order, childOrder } = chore.rotationConfig
+      const allChoreAssignments = [...(safeAssignments || []), newAssignment]
+      const assignedChildren = allChoreAssignments.filter(a => a.choreId === choreId)
+      
+      if (mode === 'one-child-per-interval') {
+        // Set the first child as current if this is the first assignment
+        if (assignedChildren.length === 1) {
+          newAssignment.rotationState = {
+            currentChildId: childId,
+            lastRotationDate: undefined,
+            completedByChildIds: []
+          }
+        }
+      } else if (mode === 'all-children') {
+        // Initialize empty completed list
+        if (assignedChildren.length === 1) {
+          newAssignment.rotationState = {
+            currentChildId: undefined,
+            lastRotationDate: undefined,
+            completedByChildIds: []
+          }
+        }
+      }
+    }
+    
     setAssignments((current) => [...(current || []), newAssignment])
     toast.success('Chore assigned!')
   }
@@ -654,6 +683,31 @@ function App() {
       completionId,
     }
     setHistory((current) => [...(current || []), historyEvent])
+    
+    // Update rotation state for rotational chores
+    if (chore.completionType === 'rotational' && chore.rotationConfig) {
+      const choreAssignments = safeAssignments.filter(a => a.choreId === choreId)
+      const childAssignment = choreAssignments.find(a => a.childId === childId)
+      
+      if (childAssignment) {
+        const updatedRotationState = getUpdatedRotationState(
+          chore,
+          childAssignment,
+          childId,
+          choreAssignments,
+          safeChildrenList,
+          safeChildAvailability || [],
+          new Date()
+        )
+        
+        // Update all assignments for this chore with the new rotation state
+        setAssignments((current) =>
+          (current || []).map((a) =>
+            a.choreId === choreId ? { ...a, rotationState: updatedRotationState } : a
+          )
+        )
+      }
+    }
     
     if (requiresApproval) {
       toast.info('Chore marked for parent approval', {

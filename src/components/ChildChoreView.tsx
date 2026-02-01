@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -82,7 +82,14 @@ export function ChildChoreView({
       if (!isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), effectiveTimeOfDay)) return false
       
       // Check weather conditions
-      return shouldShowChore(c, currentWeather || null)
+      if (!shouldShowChore(c, currentWeather || null)) return false
+      
+      // Check rotational chore visibility
+      if (c.completionType === 'rotational' && c.rotationConfig) {
+        return isRotationalChoreVisibleToChild(c, child.id, assignment, completions)
+      }
+      
+      return true
     })
 
   const currentTimeOfDay = getCurrentTimeOfDay()

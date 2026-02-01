@@ -1,4 +1,4 @@
-import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion, SchoolHoliday, ChildAvailabilityEntry } from './types'
+import { ChoreCompletion, ChoreFrequency, ChoreTimeOfDay, Chore, ChoreAssignment, DayOfWeek, Reward, RewardPurchase, PurchaseLimitInterval, CelebrationSettings, CelebrationAnimation, Category, ExchangeRate, CategoryBonusCompletion, SchoolHoliday, ChildAvailabilityEntry, Child } from './types'
 
 // Epoch date for bi-weekly period calculations (January 1, 2024 - a Monday)
 const BI_WEEKLY_EPOCH = new Date('2024-01-01T00:00:00Z').getTime()
@@ -1814,4 +1814,267 @@ export function hasChildActivity(
   })
   
   return hasHistoricalCompletions
+}
+
+// Rotational Chore Helper Functions
+
+/**
+ * Gets the next child in rotation based on the chore's rotation config
+ */
+export function getNextRotationChild(
+  chore: Chore,
+  assignments: ChoreAssignment[],
+  children: Child[],
+  availabilityEntries: ChildAvailabilityEntry[],
+  date: Date = new Date()
+): string | null {
+  if (!chore.rotationConfig) return null
+  
+  // Get all assignments for this rotational chore
+  const choreAssignments = assignments.filter(a => a.choreId === chore.id)
+  if (choreAssignments.length === 0) return null
+  
+  // Get child IDs from assignments
+  const assignedChildIds = choreAssignments.map(a => a.childId)
+  const assignedChildren = children.filter(c => assignedChildIds.includes(c.id))
+  
+  if (assignedChildren.length === 0) return null
+  
+  // Filter by availability
+  const availableChildren = assignedChildren.filter(child => 
+    isChildAvailableForTimeOfDay(child.id, availabilityEntries, date, chore.timeOfDay || 'anytime')
+  )
+  
+  if (availableChildren.length === 0) {
+    // No children are currently available. Return null to indicate no assignment possible.
+    // The UI should handle this gracefully by not showing the chore to anyone.
+    return null
+  }
+  
+  const { order, childOrder } = chore.rotationConfig
+  
+  if (order === 'random') {
+    // Random selection from available children
+    const randomIndex = Math.floor(Math.random() * availableChildren.length)
+    return availableChildren[randomIndex].id
+  }
+  
+  // Specific order
+  if (order === 'specific' && childOrder && childOrder.length > 0) {
+    // Find the first assignment with rotation state
+    const assignmentWithState = choreAssignments.find(a => a.rotationState?.currentChildId)
+    const currentChildId = assignmentWithState?.rotationState?.currentChildId
+    
+    if (!currentChildId) {
+      // No current state, start with first available child in order
+      for (const childId of childOrder) {
+        if (availableChildren.some(c => c.id === childId)) {
+          return childId
+        }
+      }
+      // Fallback to first available child
+      return availableChildren[0].id
+    }
+    
+    // Find current child's position in the order
+    const currentIndex = childOrder.indexOf(currentChildId)
+    
+    // Find next available child in the rotation order
+    for (let i = 1; i <= childOrder.length; i++) {
+      const nextIndex = (currentIndex + i) % childOrder.length
+      const nextChildId = childOrder[nextIndex]
+      if (availableChildren.some(c => c.id === nextChildId)) {
+        return nextChildId
+      }
+    }
+    
+    // Fallback to first available child
+    return availableChildren[0].id
+  }
+  
+  // Fallback
+  return availableChildren[0].id
+}
+
+/**
+ * Checks if a rotational chore should be visible to a specific child
+ */
+export function isRotationalChoreVisibleToChild(
+  chore: Chore,
+  childId: string,
+  assignment: ChoreAssignment,
+  completions: ChoreCompletion[],
+  date: Date = new Date()
+): boolean {
+  if (!chore.rotationConfig) return true
+  
+  const { mode } = chore.rotationConfig
+  
+  if (mode === 'one-child-per-interval') {
+    // Only visible to the currently assigned child
+    const currentChildId = assignment.rotationState?.currentChildId
+    if (!currentChildId) {
+      // No rotation state yet, use assignment's childId
+      return assignment.childId === childId
+    }
+    return currentChildId === childId
+  }
+  
+  if (mode === 'all-children') {
+    // Check if this child has already completed it today
+    const completedByChildIds = assignment.rotationState?.completedByChildIds || []
+    if (completedByChildIds.includes(childId)) {
+      return false // Already completed by this child
+    }
+    
+    // Check if child has completed it in the current period
+    const periodStart = getStartOfPeriod(date, chore.frequency)
+    const hasCompletedInPeriod = completions.some(c => 
+      c.childId === childId && 
+      c.choreId === chore.id && 
+      c.completedAt >= periodStart.getTime() &&
+      !c.undoneAt
+    )
+    
+    return !hasCompletedInPeriod
+  }
+  
+  return true
+}
+
+/**
+ * Gets the start of the current period based on frequency
+ */
+function getStartOfPeriod(date: Date, frequency: ChoreFrequency): Date {
+  const periodStart = new Date(date)
+  periodStart.setHours(0, 0, 0, 0)
+  
+  if (frequency === 'daily') {
+    return periodStart
+  }
+  
+  if (frequency === 'weekly') {
+    // Start of the week (Monday)
+    const day = periodStart.getDay()
+    const diff = day === 0 ? -6 : 1 - day // Monday is day 1
+    periodStart.setDate(periodStart.getDate() + diff)
+    return periodStart
+  }
+  
+  if (frequency === 'bi-weekly') {
+    // Start of the bi-weekly period
+    const day = periodStart.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    periodStart.setDate(periodStart.getDate() + diff)
+    
+    // Calculate weeks since epoch
+    const weeksSinceEpoch = Math.floor((periodStart.getTime() - BI_WEEKLY_EPOCH) / (7 * 24 * 60 * 60 * 1000))
+    const periodsElapsed = Math.floor(weeksSinceEpoch / 2)
+    const periodStartWeek = periodsElapsed * 2
+    
+    // Set to start of the bi-weekly period
+    const periodStartDate = new Date(BI_WEEKLY_EPOCH)
+    periodStartDate.setDate(periodStartDate.getDate() + (periodStartWeek * 7))
+    return periodStartDate
+  }
+  
+  return periodStart
+}
+
+/**
+ * Updates rotation state after a chore is completed
+ */
+export function getUpdatedRotationState(
+  chore: Chore,
+  assignment: ChoreAssignment,
+  completingChildId: string,
+  assignments: ChoreAssignment[],
+  children: Child[],
+  availabilityEntries: ChildAvailabilityEntry[],
+  date: Date = new Date()
+): ChoreAssignment['rotationState'] {
+  if (!chore.rotationConfig) return assignment.rotationState
+  
+  const { mode } = chore.rotationConfig
+  
+  if (mode === 'one-child-per-interval') {
+    // Advance to next child
+    const nextChildId = getNextRotationChild(chore, assignments, children, availabilityEntries, date)
+    return {
+      currentChildId: nextChildId || completingChildId,
+      lastRotationDate: date.getTime(),
+      completedByChildIds: [completingChildId]
+    }
+  }
+  
+  if (mode === 'all-children') {
+    // Add this child to the completed list
+    const completedByChildIds = assignment.rotationState?.completedByChildIds || []
+    if (!completedByChildIds.includes(completingChildId)) {
+      completedByChildIds.push(completingChildId)
+    }
+    
+    return {
+      ...assignment.rotationState,
+      currentChildId: assignment.rotationState?.currentChildId,
+      lastRotationDate: date.getTime(),
+      completedByChildIds
+    }
+  }
+  
+  return assignment.rotationState
+}
+
+/**
+ * Resets rotation state at the start of a new period
+ */
+export function shouldResetRotationState(
+  chore: Chore,
+  assignment: ChoreAssignment,
+  date: Date = new Date()
+): boolean {
+  if (!chore.rotationConfig) return false
+  if (!assignment.rotationState?.lastRotationDate) return false
+  
+  const lastRotationDate = new Date(assignment.rotationState.lastRotationDate)
+  const currentPeriodStart = getStartOfPeriod(date, chore.frequency)
+  const lastRotationPeriodStart = getStartOfPeriod(lastRotationDate, chore.frequency)
+  
+  return currentPeriodStart.getTime() > lastRotationPeriodStart.getTime()
+}
+
+/**
+ * Resets the rotation state for a new period
+ */
+export function resetRotationState(
+  chore: Chore,
+  assignments: ChoreAssignment[],
+  children: Child[],
+  availabilityEntries: ChildAvailabilityEntry[],
+  date: Date = new Date()
+): ChoreAssignment['rotationState'] {
+  if (!chore.rotationConfig) return undefined
+  
+  const { mode } = chore.rotationConfig
+  
+  if (mode === 'one-child-per-interval') {
+    // Set the first child in rotation
+    const nextChildId = getNextRotationChild(chore, assignments, children, availabilityEntries, date)
+    return {
+      currentChildId: nextChildId || undefined,
+      lastRotationDate: undefined,
+      completedByChildIds: []
+    }
+  }
+  
+  if (mode === 'all-children') {
+    // Clear the completed list
+    return {
+      currentChildId: undefined,
+      lastRotationDate: undefined,
+      completedByChildIds: []
+    }
+  }
+  
+  return undefined
 }
