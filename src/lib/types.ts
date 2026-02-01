@@ -95,6 +95,14 @@ export interface SchoolHoliday {
   createdAt: number
 }
 
+export type SchoolHolidayCountdownMode = 'calendar-days' | 'school-days'
+
+export interface SchoolHolidayCountdownSettings {
+  enabled: boolean
+  countdownMode: SchoolHolidayCountdownMode
+  showRemainingDays: boolean
+}
+
 export interface Chore {
   id: string
   name: string

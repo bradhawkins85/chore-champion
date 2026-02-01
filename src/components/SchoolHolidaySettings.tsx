@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { SchoolHoliday } from '@/lib/types'
+import { SchoolHoliday, SchoolHolidayCountdownSettings, SchoolHolidayCountdownMode } from '@/lib/types'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Plus, Trash, CalendarBlank, PencilSimple } from '@phosphor-icons/react'
@@ -21,12 +23,21 @@ import { Info } from '@phosphor-icons/react'
 
 interface SchoolHolidaySettingsProps {
   holidays: SchoolHoliday[]
+  displaySettings: SchoolHolidayCountdownSettings
+  onUpdateDisplaySettings: (settings: SchoolHolidayCountdownSettings) => void
   onAdd: (holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
   onEdit: (id: string, holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
   onDelete: (id: string) => void
 }
 
-export function SchoolHolidaySettings({ holidays, onAdd, onEdit, onDelete }: SchoolHolidaySettingsProps) {
+export function SchoolHolidaySettings({
+  holidays,
+  displaySettings,
+  onUpdateDisplaySettings,
+  onAdd,
+  onEdit,
+  onDelete,
+}: SchoolHolidaySettingsProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [editingHoliday, setEditingHoliday] = useState<SchoolHoliday | null>(null)
   const [name, setName] = useState('')
@@ -187,6 +198,70 @@ export function SchoolHolidaySettings({ holidays, onAdd, onEdit, onDelete }: Sch
               })}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarBlank className="h-5 w-5" />
+            School Holiday Countdown
+          </CardTitle>
+          <CardDescription>
+            Show a holiday countdown card on the main screen
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Countdown</Label>
+              <p className="text-sm text-muted-foreground">
+                Display the school holiday countdown next to the weather
+              </p>
+            </div>
+            <Switch
+              checked={displaySettings.enabled}
+              onCheckedChange={(enabled) => onUpdateDisplaySettings({ ...displaySettings, enabled })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="holiday-countdown-mode">Countdown Type</Label>
+            <Select
+              value={displaySettings.countdownMode}
+              onValueChange={(value) =>
+                onUpdateDisplaySettings({
+                  ...displaySettings,
+                  countdownMode: value as SchoolHolidayCountdownMode,
+                })
+              }
+              disabled={!displaySettings.enabled}
+            >
+              <SelectTrigger id="holiday-countdown-mode">
+                <SelectValue placeholder="Select countdown type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="calendar-days">Calendar days until holidays</SelectItem>
+                <SelectItem value="school-days">School days until holidays</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Show Remaining Days During Holidays</Label>
+              <p className="text-sm text-muted-foreground">
+                Display how many holiday days are left when school is out
+              </p>
+            </div>
+            <Switch
+              checked={displaySettings.showRemainingDays}
+              onCheckedChange={(showRemainingDays) =>
+                onUpdateDisplaySettings({ ...displaySettings, showRemainingDays })
+              }
+              disabled={!displaySettings.enabled}
+            />
+          </div>
         </CardContent>
       </Card>
 

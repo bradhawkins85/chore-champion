@@ -118,6 +118,78 @@ export function isDateOnSchoolHoliday(date: Date, schoolHolidays: SchoolHoliday[
   })
 }
 
+export function getActiveSchoolHoliday(date: Date, schoolHolidays: SchoolHoliday[]): SchoolHoliday | null {
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
+  const checkTime = checkDate.getTime()
+
+  return (
+    schoolHolidays.find((holiday) => {
+      const startOfDay = new Date(holiday.startDate)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(holiday.endDate)
+      endOfDay.setHours(23, 59, 59, 999)
+      return checkTime >= startOfDay.getTime() && checkTime <= endOfDay.getTime()
+    }) || null
+  )
+}
+
+export function getNextSchoolHoliday(date: Date, schoolHolidays: SchoolHoliday[]): SchoolHoliday | null {
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
+  const checkTime = checkDate.getTime()
+
+  const upcoming = schoolHolidays
+    .filter((holiday) => holiday.startDate > checkTime)
+    .sort((a, b) => a.startDate - b.startDate)
+
+  return upcoming[0] || null
+}
+
+export function getCalendarDaysUntil(date: Date, targetDate: Date): number {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const target = new Date(targetDate)
+  target.setHours(0, 0, 0, 0)
+  const diff = target.getTime() - start.getTime()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
+
+export function getSchoolDaysUntil(date: Date, targetDate: Date): number {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const target = new Date(targetDate)
+  target.setHours(0, 0, 0, 0)
+
+  let count = 0
+  const cursor = new Date(start)
+  cursor.setDate(cursor.getDate() + 1)
+
+  while (cursor.getTime() < target.getTime()) {
+    const day = cursor.getDay()
+    if (day !== 0 && day !== 6) {
+      count += 1
+    }
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return count
+}
+
+export function getRemainingHolidayDays(date: Date, holiday: SchoolHoliday): number {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(holiday.endDate)
+  end.setHours(0, 0, 0, 0)
+
+  if (end.getTime() < start.getTime()) {
+    return 0
+  }
+
+  const diff = end.getTime() - start.getTime()
+  return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1
+}
+
 export function isChoreActiveOnDate(assignment: ChoreAssignment, date: Date): boolean {
   if (!isRepeatPatternActiveOnDate(assignment, date)) {
     return false

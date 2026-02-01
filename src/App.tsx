@@ -47,6 +47,7 @@ import {
   PushNotificationSettings,
   SchoolHoliday,
   ChildAvailabilityEntry,
+  SchoolHolidayCountdownSettings,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -152,6 +153,11 @@ function App() {
   })
   const [schoolHolidays, setSchoolHolidays] = useKV<SchoolHoliday[]>('school-holidays', [])
   const [childAvailability, setChildAvailability] = useKV<ChildAvailabilityEntry[]>('child-availability', [])
+  const [schoolHolidayCountdownSettings, setSchoolHolidayCountdownSettings] = useKV<SchoolHolidayCountdownSettings>('school-holiday-countdown-settings', {
+    enabled: false,
+    countdownMode: 'calendar-days',
+    showRemainingDays: true,
+  })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
@@ -1618,6 +1624,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           schoolHolidays={schoolHolidays || []}
           childAvailability={safeChildAvailability}
+          schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -1661,6 +1668,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onAddSchoolHoliday={handleAddSchoolHoliday}
           onEditSchoolHoliday={handleEditSchoolHoliday}
           onDeleteSchoolHoliday={handleDeleteSchoolHoliday}
+          onUpdateSchoolHolidayCountdownSettings={(settings) => setSchoolHolidayCountdownSettings(settings)}
           onSendDigestNow={sendDigestEmail}
           onExitParentMode={() => {
             setMode('child')
@@ -1797,6 +1805,8 @@ Please log in to ChoreQuest to approve or reject this completion.
               speechSettings={speechSettings || { enabled: true }}
               biometricSettings={biometricSettings || { enabled: false, credentials: [], requirePinFallback: true, quickUnlockOnPWA: true }}
               hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
+              schoolHolidays={schoolHolidays || []}
+              schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
               onSelect={setSelectedChild}
               onParentMode={() => setShowPinDialog(true)}
             />
