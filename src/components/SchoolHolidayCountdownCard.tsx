@@ -21,7 +21,7 @@ export function SchoolHolidayCountdownCard({ holidays, settings }: SchoolHoliday
     const remainingDays = getRemainingHolidayDays(today, activeHoliday)
     const activeEmoji = activeHoliday.emoji?.trim()
     return (
-      <Card className="h-full">
+      <Card className="w-full h-full">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <CalendarBlank className="h-5 w-5 text-primary" />
@@ -49,7 +49,7 @@ export function SchoolHolidayCountdownCard({ holidays, settings }: SchoolHoliday
   const nextHoliday = getNextSchoolHoliday(today, holidays)
   if (!nextHoliday) {
     return (
-      <Card className="h-full">
+      <Card className="w-full h-full">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <CalendarBlank className="h-5 w-5 text-primary" />
@@ -72,7 +72,7 @@ export function SchoolHolidayCountdownCard({ holidays, settings }: SchoolHoliday
 
   const nextEmoji = nextHoliday.emoji?.trim()
   return (
-    <Card className="h-full">
+    <Card className="w-full h-full">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <CalendarBlank className="h-5 w-5 text-primary" />
