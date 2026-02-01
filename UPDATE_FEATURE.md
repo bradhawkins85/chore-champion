@@ -236,8 +236,10 @@ The update script couldn't fetch the latest code or images.
 5. Alternatively, manually update and rebuild:
    ```bash
    cd /path/to/chore-champion
+   # Get your current branch
+   BRANCH=$(git rev-parse --abbrev-ref HEAD)
    git fetch origin
-   git reset --hard origin/main  # or your branch name
+   git reset --hard "origin/${BRANCH}"
    docker-compose -f docker-compose.prod.yml build --pull
    docker-compose -f docker-compose.prod.yml up -d --force-recreate
    ```
