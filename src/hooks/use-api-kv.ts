@@ -3,6 +3,7 @@
  * Provides the same interface as @github/spark useKV but uses the backend API
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 
 // API base URL from environment or default to /api
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -209,10 +210,11 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         }
       } catch (error) {
         console.error('Error saving to API:', error);
-        // Fallback to localStorage to ensure data persistence
-        // The app remains in API mode and will attempt API saves on subsequent updates
-        localStorage.setItem(key, JSON.stringify(computedValue));
-        console.warn('Saved to localStorage as fallback');
+        // Display user-friendly error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error('Failed to save data', {
+          description: `Unable to save to server: ${errorMessage}. Please check your connection and try again.`
+        });
       }
     } else {
       // Save to localStorage
