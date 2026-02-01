@@ -74,7 +74,6 @@ export function EditAssignmentDialog({
   const [useTimeWindow, setUseTimeWindow] = useState(false)
   const [timeWindowStart, setTimeWindowStart] = useState('')
   const [timeWindowEnd, setTimeWindowEnd] = useState('')
-  const [customPoints, setCustomPoints] = useState<number | ''>('')
   const [categoryPointOverrides, setCategoryPointOverrides] = useState<CategoryPointOverride[]>([])
 
   const daysOfWeek: { value: DayOfWeek; label: string }[] = [
@@ -96,13 +95,6 @@ export function EditAssignmentDialog({
       setUseTimeWindow(!!assignment.timeWindow)
       setTimeWindowStart(assignment.timeWindow?.startTime || '')
       setTimeWindowEnd(assignment.timeWindow?.endTime || '')
-      
-      if (assignment.pointOverrides && assignment.pointOverrides.length > 0 && child) {
-        const override = assignment.pointOverrides.find(o => o.childId === child.id)
-        setCustomPoints(override?.points ?? '')
-      } else {
-        setCustomPoints('')
-      }
       
       setCategoryPointOverrides(assignment.categoryPointOverrides || [])
       
@@ -155,12 +147,6 @@ export function EditAssignmentDialog({
       }
     } else {
       updates.timeWindow = undefined
-    }
-
-    if (child && customPoints !== '') {
-      updates.pointOverrides = [{ childId: child.id, points: Number(customPoints) }]
-    } else {
-      updates.pointOverrides = []
     }
 
     if (categoryPointOverrides.length > 0) {
@@ -436,45 +422,6 @@ export function EditAssignmentDialog({
           </div>
 
           <Separator />
-
-          {child && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-muted-foreground" />
-                <Label className="text-base font-semibold">Custom Points for {child.name}</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Override the default {chorePoints} points for this child (optional)
-              </p>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                      style={{ backgroundColor: child.avatarColor }}
-                    >
-                      {child.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-medium flex-1">{child.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder={chorePoints.toString()}
-                        value={customPoints}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setCustomPoints(value === '' ? '' : Number(value))
-                        }}
-                        className="w-24"
-                        min="0"
-                      />
-                      <span className="text-sm text-muted-foreground">pts</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {child && choreCategories.length > 0 && (
             <div className="space-y-3">
