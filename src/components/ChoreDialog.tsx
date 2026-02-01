@@ -380,10 +380,7 @@ export function ChoreDialog({
                               <Button
                                 size="icon"
                                 variant="default"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleQuickAddTemplate(template)
-                                }}
+                                onClick={() => handleQuickAddTemplate(template)}
                                 className="flex-shrink-0"
                               >
                                 <Plus className="h-4 w-4" />
