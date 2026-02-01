@@ -454,16 +454,6 @@ export function ChoreDialog({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="points">Points</Label>
-                  <Input
-                    id="points"
-                    type="number"
-                    value={points}
-                    onChange={(e) => setPoints(e.target.value)}
-                    min="1"
-                  />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="estimated-duration">Estimated Duration (optional)</Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -991,16 +981,6 @@ export function ChoreDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Straighten sheets, fluff pillows"
                 rows={3}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="points">Points</Label>
-              <Input
-                id="points"
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(e.target.value)}
-                min="1"
               />
             </div>
             <div className="grid gap-2">

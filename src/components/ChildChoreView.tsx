@@ -393,10 +393,6 @@ export function ChildChoreView({
             <div>
               <h1 className="text-4xl font-fredoka font-bold">{child.name}'s Chores</h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Star weight="fill" className="h-6 w-6 text-accent" />
-                  <span className="text-3xl font-fredoka text-accent">{totalPoints}</span>
-                </div>
                 {categoryPoints && categories.length > 0 && (
                   <>
                     {categories.map((category) => {
