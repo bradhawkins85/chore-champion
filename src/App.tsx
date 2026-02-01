@@ -49,7 +49,7 @@ import {
   ChildAvailabilityEntry,
   SchoolHolidayCountdownSettings,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
@@ -690,24 +690,22 @@ function App() {
       const childAssignment = choreAssignments.find(a => a.childId === childId)
       
       if (childAssignment) {
-        import('@/lib/helpers').then(({ getUpdatedRotationState }) => {
-          const updatedRotationState = getUpdatedRotationState(
-            chore,
-            childAssignment,
-            childId,
-            choreAssignments,
-            safeChildrenList,
-            safeChildAvailability || [],
-            new Date()
+        const updatedRotationState = getUpdatedRotationState(
+          chore,
+          childAssignment,
+          childId,
+          choreAssignments,
+          safeChildrenList,
+          safeChildAvailability || [],
+          new Date()
+        )
+        
+        // Update all assignments for this chore with the new rotation state
+        setAssignments((current) =>
+          (current || []).map((a) =>
+            a.choreId === choreId ? { ...a, rotationState: updatedRotationState } : a
           )
-          
-          // Update all assignments for this chore with the new rotation state
-          setAssignments((current) =>
-            (current || []).map((a) =>
-              a.choreId === choreId ? { ...a, rotationState: updatedRotationState } : a
-            )
-          )
-        })
+        )
       }
     }
     

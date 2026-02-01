@@ -1846,8 +1846,9 @@ export function getNextRotationChild(
   )
   
   if (availableChildren.length === 0) {
-    // If no children are available, fall back to all assigned children
-    return assignedChildren[0].id
+    // No children are currently available. Return null to indicate no assignment possible.
+    // The UI should handle this gracefully by not showing the chore to anyone.
+    return null
   }
   
   const { order, childOrder } = chore.rotationConfig
