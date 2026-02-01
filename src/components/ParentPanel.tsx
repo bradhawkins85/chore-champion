@@ -232,6 +232,7 @@ export function ParentPanel({
   const [deleteRewardId, setDeleteRewardId] = useState<string | null>(null)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('summary')
 
   const popularTemplates = choreTemplates.slice(0, 6)
 
@@ -361,7 +362,10 @@ export function ParentPanel({
         allChores={chores}
         assignments={assignments}
         categories={categories}
-        onBack={() => setSelectedChild(null)}
+        onBack={() => {
+          setSelectedChild(null)
+          setActiveTab('children')
+        }}
         onAssign={(choreId) => onAssignChore(selectedChild.id, choreId)}
         onUnassign={onUnassignChore}
         onEditAssignment={onEditAssignment}
@@ -388,7 +392,7 @@ export function ParentPanel({
         </Button>
       </div>
 
-      <Tabs defaultValue="summary" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="summary">
             <ChartBar className="h-4 w-4 mr-2" />
