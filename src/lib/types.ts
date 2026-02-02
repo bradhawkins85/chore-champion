@@ -134,6 +134,7 @@ export interface Chore {
   inactiveOnSchoolHolidays?: boolean
   onlyOnSchoolHolidays?: boolean
   rotationConfig?: RotationConfig
+  emoji?: string
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'

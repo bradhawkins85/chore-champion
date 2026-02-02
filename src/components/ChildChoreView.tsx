@@ -580,9 +580,12 @@ export function ChildChoreView({
                     <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive bg-destructive/10">
                       <CardContent className="p-3">
                         <div className="text-center space-y-1">
-                          <h3 className="text-sm font-fredoka font-semibold text-foreground leading-tight">
-                            {chore.name}
-                          </h3>
+                          <div className="flex items-center justify-center gap-2">
+                            {chore.emoji && <span className="text-lg">{chore.emoji}</span>}
+                            <h3 className="text-sm font-fredoka font-semibold text-foreground leading-tight">
+                              {chore.name}
+                            </h3>
+                          </div>
                           <div className="text-xs font-medium text-destructive">
                             {timeOfDay === 'am' ? 'Morning' : 'Evening'}
                           </div>
@@ -630,6 +633,7 @@ export function ChildChoreView({
                                 </Badge>
                               )}
                               <div className="flex items-center gap-2 flex-wrap mb-1">
+                                {chore.emoji && <span className="text-2xl">{chore.emoji}</span>}
                                 <h3 className="text-xl font-fredoka font-bold">
                                   {chore.name}
                                 </h3>
@@ -772,6 +776,7 @@ export function ChildChoreView({
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
+                                {chore.emoji && <span className="text-2xl">{chore.emoji}</span>}
                                 <h3 className="text-xl font-fredoka font-bold">
                                   {chore.name}
                                 </h3>
@@ -858,6 +863,7 @@ export function ChildChoreView({
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
+                              {chore.emoji && <span className="text-2xl opacity-60">{chore.emoji}</span>}
                               <h3 className="text-xl font-fredoka font-bold line-through">
                                 {chore.name}
                               </h3>
@@ -967,6 +973,7 @@ export function ChildChoreView({
                           <Clock className="h-12 w-12 text-muted-foreground flex-shrink-0" />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
+                              {chore.emoji && <span className="text-2xl">{chore.emoji}</span>}
                               <h3 className="text-2xl font-fredoka font-bold">
                                 {chore.name}
                               </h3>
