@@ -56,7 +56,7 @@ function queueRequest(execute: () => Promise<void>): Promise<void> {
 }
 
 // Check if API is available
-async function checkApiAvailability(): Promise<boolean> {
+async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
   const now = Date.now();
   
   // If API was previously determined to be available, trust that result
@@ -65,7 +65,7 @@ async function checkApiAvailability(): Promise<boolean> {
   }
   
   // If API was previously unavailable, recheck after interval to handle API startup delays
-  if (apiAvailable === false && apiCheckTimestamp !== null) {
+  if (!forceRefresh && apiAvailable === false && apiCheckTimestamp !== null) {
     if (now - apiCheckTimestamp < API_RECHECK_INTERVAL_MS) {
       return false;
     }
@@ -75,6 +75,10 @@ async function checkApiAvailability(): Promise<boolean> {
   }
   
   // Perform the actual availability check
+  if (forceRefresh) {
+    apiAvailable = null;
+  }
+
   if (apiAvailable === null) {
     try {
       const response = await fetch(`${API_URL}/health`, {
@@ -218,18 +222,26 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     });
     
     // Save to API or localStorage (outside of setState to keep it pure)
-    if (useApi) {
-      // Save to API and await the result
+    const apiIsAvailable = useApi || await checkApiAvailability(true);
+
+    if (apiIsAvailable) {
+      if (!useApi) {
+        setUseApi(true);
+      }
+
+      // Save to API and await the result (queued to prevent out-of-order writes)
       try {
-        const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: computedValue }),
+        await queueRequest(async () => {
+          const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: computedValue }),
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to save to API');
+          }
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to save to API');
-        }
       } catch (error) {
         console.error('Error saving to API:', error);
         // Fallback to localStorage to ensure data is not lost
