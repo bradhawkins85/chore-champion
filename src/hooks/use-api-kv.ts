@@ -10,6 +10,8 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Track if API is available
 let apiAvailable: boolean | null = null;
+let apiCheckTimestamp: number | null = null;
+const API_RECHECK_INTERVAL = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
 
 // Request queue to throttle concurrent API requests
 interface QueuedRequest {
@@ -55,22 +57,42 @@ function queueRequest(execute: () => Promise<void>): Promise<void> {
 
 // Check if API is available
 async function checkApiAvailability(): Promise<boolean> {
-  if (apiAvailable !== null) {
-    return apiAvailable;
+  const now = Date.now();
+  
+  // If API was previously determined to be available, trust that result
+  if (apiAvailable === true) {
+    return true;
   }
   
-  try {
-    const response = await fetch(`${API_URL}/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    apiAvailable = response.ok;
-    return apiAvailable;
-  } catch (error) {
-    console.warn('API not available, falling back to localStorage');
-    apiAvailable = false;
-    return false;
+  // If API was previously unavailable, recheck after interval to handle API startup delays
+  if (apiAvailable === false && apiCheckTimestamp !== null) {
+    if (now - apiCheckTimestamp < API_RECHECK_INTERVAL) {
+      return false;
+    }
+    // Time to recheck - reset apiAvailable to allow retry
+    console.log('Rechecking API availability after previous failure');
+    apiAvailable = null;
   }
+  
+  // Perform the actual availability check
+  if (apiAvailable === null) {
+    try {
+      const response = await fetch(`${API_URL}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      apiAvailable = response.ok;
+      apiCheckTimestamp = now;
+      return apiAvailable;
+    } catch (error) {
+      console.warn('API not available, falling back to localStorage');
+      apiAvailable = false;
+      apiCheckTimestamp = now;
+      return false;
+    }
+  }
+  
+  return apiAvailable;
 }
 
 /**
