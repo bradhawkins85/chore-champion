@@ -213,8 +213,14 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         // Display user-friendly error message
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         toast.error('Failed to save data', {
-          description: `Unable to save to server: ${errorMessage}. Please check your connection and try again.`
+          description: `Unable to save to server: ${errorMessage}. Data saved locally as backup.`
         });
+        // Fallback to localStorage to ensure data is not lost
+        try {
+          localStorage.setItem(key, JSON.stringify(computedValue));
+        } catch (localStorageError) {
+          console.error('Error saving to localStorage fallback:', localStorageError);
+        }
       }
     } else {
       // Save to localStorage
