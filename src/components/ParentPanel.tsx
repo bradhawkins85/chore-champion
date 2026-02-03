@@ -91,11 +91,18 @@ function SortableCard({ id, children }: SortableCardProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: 'grab',
+    cursor: isDragging ? 'grabbing' : 'grab',
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      role="button"
+      aria-label={`Draggable card: ${id}`}
+    >
       {children}
     </div>
   )
