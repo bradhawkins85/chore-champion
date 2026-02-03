@@ -994,8 +994,26 @@ function App() {
       })
       
       if (!hasEnoughInOneCategory) {
+        // Find which category they're closest to affording it in
+        let minShortfall = Infinity
+        let closestCategoryName = 'a category'
+        
+        reward.categoryIds.forEach(categoryId => {
+          const availableInCategory = childCategoryPoints.get(categoryId) || 0
+          const shortfall = cost - availableInCategory
+          if (shortfall > 0 && shortfall < minShortfall) {
+            minShortfall = shortfall
+            const category = safeCategories.find(c => c.id === categoryId)
+            closestCategoryName = category?.name || 'points'
+          }
+        })
+        
+        const message = minShortfall === Infinity 
+          ? 'You need enough points in a single category to purchase this reward.'
+          : `You need ${minShortfall} more ${closestCategoryName} points to purchase this reward.`
+        
         toast.error('Not enough points', {
-          description: 'You need enough points in a single category to purchase this reward.',
+          description: message,
         })
         return
       }

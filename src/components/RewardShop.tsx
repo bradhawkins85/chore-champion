@@ -165,7 +165,12 @@ export function RewardShop({
                     }
                   })
                   
-                  affordabilityMessage = `Need ${minShortfall} more ${closestCategoryName} points`
+                  // If minShortfall is still Infinity, all categories have 0 points
+                  if (minShortfall === Infinity) {
+                    affordabilityMessage = `Need ${customCost} more points`
+                  } else {
+                    affordabilityMessage = `Need ${minShortfall} more ${closestCategoryName} points`
+                  }
                 }
               }
               
