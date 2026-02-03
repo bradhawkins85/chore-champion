@@ -75,13 +75,21 @@ if [ -f Dockerfile ]; then
     fi
 else
     # Registry-based deployment - check for image updates
+    # Note: Docker doesn't provide a reliable way to check for updates without pulling
+    # We'll pull and check if any images were updated
     echo "Checking for image updates from registry..."
-    if docker compose -f docker-compose.prod.yml pull --dry-run 2>&1 | grep -q "Pulling"; then
+    echo "(This will pull images to check for updates)"
+    
+    # Capture the output of docker compose pull
+    PULL_OUTPUT=$(docker compose -f docker-compose.prod.yml pull 2>&1)
+    
+    # Check if any images were actually pulled (not using cached)
+    if echo "$PULL_OUTPUT" | grep -qE "(Pulling|Downloaded|digest:)"; then
         echo "✓ Updates available from registry"
         UPDATE_AVAILABLE=true
-        docker compose -f docker-compose.prod.yml pull
     else
         echo "✓ Already up to date"
+        # Images were already up to date, no need to redeploy
     fi
 fi
 

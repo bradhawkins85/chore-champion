@@ -198,14 +198,17 @@ if [ "$SOURCE_BASED" = "true" ]; then
 else
     echo ""
     echo "Checking for image updates from container registry..."
-    # For registry-based deployments, we always need to try pulling to see if there are updates
-    # Docker doesn't provide a clean way to check without pulling
-    # So we'll pull and check if anything was updated
-    UPDATE_AVAILABLE=true
+    # For registry-based deployments, Docker doesn't provide a way to check without pulling
+    # We need to pull to see if there are updates
+    echo "(Note: Registry-based deployments must pull images to check for updates)"
+    
+    # Store the current image IDs before pulling
+    echo "Getting current image IDs..."
+    BEFORE_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" $([ -n "$COMPOSE_FILE_PATH" ] && echo "-f $COMPOSE_FILE_PATH") images -q | sort)
     
     # Pull the latest images from registry
     if [ -n "$COMPOSE_FILE_PATH" ]; then
-        if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull; then
+        if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull 2>&1 | tee /tmp/pull-output.log; then
             echo ""
             echo "WARNING: Failed to pull images from registry."
             echo "This might happen if:"
@@ -217,12 +220,31 @@ else
             exit 1
         fi
     else
-        if ! docker compose -p "${COMPOSE_PROJECT}" pull; then
+        if ! docker compose -p "${COMPOSE_PROJECT}" pull 2>&1 | tee /tmp/pull-output.log; then
             echo ""
             echo "WARNING: Failed to pull images from registry."
             echo "For source-based deployments, ensure your deployment directory contains"
             echo "the Dockerfile so the update can pull and rebuild from source."
             exit 1
+        fi
+    fi
+    
+    # Check the image IDs after pulling
+    echo "Checking if images were updated..."
+    AFTER_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" $([ -n "$COMPOSE_FILE_PATH" ] && echo "-f $COMPOSE_FILE_PATH") images -q | sort)
+    
+    # Compare the image IDs
+    if [ "$BEFORE_IMAGES" != "$AFTER_IMAGES" ]; then
+        echo "✓ Updates available - images were updated"
+        UPDATE_AVAILABLE=true
+    else
+        # Check the pull output for signs of updates
+        if grep -qE "(Pulling|Downloaded|digest:)" /tmp/pull-output.log; then
+            echo "✓ Updates available from registry"
+            UPDATE_AVAILABLE=true
+        else
+            echo "✓ Already up to date"
+            UPDATE_AVAILABLE=false
         fi
     fi
 fi
