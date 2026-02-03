@@ -165,6 +165,7 @@ function App() {
     showRemainingDays: true,
   })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
+  const [blockParentModeOnLinkedDevices, setBlockParentModeOnLinkedDevices] = useKV<boolean>('block-parent-mode-on-linked-devices', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
       return parentPin ?? null
@@ -930,6 +931,15 @@ function App() {
   const handlePinSuccess = () => {
     setShowPinDialog(false)
     setMode('parent')
+  }
+
+  const handleRequestParentMode = () => {
+    // Check if parent mode should be blocked on this linked device
+    if (deviceIsLinked && blockParentModeOnLinkedDevices) {
+      toast.error('Parent Mode is blocked on linked devices. Please use the primary device to access Parent Mode.')
+      return
+    }
+    setShowPinDialog(true)
   }
 
   const handleSetPin = (pin: string) => {
@@ -1793,6 +1803,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
+          onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
+          blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -1911,7 +1923,7 @@ Please log in to ChoreQuest to approve or reject this completion.
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => setShowPinDialog(true)}
+                  onClick={handleRequestParentMode}
                   className="font-fredoka text-lg"
                 >
                   <Gear className="h-5 w-5 mr-2" />
@@ -1939,7 +1951,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               schoolHolidays={schoolHolidays || []}
               schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
               onSelect={setSelectedChild}
-              onParentMode={() => setShowPinDialog(true)}
+              onParentMode={handleRequestParentMode}
             />
           )}
         </>
