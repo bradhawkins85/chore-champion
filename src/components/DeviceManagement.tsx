@@ -89,11 +89,16 @@ export function DeviceManagement() {
   };
 
   const loadDevices = async () => {
-    if (!token) return;
+    if (!token) {
+      console.log('[DEBUG] loadDevices: no token available');
+      return;
+    }
     
+    console.log('[DEBUG] loadDevices: starting with token:', token.substring(0, 20) + '...');
     setLoading(true);
     try {
       const linkedDevices = await getLinkedDevices(token);
+      console.log('[DEBUG] loadDevices: received', linkedDevices.length, 'devices');
       setDevices(
         linkedDevices.map((device) => ({
           ...device,

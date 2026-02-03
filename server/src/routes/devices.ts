@@ -289,10 +289,18 @@ router.post('/link', async (req: Request, res: Response) => {
       const linkingCodeData = codes[0] as LinkingCode;
 
       // Link the device to the tenant and optionally set the device name
+      console.log(`[DEBUG] Linking device ${device.id} to tenant ${linkingCodeData.tenant_id}`);
       await connection.query(
         'UPDATE devices SET tenant_id = ?, linked_at = NOW(), device_name = ? WHERE id = ?',
         [linkingCodeData.tenant_id, deviceName || null, device.id]
       );
+
+      // Verify the update worked
+      const [updated] = await connection.query(
+        'SELECT tenant_id FROM devices WHERE id = ?',
+        [device.id]
+      );
+      console.log(`[DEBUG] Device ${device.id} after linking - tenant_id: ${updated[0]?.tenant_id}`);
 
       // Mark the code as used
       await connection.query(
@@ -354,7 +362,17 @@ router.get('/', async (req: Request, res: Response) => {
         id: d.id,
         deviceGuid: d.device_guid,
         deviceName: d.device_name,
-        deviceInfo: typeof d.device_info === 'string' ? JSON.parse(d.device_info) : d.device_info,
+        deviceInfo: (() => {
+          if (typeof d.device_info === 'string') {
+            try {
+              return JSON.parse(d.device_info);
+            } catch (e) {
+              console.error(`[ERROR] Failed to parse device_info for device ${d.id}:`, e);
+              return {};
+            }
+          }
+          return d.device_info || {};
+        })(),
         allowedChildrenIds: (() => {
           if (typeof d.allowed_children_ids === 'string') {
             try {
