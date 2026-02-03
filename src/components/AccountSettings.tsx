@@ -236,7 +236,7 @@ export function AccountSettings({
           <CardDescription>
             {showOnlyNotifications 
               ? 'Configure email notifications for registered parents'
-              : 'Manage parent accounts and email notification preferences for registered parents'
+              : 'Manage parent accounts with shared access'
             }
           </CardDescription>
         </CardHeader>
@@ -442,8 +442,10 @@ export function AccountSettings({
             </>
           )}
 
-          {/* Per-parent email alert settings */}
-          <div className="space-y-6">
+          {showOnlyNotifications && (
+            <>
+              {/* Per-parent email alert settings */}
+              <div className="space-y-6">
             <div className="space-y-2">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Bell className="w-5 h-5" />
@@ -701,6 +703,8 @@ export function AccountSettings({
               )
             })}
           </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
