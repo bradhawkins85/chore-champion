@@ -8,10 +8,17 @@ import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
 import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity, getWeeklyChoreMessage } from '@/lib/helpers'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, PushNotificationSettings } from '@/lib/types'
+import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 import { SchoolHolidayCountdownCard } from '@/components/SchoolHolidayCountdownCard'
+import { NotificationSetupCard } from '@/components/NotificationSetupCard'
 import { isStandalone } from '@/lib/pwaHelper'
 import { fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
+import { getDeviceId } from '@/lib/deviceHelper'
+import { isPushNotificationSupported } from '@/lib/pushNotificationHelper'
+
+const NOTIFICATION_SETUP_DISMISSED_KEY = 'notification-setup-dismissed'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -36,6 +43,8 @@ interface ChildSelectorProps {
   deviceIsLinked?: boolean
   blockParentModeOnLinkedDevices?: boolean
   deviceRegistrationComplete?: boolean
+  pushNotificationSettings?: PushNotificationSettings
+  onOpenSettings?: () => void
 }
 
 export function ChildSelector({ 
@@ -61,11 +70,16 @@ export function ChildSelector({
   deviceIsLinked = false,
   blockParentModeOnLinkedDevices = false,
   deviceRegistrationComplete = false,
+  pushNotificationSettings,
+  onOpenSettings,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
   const [showBiometricBadge, setShowBiometricBadge] = useState(false)
   const [childICSEventsMap, setChildICSEventsMap] = useState<Map<string, boolean>>(new Map())
+  const [isNotificationCardDismissed, setIsNotificationCardDismissed] = useState(() => {
+    return localStorage.getItem(NOTIFICATION_SETUP_DISMISSED_KEY) === 'true'
+  })
 
   // Create a stable key based on child IDs and ICS URLs to avoid unnecessary refetches
   const childICSKey = useMemo(
@@ -180,6 +194,38 @@ export function ChildSelector({
     return date.toLocaleDateString('en-US', options)
   }
 
+  // Check if push notifications are enabled for the current device
+  const isPushNotificationEnabled = () => {
+    if (!pushNotificationSettings?.enabled) return false
+    const currentDeviceId = getDeviceId()
+    const deviceSettings = pushNotificationSettings.devices.find(d => d.deviceId === currentDeviceId)
+    return deviceSettings?.enabled || false
+  }
+
+  // Check if we should show the notification setup card
+  const shouldShowNotificationCard = () => {
+    // Don't show if already dismissed
+    if (isNotificationCardDismissed) return false
+    // Don't show if push notifications are not supported
+    if (!isPushNotificationSupported()) return false
+    // Don't show if notifications are already enabled for this device
+    if (isPushNotificationEnabled()) return false
+    // Don't show if no onOpenSettings handler is provided
+    if (!onOpenSettings) return false
+    return true
+  }
+
+  const handleDismissNotificationCard = () => {
+    localStorage.setItem(NOTIFICATION_SETUP_DISMISSED_KEY, 'true')
+    setIsNotificationCardDismissed(true)
+  }
+
+  const handleSetupNotifications = () => {
+    if (onOpenSettings) {
+      onOpenSettings()
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
       <div className="max-w-4xl mx-auto">
@@ -200,7 +246,7 @@ export function ChildSelector({
           {formatDateTime(currentDateTime)}
         </motion.p>
 
-        {(weatherSettings || schoolHolidayCountdownSettings?.enabled) && (
+        {(weatherSettings || schoolHolidayCountdownSettings?.enabled || shouldShowNotificationCard()) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -210,6 +256,14 @@ export function ChildSelector({
             {weatherSettings && (
               <div className="flex w-full md:flex-1">
                 <WeatherDisplay settings={weatherSettings} />
+              </div>
+            )}
+            {shouldShowNotificationCard() && (
+              <div className="flex w-full md:flex-1">
+                <NotificationSetupCard
+                  onSetup={handleSetupNotifications}
+                  onDismiss={handleDismissNotificationCard}
+                />
               </div>
             )}
             {schoolHolidayCountdownSettings && (

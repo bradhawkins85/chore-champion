@@ -1208,15 +1208,6 @@ export function ParentPanel({
                 weeklyReportSettingsMap={weeklyReportSettingsMap}
                 onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
                 onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
-                onResetGettingStarted={() => {
-                  onUpdateGettingStartedState({
-                    ...gettingStartedState,
-                    dismissed: false,
-                    tasks: gettingStartedState.tasks.map(task =>
-                      task.id === 'dismiss' ? { ...task, completed: false } : task
-                    ),
-                  })
-                }}
               />
             </TabsContent>
 

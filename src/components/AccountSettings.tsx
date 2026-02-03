@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SignOut, UserPlus, Users, Envelope, Bell, Clock, Calendar, Trash, RocketLaunch } from '@phosphor-icons/react'
+import { SignOut, UserPlus, Users, Envelope, Bell, Clock, Calendar, Trash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { EmailAlertSettingsMap, WeeklyReportSettingsMap, ParentEmailAlertSettings, ParentWeeklyReportSettings, DayOfWeek, DigestInterval } from '@/lib/types'
 
@@ -19,7 +19,6 @@ interface AccountSettingsProps {
   onUpdateEmailAlertSettingsMap?: (settings: EmailAlertSettingsMap) => void
   onUpdateWeeklyReportSettingsMap?: (settings: WeeklyReportSettingsMap) => void
   showOnlyNotifications?: boolean
-  onResetGettingStarted?: () => void
 }
 
 export function AccountSettings({
@@ -28,7 +27,6 @@ export function AccountSettings({
   onUpdateEmailAlertSettingsMap,
   onUpdateWeeklyReportSettingsMap,
   showOnlyNotifications = false,
-  onResetGettingStarted,
 }: AccountSettingsProps = {}) {
   const { user, logout, inviteParent, getPendingInvitations, getTenantUsers, revokeParent } = useAuth();
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
@@ -233,27 +231,6 @@ export function AccountSettings({
             </CardContent>
           </Card>
 
-          {onResetGettingStarted && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Getting Started Guide</CardTitle>
-                <CardDescription>Show the setup guide again</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onResetGettingStarted()
-                    toast.success('Getting Started guide has been restored')
-                  }}
-                  className="w-full"
-                >
-                  <RocketLaunch className="w-4 h-4 mr-2" />
-                  Re-show Getting Started
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
 
