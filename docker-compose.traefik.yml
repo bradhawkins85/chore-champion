@@ -1,6 +1,95 @@
 version: '3.9'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: chorequest-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.chorequest.service=database"
+      - "com.chorequest.environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: ${DOCKER_API_IMAGE:-chorequest-api:latest}
+    container_name: chorequest-api
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-chorequest}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.chorequest.service=api"
+      - "com.chorequest.environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
   chorequest:
     image: ${DOCKER_IMAGE:-chorequest:latest}
     container_name: chorequest-app
@@ -11,6 +100,9 @@ services:
     volumes:
       - chorequest-data:/usr/share/nginx/html/data
       - chorequest-backups:/backups:ro
+    depends_on:
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -137,6 +229,13 @@ volumes:
       type: none
       o: bind
       device: ${BACKUP_PATH:-./backups}
+  mysql-data:
+    name: mysql-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MYSQL_DATA_PATH:-./mysql-data}
   traefik-certs:
     name: traefik-certs
     driver: local
