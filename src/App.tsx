@@ -209,6 +209,7 @@ function App() {
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
   const hasMigratedPinSecurity = useRef(false)
+  const hasRegisteredDevice = useRef(false)
 
   // Helper function to ensure pendingDigestItems is always an array
   const getValidatedDigestItems = (): any[] => {
@@ -219,15 +220,22 @@ function App() {
     initializePWA()
   }, [])
 
-  // Register device on app mount
+  // Register device on app mount and handle auto-login
   useEffect(() => {
+    // Only run device registration once, after initial auth check is complete
+    if (authLoading || hasRegisteredDevice.current) {
+      return
+    }
+
+    hasRegisteredDevice.current = true
+
     const registerDeviceOnMount = async () => {
       try {
         const deviceInfo = await registerDevice()
         setDeviceIsLinked(deviceInfo.isLinked)
         
         // If device is linked and user is not authenticated, auto-login with device
-        if (deviceInfo.isLinked && !user && !authLoading) {
+        if (deviceInfo.isLinked && !user) {
           try {
             await loginWithDevice(deviceInfo.deviceGuid)
           } catch (error) {
@@ -241,7 +249,7 @@ function App() {
     }
     
     registerDeviceOnMount()
-  }, [user, authLoading, loginWithDevice])
+  }, [authLoading, user, loginWithDevice])
 
   useEffect(() => {
     if (parentPin !== normalizedParentPin) {
