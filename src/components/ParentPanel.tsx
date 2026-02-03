@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch } from '@phosphor-icons/react'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState } from '@/lib/types'
 import {
   DndContext,
@@ -66,6 +66,7 @@ import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { AccountSettings } from './AccountSettings'
 import { DeviceManagement } from './DeviceManagement'
 import { GettingStartedMenu } from './GettingStartedMenu'
+import { HelpMenu } from './HelpMenu'
 import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
@@ -639,6 +640,10 @@ export function ParentPanel({
           <TabsTrigger value="settings-tab">
             <Gear className="h-4 w-4 mr-2" />
             Settings
+          </TabsTrigger>
+          <TabsTrigger value="help">
+            <Question className="h-4 w-4 mr-2" />
+            Help
           </TabsTrigger>
           {!gettingStartedState.dismissed && (
             <TabsTrigger value="getting-started">
@@ -1264,6 +1269,20 @@ export function ParentPanel({
               <DeviceManagement />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* Help Tab */}
+        <TabsContent value="help" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Help & Feature Guide</h2>
+              <p className="text-sm text-muted-foreground">
+                Learn about all the features in ChoreQuest
+              </p>
+            </div>
+          </div>
+
+          <HelpMenu />
         </TabsContent>
 
         {/* Getting Started Tab */}
