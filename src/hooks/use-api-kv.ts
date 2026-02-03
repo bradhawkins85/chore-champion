@@ -8,6 +8,14 @@ import { toast } from 'sonner';
 // API base URL from environment or default to /api
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Event emitter for auth token changes
+const authTokenListeners = new Set<() => void>();
+
+// Notify all listeners when auth token changes
+function notifyAuthTokenChange() {
+  authTokenListeners.forEach(listener => listener());
+}
+
 // Get auth token from localStorage
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token');
@@ -24,6 +32,24 @@ function getAuthHeaders(): HeadersInit {
   }
   return headers;
 }
+
+// Override localStorage.setItem to detect auth token changes
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key: string, value: string) {
+  originalSetItem.call(this, key, value);
+  if (key === 'auth_token') {
+    notifyAuthTokenChange();
+  }
+};
+
+// Override localStorage.removeItem to detect auth token removal
+const originalRemoveItem = localStorage.removeItem;
+localStorage.removeItem = function(key: string) {
+  originalRemoveItem.call(this, key);
+  if (key === 'auth_token') {
+    notifyAuthTokenChange();
+  }
+};
 
 // Track if API is available
 let apiAvailable: boolean | null = null;
@@ -155,10 +181,25 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
   const defaultValueRef = useRef(defaultValue);
+  // Track auth token to re-fetch data when it changes (e.g., after login)
+  const [authToken, setAuthToken] = useState<string | null>(getAuthToken());
 
   useEffect(() => {
     defaultValueRef.current = defaultValue;
   }, [defaultValue]);
+
+  // Listen for auth token changes
+  useEffect(() => {
+    const handleAuthTokenChange = () => {
+      setAuthToken(getAuthToken());
+    };
+
+    authTokenListeners.add(handleAuthTokenChange);
+
+    return () => {
+      authTokenListeners.delete(handleAuthTokenChange);
+    };
+  }, []);
 
   // Initialize - check API and load data
   useEffect(() => {
@@ -224,7 +265,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     return () => {
       mounted = false;
     };
-  }, [key]);
+  }, [key, authToken]);
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
