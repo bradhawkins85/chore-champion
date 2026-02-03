@@ -70,6 +70,7 @@ function App() {
   const [showDeviceLinking, setShowDeviceLinking] = useState(false)
   const [deviceIsLinked, setDeviceIsLinked] = useState(false)
   const [deviceAllowedChildrenIds, setDeviceAllowedChildrenIds] = useState<string[]>([])
+  const [deviceRegistrationComplete, setDeviceRegistrationComplete] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
   const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
@@ -256,6 +257,9 @@ function App() {
         }
       } catch (error) {
         console.error('Error registering device:', error)
+      } finally {
+        // Mark device registration as complete
+        setDeviceRegistrationComplete(true)
       }
     }
     
@@ -2006,6 +2010,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
               deviceIsLinked={deviceIsLinked}
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+              deviceRegistrationComplete={deviceRegistrationComplete}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}
             />
