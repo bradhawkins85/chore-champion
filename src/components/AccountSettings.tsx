@@ -100,6 +100,20 @@ export function AccountSettings({
 
   const canAddParent = tenantUsers.length < 2
 
+  // Check if all required props for weekly report settings are available
+  const hasWeeklyReportProps = !!(
+    weeklyReportSettings &&
+    onUpdateWeeklyReportSettings &&
+    childrenList &&
+    chores &&
+    completions &&
+    assignments &&
+    purchases &&
+    rewards &&
+    categories &&
+    bonusCompletions
+  )
+
   return (
     <div className="space-y-6">
       <Card>
@@ -256,18 +270,18 @@ export function AccountSettings({
         />
       )}
 
-      {weeklyReportSettings && onUpdateWeeklyReportSettings && childrenList && chores && completions && assignments && purchases && rewards && categories && bonusCompletions && (
+      {hasWeeklyReportProps && (
         <WeeklyReportSettingsComponent
-          settings={weeklyReportSettings}
-          childrenList={childrenList}
-          chores={chores}
-          completions={completions}
-          assignments={assignments}
-          purchases={purchases}
-          rewards={rewards}
-          categories={categories}
-          bonusCompletions={bonusCompletions}
-          onUpdateSettings={onUpdateWeeklyReportSettings}
+          settings={weeklyReportSettings!}
+          childrenList={childrenList!}
+          chores={chores!}
+          completions={completions!}
+          assignments={assignments!}
+          purchases={purchases!}
+          rewards={rewards!}
+          categories={categories!}
+          bonusCompletions={bonusCompletions!}
+          onUpdateSettings={onUpdateWeeklyReportSettings!}
         />
       )}
 
