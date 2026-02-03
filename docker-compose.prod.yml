@@ -53,6 +53,7 @@ services:
       - MYSQL_USER=${MYSQL_USER:-chorequest}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - TZ=${TIMEZONE:-UTC}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
