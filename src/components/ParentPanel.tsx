@@ -1009,6 +1009,10 @@ export function ParentPanel({
                 <Gear className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
+              <TabsTrigger value="notifications">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </TabsTrigger>
               <TabsTrigger value="account">
                 <FolderUser className="h-4 w-4 mr-2" />
                 Account
@@ -1038,12 +1042,6 @@ export function ParentPanel({
                 onDelete={onDeleteSchoolHoliday}
               />
 
-              <PushNotificationSettingsComponent
-                pushSettings={pushNotificationSettings}
-                deviceId={currentDeviceId}
-                onUpdatePushSettings={onUpdatePushNotificationSettings}
-              />
-
               <CelebrationSettingsComponent 
                 settings={celebrationSettings}
                 onUpdate={onCelebrationSettingsChange}
@@ -1057,6 +1055,22 @@ export function ParentPanel({
               <DisplayPreferencesSettings
                 hideChildrenWithNoActivity={hideChildrenWithNoActivity}
                 onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
+              />
+            </TabsContent>
+
+            <TabsContent value="notifications" className="space-y-4">
+              <PushNotificationSettingsComponent
+                pushSettings={pushNotificationSettings}
+                deviceId={currentDeviceId}
+                onUpdatePushSettings={onUpdatePushNotificationSettings}
+              />
+
+              <AccountSettings
+                emailAlertSettingsMap={emailAlertSettingsMap}
+                weeklyReportSettingsMap={weeklyReportSettingsMap}
+                onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
+                onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
+                showOnlyNotifications={true}
               />
             </TabsContent>
 
