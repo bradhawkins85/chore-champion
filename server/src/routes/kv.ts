@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket } from 'mysql2';
+import { optionalAuth, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -37,12 +38,14 @@ function sendNullResponse(req: Request, res: Response): void {
 }
 
 // Get a value by key
-router.get('/kv/:key', async (req: Request, res: Response) => {
+router.get('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
+    const tenantId = req.tenantId || 'legacy';
+    
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT value_data FROM kv_store WHERE key_name = ?',
-      [key]
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      [key, tenantId]
     );
     
     // Return null for non-existent keys (standard KV store behavior)
@@ -89,9 +92,10 @@ router.get('/kv/:key', async (req: Request, res: Response) => {
 });
 
 // Set a value by key
-router.post('/kv/:key', async (req: Request, res: Response) => {
+router.post('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
+    const tenantId = req.tenantId || 'legacy';
     let value;
     
     // Handle both Spark runtime format (text/plain with raw JSON) and standard format (application/json with {value: ...})
@@ -129,10 +133,10 @@ router.post('/kv/:key', async (req: Request, res: Response) => {
     }
     
     await pool.query(
-      `INSERT INTO kv_store (key_name, value_data) 
-       VALUES (?, ?) 
+      `INSERT INTO kv_store (key_name, value_data, tenant_id) 
+       VALUES (?, ?, ?) 
        ON DUPLICATE KEY UPDATE value_data = ?`,
-      [key, JSON.stringify(value), JSON.stringify(value)]
+      [key, JSON.stringify(value), tenantId, JSON.stringify(value)]
     );
     
     res.json({ success: true });
@@ -143,10 +147,11 @@ router.post('/kv/:key', async (req: Request, res: Response) => {
 });
 
 // Delete a value by key
-router.delete('/kv/:key', async (req: Request, res: Response) => {
+router.delete('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
-    await pool.query('DELETE FROM kv_store WHERE key_name = ?', [key]);
+    const tenantId = req.tenantId || 'legacy';
+    await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting value:', error);
@@ -155,10 +160,12 @@ router.delete('/kv/:key', async (req: Request, res: Response) => {
 });
 
 // Get all keys (for debugging/migration)
-router.get('/kv', async (req: Request, res: Response) => {
+router.get('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    const tenantId = req.tenantId || 'legacy';
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT key_name, value_data FROM kv_store'
+      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
+      [tenantId]
     );
     
     const data: Record<string, any> = {};
@@ -190,9 +197,10 @@ router.get('/kv', async (req: Request, res: Response) => {
 });
 
 // Bulk set (for migration)
-router.post('/kv', async (req: Request, res: Response) => {
+router.post('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
+    const tenantId = req.tenantId || 'legacy';
     
     if (!data || typeof data !== 'object') {
       return res.status(400).json({ error: 'Invalid data format' });
@@ -225,10 +233,10 @@ router.post('/kv', async (req: Request, res: Response) => {
       
       for (const [key, value] of Object.entries(data)) {
         await connection.query(
-          `INSERT INTO kv_store (key_name, value_data) 
-           VALUES (?, ?) 
+          `INSERT INTO kv_store (key_name, value_data, tenant_id) 
+           VALUES (?, ?, ?) 
            ON DUPLICATE KEY UPDATE value_data = ?`,
-          [key, JSON.stringify(value), JSON.stringify(value)]
+          [key, JSON.stringify(value), tenantId, JSON.stringify(value)]
         );
       }
       
