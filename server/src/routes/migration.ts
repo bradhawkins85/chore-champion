@@ -50,23 +50,25 @@ router.post('/migrate-legacy', requireAuth, async (req: AuthRequest, res: Respon
         ['legacy']
       );
 
-      // If target has data, we'll only migrate keys that don't exist in target
-      // This prevents overwriting existing user data
+      // If target has data, get all existing keys for efficient lookup
+      let existingKeys = new Set<string>();
+      if (targetHasData) {
+        const [existingRows] = await connection.query<RowDataPacket[]>(
+          'SELECT key_name FROM kv_store WHERE tenant_id = ?',
+          [tenantId]
+        );
+        existingKeys = new Set(existingRows.map(row => row.key_name));
+      }
+
+      // Track which keys were successfully migrated
       let migratedCount = 0;
       let skippedCount = 0;
+      const migratedKeys: string[] = [];
 
       for (const row of legacyData) {
-        if (targetHasData) {
-          // Check if key exists in target
-          const [existingKey] = await connection.query<RowDataPacket[]>(
-            'SELECT key_name FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-            [tenantId, row.key_name]
-          );
-
-          if (existingKey.length > 0) {
-            skippedCount++;
-            continue; // Skip this key to preserve target data
-          }
+        if (targetHasData && existingKeys.has(row.key_name)) {
+          skippedCount++;
+          continue; // Skip this key to preserve target data
         }
 
         // Insert into target tenant
@@ -74,10 +76,24 @@ router.post('/migrate-legacy', requireAuth, async (req: AuthRequest, res: Respon
           'INSERT INTO kv_store (key_name, tenant_id, value_data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value_data = ?',
           [row.key_name, tenantId, row.value_data, row.value_data]
         );
+        migratedKeys.push(row.key_name);
         migratedCount++;
       }
 
-      // Delete all legacy data after successful migration
+      // Verify all records were accounted for before deleting
+      if (migratedCount + skippedCount !== legacyCount) {
+        await connection.rollback();
+        return res.status(500).json({ 
+          error: 'Migration count mismatch - aborting to prevent data loss',
+          details: {
+            expected: legacyCount,
+            migrated: migratedCount,
+            skipped: skippedCount
+          }
+        });
+      }
+
+      // Only delete legacy data after successful migration of all records
       await connection.query(
         'DELETE FROM kv_store WHERE tenant_id = ?',
         ['legacy']
