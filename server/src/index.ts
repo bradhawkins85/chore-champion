@@ -59,17 +59,36 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Health check
+// Database connection status
+let dbReady = false;
+
+// Health check - always responds, but indicates if DB is ready
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: dbReady ? 'ok' : 'starting',
+    database: dbReady ? 'connected' : 'connecting',
+    timestamp: new Date().toISOString() 
+  });
 });
 
-// API Routes
-app.use('/api', kvRoutes);
-app.use('/api', updateRoutes);
-app.use('/api', icsRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/devices', deviceRoutes);
+// Middleware to check database readiness for routes that need it
+const requireDb = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!dbReady) {
+    return res.status(503).json({ 
+      error: 'Service temporarily unavailable',
+      message: 'Database is still initializing. Please try again in a moment.',
+      status: 503
+    });
+  }
+  next();
+};
+
+// API Routes - protected by database readiness check
+app.use('/api/kv', requireDb, kvRoutes);
+app.use('/api/update', requireDb, updateRoutes);
+app.use('/api/ics', requireDb, icsRoutes);
+app.use('/api/auth', requireDb, authRoutes);
+app.use('/api/devices', requireDb, deviceRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -79,18 +98,54 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
 
 // Initialize database and start server
 async function start() {
-  try {
-    console.log('Initializing database...');
-    await initDatabase();
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+  // Start HTTP server immediately, even if database is not ready
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+  });
+
+  // Initialize database in background with retries
+  let retryCount = 0;
+  const maxRetries = 30; // Try for ~5 minutes with exponential backoff
+  
+  async function initDbWithRetry() {
+    try {
+      console.log('Initializing database...');
+      await initDatabase();
+      dbReady = true;
+      console.log('Database ready - API endpoints now available');
+    } catch (error) {
+      retryCount++;
+      console.error(`Database initialization attempt ${retryCount} failed:`, error);
+      
+      if (retryCount >= maxRetries) {
+        console.error(`Failed to initialize database after ${maxRetries} attempts. Server will continue running but API endpoints will return 503.`);
+        return;
+      }
+      
+      // Exponential backoff starting at 2s: 2s, 4s, 8s, 16s, 32s...
+      // Formula: delay = min(2000 * 2^(retryCount-1), 32000)
+      // retryCount=1: 2000 * 2^0 = 2000ms (2s)
+      // retryCount=2: 2000 * 2^1 = 4000ms (4s)
+      // retryCount=3: 2000 * 2^2 = 8000ms (8s)
+      // etc., capped at 32s
+      const delay = Math.min(2000 * Math.pow(2, retryCount - 1), 32000);
+      console.log(`Retrying database initialization in ${delay}ms...`);
+      setTimeout(initDbWithRetry, delay);
+    }
   }
+  
+  // Start database initialization
+  initDbWithRetry();
+  
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+  });
 }
 
 start();
