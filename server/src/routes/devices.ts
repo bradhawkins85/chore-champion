@@ -59,7 +59,9 @@ function getDeviceInfo(req: Request): DeviceInfo {
   
   // Get real client IP from X-Forwarded-For header (set by nginx proxy)
   // When behind a proxy, X-Forwarded-For contains the real client IP
-  let clientIp = req.ip || req.socket.remoteAddress;
+  // With trust proxy enabled, req.ip should always be populated, but we
+  // include a fallback for completeness
+  let clientIp = req.ip || req.socket.remoteAddress || 'unknown';
   
   // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
   // The first IP is the original client IP
@@ -71,8 +73,8 @@ function getDeviceInfo(req: Request): DeviceInfo {
       // String format: "client, proxy1, proxy2" - split by comma
       forwardedIps = forwardedFor.split(',').map(ip => ip.trim());
     } else if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      // Array format: already split by Express, use first element
-      forwardedIps = [forwardedFor[0].trim()];
+      // Array format: may still contain comma-separated values, so split first element
+      forwardedIps = forwardedFor[0].split(',').map(ip => ip.trim());
     }
     
     // Use the first IP in the chain (the real client)
