@@ -134,7 +134,6 @@ export function AccountSettings({
   const getUserEmailSettings = (userId: string): ParentEmailAlertSettings => {
     return emailAlertSettingsMap?.[userId] || {
       rewardPurchaseAlerts: false,
-      choreCompletionAlerts: false,
       weeklyReportAlerts: false,
       pendingApprovalAlerts: false,
       digestMode: 'immediate',
@@ -179,7 +178,7 @@ export function AccountSettings({
 
   const handleToggleAlert = (
     userId: string,
-    type: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>,
+    type: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>,
     enabled: boolean
   ) => {
     if (enabled && !smtpEnabled) {
@@ -503,24 +502,6 @@ export function AccountSettings({
                         checked={emailSettings.rewardPurchaseAlerts}
                         onCheckedChange={(checked) =>
                           handleToggleAlert(parentUser.id, 'rewardPurchaseAlerts', checked)
-                        }
-                        disabled={!smtpEnabled}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Chore Completion Alerts</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get notified when chores need approval
-                        </p>
-                      </div>
-                      <Switch
-                        checked={emailSettings.choreCompletionAlerts}
-                        onCheckedChange={(checked) =>
-                          handleToggleAlert(parentUser.id, 'choreCompletionAlerts', checked)
                         }
                         disabled={!smtpEnabled}
                       />
