@@ -1,0 +1,7 @@
+{
+  "guid": "8bae8339-b010-4c28-82f5-4f9ec8061e5a",
+  "occurred_at": "2026-02-03T11:35:50.919373Z",
+  "change_type": "Fix",
+  "summary": "Normalize welcome card order so every card stays draggable",
+  "content_hash": "92d0e325e422b3bf138e9237df09221cb52c0816fda1e80e392b4b894e550087"
+}

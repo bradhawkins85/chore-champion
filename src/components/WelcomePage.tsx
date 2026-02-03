@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -87,6 +87,27 @@ const featureDefinitions: Record<string, { icon: React.ReactNode; title: string;
   },
 }
 
+const allFeatureCardIds = Object.keys(featureDefinitions)
+
+const normalizeCardOrder = (order: string[]) => {
+  const unique = order.filter((id, index) => order.indexOf(id) === index && featureDefinitions[id])
+  const missing = allFeatureCardIds.filter((id) => !unique.includes(id))
+  return [...unique, ...missing]
+}
+
+const areArraysEqual = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index])
+
+const parseSavedOrder = (saved: string | null) => {
+  if (!saved) return null
+  try {
+    const parsed = JSON.parse(saved)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 // Sortable card component for feature cards
 interface SortableFeatureCardProps {
   id: string
@@ -145,9 +166,17 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
     'points-comparison', 'daily-activity', 'weekly-report'
   ]
   const [featureCardOrder, setFeatureCardOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('welcomeFeatureCardOrder')
-    return saved ? JSON.parse(saved) : defaultOrder
+    const savedOrder = parseSavedOrder(localStorage.getItem('welcomeFeatureCardOrder'))
+    return normalizeCardOrder(savedOrder ?? defaultOrder)
   })
+
+  useEffect(() => {
+    const normalizedOrder = normalizeCardOrder(featureCardOrder)
+    if (!areArraysEqual(normalizedOrder, featureCardOrder)) {
+      setFeatureCardOrder(normalizedOrder)
+      localStorage.setItem('welcomeFeatureCardOrder', JSON.stringify(normalizedOrder))
+    }
+  }, [featureCardOrder])
 
   // Sensors for drag and drop
   const sensors = useSensors(
