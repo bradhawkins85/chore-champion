@@ -60,8 +60,10 @@ export function DeviceManagement() {
   const currentDeviceGuid = getDeviceGuid();
 
   useEffect(() => {
-    loadDevices();
-  }, []);
+    if (token) {
+      loadDevices();
+    }
+  }, [token]);
 
   const loadDevices = async () => {
     if (!token) return;

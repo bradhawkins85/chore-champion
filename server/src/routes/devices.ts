@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
@@ -9,7 +10,7 @@ const router = Router();
 interface Device {
   id: string;
   device_guid: string;
-  device_info: any;
+  device_info: DeviceInfo;
   tenant_id: string | null;
   linked_at: Date | null;
   last_seen: Date;
@@ -137,7 +138,6 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
     // Get tenant ID from request (set by auth middleware if we add it, or extract from token)
     // For now, we'll extract it from the token
     const token = authHeader.substring(7);
-    const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
     let decoded: JWTPayload;
@@ -175,7 +175,7 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
       }
 
       // Generate a unique code
-      let code: string;
+      let code = '';
       let isUnique = false;
       let attempts = 0;
       const maxAttempts = 10;
@@ -192,7 +192,7 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
         attempts++;
       }
 
-      if (!isUnique) {
+      if (!isUnique || !code) {
         await connection.rollback();
         return res.status(500).json({ error: 'Failed to generate unique code' });
       }
@@ -202,13 +202,13 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
 
       await connection.query(
         'INSERT INTO linking_codes (code, tenant_id, expires_at) VALUES (?, ?, ?)',
-        [code!, tenantId, expiresAt]
+        [code, tenantId, expiresAt]
       );
 
       await connection.commit();
 
       res.json({
-        code: code!,
+        code,
         expiresAt,
       });
     } catch (error) {
@@ -310,7 +310,6 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
     let decoded: JWTPayload;
@@ -355,7 +354,6 @@ router.delete('/:deviceId', async (req: Request, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
     let decoded: JWTPayload;

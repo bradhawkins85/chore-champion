@@ -47,8 +47,8 @@ export function AuthPage() {
     }
   };
 
-  const handleDeviceLinked = (tenantId: string) => {
-    // Device linked successfully, reload the page to authenticate
+  const handleDeviceLinked = () => {
+    // Device linked successfully, reload the page to re-authenticate with linked device
     window.location.reload();
   };
 

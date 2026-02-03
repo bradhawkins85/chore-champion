@@ -225,8 +225,9 @@ function App() {
         const deviceInfo = await registerDevice()
         setDeviceIsLinked(deviceInfo.isLinked)
         
-        // If device is linked but user is not authenticated, we could auto-login
-        // For now, we just track the linking status
+        // Note: Auto-login from linked devices is not implemented yet.
+        // Future enhancement: If device is linked, automatically authenticate using device-based auth.
+        // For now, we just track the linking status.
       } catch (error) {
         console.error('Error registering device:', error)
       }
