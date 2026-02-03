@@ -33,6 +33,8 @@ interface ChildSelectorProps {
   hideChildrenWithNoActivity?: boolean
   schoolHolidays?: SchoolHoliday[]
   schoolHolidayCountdownSettings?: SchoolHolidayCountdownSettings
+  deviceIsLinked?: boolean
+  blockParentModeOnLinkedDevices?: boolean
 }
 
 export function ChildSelector({ 
@@ -55,6 +57,8 @@ export function ChildSelector({
   hideChildrenWithNoActivity = false,
   schoolHolidays = [],
   schoolHolidayCountdownSettings,
+  deviceIsLinked = false,
+  blockParentModeOnLinkedDevices = false,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
@@ -355,47 +359,49 @@ export function ChildSelector({
             )
           })}
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: filteredChildrenList.length * 0.1 }}
-          >
-            <Card
-              className="cursor-pointer hover:scale-105 transition-all hover:shadow-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-accent/5"
-              onClick={onParentMode}
+          {!(deviceIsLinked && blockParentModeOnLinkedDevices) && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: filteredChildrenList.length * 0.1 }}
             >
-              <CardContent className="p-8 text-center relative">
-                {pendingPurchasesCount > 0 && (
-                  <div className="absolute top-3 right-3 bg-accent text-accent-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
-                    {pendingPurchasesCount}
-                  </div>
-                )}
-                {showBiometricBadge && (
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                      <Fingerprint className="h-3 w-3" weight="fill" />
-                      Quick Unlock
-                    </Badge>
-                  </div>
-                )}
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="h-24 w-24 mx-auto mb-4 rounded-full bg-primary flex items-center justify-center">
-                    <Gear className="h-12 w-12 text-primary-foreground" weight="fill" />
-                  </div>
-                </motion.div>
-                <h2 className="text-3xl font-fredoka font-bold mb-2">
-                  Parent Mode
-                </h2>
-                <p className="text-lg font-fredoka text-muted-foreground">
-                  {showBiometricBadge ? 'Tap to use Quick Unlock' : 'Manage & Configure'}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+              <Card
+                className="cursor-pointer hover:scale-105 transition-all hover:shadow-2xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-accent/5"
+                onClick={onParentMode}
+              >
+                <CardContent className="p-8 text-center relative">
+                  {pendingPurchasesCount > 0 && (
+                    <div className="absolute top-3 right-3 bg-accent text-accent-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
+                      {pendingPurchasesCount}
+                    </div>
+                  )}
+                  {showBiometricBadge && (
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                        <Fingerprint className="h-3 w-3" weight="fill" />
+                        Quick Unlock
+                      </Badge>
+                    </div>
+                  )}
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="h-24 w-24 mx-auto mb-4 rounded-full bg-primary flex items-center justify-center">
+                      <Gear className="h-12 w-12 text-primary-foreground" weight="fill" />
+                    </div>
+                  </motion.div>
+                  <h2 className="text-3xl font-fredoka font-bold mb-2">
+                    Parent Mode
+                  </h2>
+                  <p className="text-lg font-fredoka text-muted-foreground">
+                    {showBiometricBadge ? 'Tap to use Quick Unlock' : 'Manage & Configure'}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
