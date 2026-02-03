@@ -276,13 +276,9 @@ export function ActivityView({
       })
     })
     
-    // Add dismissed chores for today
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayTimestamp = today.getTime()
-    
+    // Add all dismissed chores
     dismissedMissedChores.forEach((dismissed) => {
-      if (dismissed.dismissed && dismissed.missedDate === todayTimestamp) {
+      if (dismissed.dismissed) {
         // Find the corresponding history event to get the timestamp
         const historyEvent = history.find(
           (h) => h.type === 'override-dismiss' &&
@@ -292,10 +288,10 @@ export function ActivityView({
         )
         
         items.push({
-          id: `dismissed_${dismissed.childId}_${dismissed.choreId}_${dismissed.timeOfDay || 'anytime'}`,
+          id: `dismissed_${dismissed.childId}_${dismissed.choreId}_${dismissed.timeOfDay || 'anytime'}_${dismissed.missedDate}`,
           childId: dismissed.childId,
           choreId: dismissed.choreId,
-          timestamp: historyEvent?.timestamp || todayTimestamp,
+          timestamp: historyEvent?.timestamp || dismissed.missedDate,
           timeOfDay: dismissed.timeOfDay,
           isDismissed: true,
         })
