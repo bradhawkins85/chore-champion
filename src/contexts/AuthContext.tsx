@@ -22,6 +22,7 @@ interface AuthContextType {
   getInvitationDetails: (token: string) => Promise<any>;
   getPendingInvitations: () => Promise<any[]>;
   getTenantUsers: () => Promise<any[]>;
+  revokeParent: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -276,6 +277,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.users;
   };
 
+  const revokeParent = async (userId: string) => {
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_URL}/auth/revoke-parent/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to revoke parent access');
+    }
+
+    await response.json();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -291,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getInvitationDetails,
         getPendingInvitations,
         getTenantUsers,
+        revokeParent,
       }}
     >
       {children}
