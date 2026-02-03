@@ -27,7 +27,12 @@ export function EmailSettings({
   useEffect(() => {
     // Fetch SMTP status from the server
     fetch('/api/config/smtp-status')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch SMTP status')
+        }
+        return res.json()
+      })
       .then((data) => {
         setSmtpConfigured(data.configured)
         setSmtpEnabled(data.enabled)
@@ -35,6 +40,8 @@ export function EmailSettings({
       })
       .catch((error) => {
         console.error('Failed to fetch SMTP status:', error)
+        setSmtpEnabled(false)
+        setSmtpConfigured(false)
         setLoading(false)
       })
   }, [])

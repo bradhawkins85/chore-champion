@@ -290,6 +290,9 @@ function App() {
     const fetchSmtpStatus = async () => {
       try {
         const response = await fetch('/api/config/smtp-status')
+        if (!response.ok) {
+          throw new Error('Failed to fetch SMTP status')
+        }
         const data = await response.json()
         setSmtpEnabled(data.enabled)
       } catch (error) {

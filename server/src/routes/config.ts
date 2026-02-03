@@ -5,7 +5,10 @@ const router = Router();
 // Get SMTP configuration status
 router.get('/smtp-status', (req, res) => {
   try {
-    const smtpEnabled = process.env.SMTP_ENABLED === 'true';
+    // Parse SMTP_ENABLED with flexible boolean handling
+    const smtpEnabledStr = (process.env.SMTP_ENABLED || '').toLowerCase();
+    const smtpEnabled = ['true', '1', 'yes', 'on'].includes(smtpEnabledStr);
+    
     const smtpConfigured = !!(
       process.env.SMTP_HOST &&
       process.env.SMTP_PORT &&
