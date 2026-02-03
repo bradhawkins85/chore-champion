@@ -60,7 +60,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, loading: authLoading, logout, loginWithDevice } = useAuth()
+  const { user, token, loading: authLoading, logout, loginWithDevice } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -265,13 +265,13 @@ function App() {
   // Fetch device configuration to get allowed children IDs
   useEffect(() => {
     const fetchDeviceConfig = async () => {
-      if (!user?.token || !deviceIsLinked) {
+      if (!token || !deviceIsLinked) {
         setDeviceAllowedChildrenIds([])
         return
       }
       
       try {
-        const devices = await getLinkedDevices(user.token)
+        const devices = await getLinkedDevices(token)
         const currentDeviceGuid = getDeviceGuid()
         const currentDevice = devices.find(d => d.deviceGuid === currentDeviceGuid)
         
@@ -289,7 +289,7 @@ function App() {
     }
     
     fetchDeviceConfig()
-  }, [user, deviceIsLinked])
+  }, [token, deviceIsLinked])
 
   useEffect(() => {
     if (parentPin !== normalizedParentPin) {
