@@ -60,7 +60,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, loading: authLoading, logout } = useAuth()
+  const { user, loading: authLoading, logout, loginWithDevice } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -226,16 +226,22 @@ function App() {
         const deviceInfo = await registerDevice()
         setDeviceIsLinked(deviceInfo.isLinked)
         
-        // Note: Auto-login from linked devices is not implemented yet.
-        // Future enhancement: If device is linked, automatically authenticate using device-based auth.
-        // For now, we just track the linking status.
+        // If device is linked and user is not authenticated, auto-login with device
+        if (deviceInfo.isLinked && !user && !authLoading) {
+          try {
+            await loginWithDevice(deviceInfo.deviceGuid)
+          } catch (error) {
+            console.error('Error auto-logging in with device:', error)
+            // If device login fails, user will see the normal auth page
+          }
+        }
       } catch (error) {
         console.error('Error registering device:', error)
       }
     }
     
     registerDeviceOnMount()
-  }, [])
+  }, [user, authLoading, loginWithDevice])
 
   useEffect(() => {
     if (parentPin !== normalizedParentPin) {

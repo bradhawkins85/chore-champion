@@ -165,6 +165,72 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+// Device-based login - authenticate using a linked device
+router.post('/device-login', async (req: Request, res: Response) => {
+  try {
+    const { deviceGuid } = req.body;
+
+    if (!deviceGuid) {
+      return res.status(400).json({ error: 'deviceGuid is required' });
+    }
+
+    // Find device and check if it's linked to a tenant
+    const [devices] = await pool.query<RowDataPacket[]>(
+      'SELECT id, device_guid, tenant_id FROM devices WHERE device_guid = ?',
+      [deviceGuid]
+    );
+
+    if (devices.length === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    const device = devices[0];
+
+    if (!device.tenant_id) {
+      return res.status(401).json({ error: 'Device is not linked to a tenant' });
+    }
+
+    // Get any parent user from the tenant
+    const [users] = await pool.query<RowDataPacket[]>(
+      'SELECT id, email, tenant_id, role FROM users WHERE tenant_id = ? AND role = ? LIMIT 1',
+      [device.tenant_id, 'parent']
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'No parent user found for this tenant' });
+    }
+
+    const user = users[0] as User;
+
+    // Update device last_seen
+    await pool.query(
+      'UPDATE devices SET last_seen = NOW() WHERE device_guid = ?',
+      [deviceGuid]
+    );
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, tenantId: user.tenant_id, email: user.email },
+      SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenant_id,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Error during device login:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get current user info
 router.get('/me', async (req: AuthRequest, res: Response) => {
   try {
