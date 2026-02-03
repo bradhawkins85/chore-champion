@@ -450,9 +450,10 @@ export function AccountSettings({
                           </p>
                           <Select
                             value={emailSettings.digestMode}
-                            onValueChange={(value) =>
+                            onValueChange={(value) => {
                               updateUserEmailSettings(parentUser.id, { digestMode: value as DigestInterval })
-                            }
+                              toast.success('Digest mode updated')
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -538,9 +539,8 @@ export function AccountSettings({
                         checked={weeklySettings.enabled && emailSettings.weeklyReportAlerts}
                         onCheckedChange={(checked) => {
                           updateUserWeeklyReportSettings(parentUser.id, { enabled: checked })
-                          if (checked && !emailSettings.weeklyReportAlerts) {
-                            handleToggleAlert(parentUser.id, 'weeklyReportAlerts', true)
-                          }
+                          // Always sync the email alert setting with the weekly report enabled state
+                          handleToggleAlert(parentUser.id, 'weeklyReportAlerts', checked)
                         }}
                         disabled={!smtpEnabled}
                       />
@@ -554,9 +554,10 @@ export function AccountSettings({
                             <Label>Send Day</Label>
                             <Select
                               value={weeklySettings.sendDay}
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
                                 updateUserWeeklyReportSettings(parentUser.id, { sendDay: value as DayOfWeek })
-                              }
+                                toast.success('Weekly report day updated')
+                              }}
                             >
                               <SelectTrigger>
                                 <SelectValue />
@@ -576,9 +577,10 @@ export function AccountSettings({
                             <Input
                               type="time"
                               value={weeklySettings.sendTime}
-                              onChange={(e) =>
+                              onChange={(e) => {
                                 updateUserWeeklyReportSettings(parentUser.id, { sendTime: e.target.value })
-                              }
+                                toast.success('Weekly report time updated')
+                              }}
                             />
                           </div>
                         </div>
