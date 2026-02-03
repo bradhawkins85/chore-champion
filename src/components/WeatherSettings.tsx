@@ -6,9 +6,9 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { WeatherSettings, TemperatureUnit } from '@/lib/types'
-import { geocodeLocation, detectTemperatureUnit } from '@/lib/weatherHelper'
+import { geocodeLocation, detectTemperatureUnit, getCurrentLocation } from '@/lib/weatherHelper'
 import { toast } from 'sonner'
-import { MagnifyingGlass, MapPin, ThermometerSimple, Palette } from '@phosphor-icons/react'
+import { MagnifyingGlass, MapPin, ThermometerSimple, Palette, MapPinLine } from '@phosphor-icons/react'
 
 interface WeatherSettingsComponentProps {
   settings: WeatherSettings
@@ -18,6 +18,7 @@ interface WeatherSettingsComponentProps {
 export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettingsComponentProps) {
   const [locationInput, setLocationInput] = useState(settings.location || '')
   const [isSearching, setIsSearching] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   const handleLocationSearch = async () => {
     if (!locationInput.trim()) {
@@ -54,6 +55,39 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
       toast.error('Failed to search location')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const handleCurrentLocation = async () => {
+    setIsGettingLocation(true)
+    try {
+      const result = await getCurrentLocation()
+      
+      if (result) {
+        const detectedUnit = detectTemperatureUnit(result.country)
+        
+        onUpdate({
+          ...settings,
+          location: result.displayName,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          autoDetectedUnit: detectedUnit,
+        })
+        setLocationInput(result.displayName)
+        
+        const unitLabel = detectedUnit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)'
+        toast.success(`Location set to ${result.displayName}`, {
+          description: `Auto-detected temperature unit: ${unitLabel}`,
+        })
+      } else {
+        toast.error('Could not get current location', {
+          description: 'Please check your browser permissions or enter a location manually',
+        })
+      }
+    } catch (error) {
+      toast.error('Failed to get current location')
+    } finally {
+      setIsGettingLocation(false)
     }
   }
 
@@ -124,9 +158,18 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
               }}
             />
             <Button
-              onClick={handleLocationSearch}
-              disabled={isSearching || !locationInput.trim()}
+              onClick={handleCurrentLocation}
+              disabled={isGettingLocation || isSearching}
               variant="outline"
+              title="Use current location"
+            >
+              <MapPinLine className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleLocationSearch}
+              disabled={isSearching || !locationInput.trim() || isGettingLocation}
+              variant="outline"
+              title="Search location"
             >
               <MagnifyingGlass className="h-4 w-4" />
             </Button>

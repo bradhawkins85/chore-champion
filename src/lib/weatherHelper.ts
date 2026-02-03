@@ -71,6 +71,67 @@ export async function geocodeLocation(locationName: string): Promise<{
   }
 }
 
+export async function getCurrentLocation(): Promise<{
+  latitude: number
+  longitude: number
+  displayName: string
+  country: string
+} | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser')
+      resolve(null)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        
+        // Reverse geocode to get location name
+        try {
+          const response = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&count=1&language=en&format=json`
+          )
+          
+          if (!response.ok) {
+            console.error('Reverse geocoding API error:', response.statusText)
+            resolve(null)
+            return
+          }
+          
+          const data = await response.json()
+          
+          if (!data.results || data.results.length === 0) {
+            resolve(null)
+            return
+          }
+          
+          const result = data.results[0]
+          resolve({
+            latitude,
+            longitude,
+            displayName: `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}${result.country ? ', ' + result.country : ''}`,
+            country: result.country || '',
+          })
+        } catch (error) {
+          console.error('Failed to reverse geocode location:', error)
+          resolve(null)
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        resolve(null)
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000, // 5 minutes cache
+      }
+    )
+  })
+}
+
 export function detectTemperatureUnit(countryCode: string): 'celsius' | 'fahrenheit' {
   const fahrenheitCountries = ['US', 'USA', 'United States', 'LR', 'Liberia', 'MM', 'Myanmar', 'Burma']
   
