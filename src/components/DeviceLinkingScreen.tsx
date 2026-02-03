@@ -14,6 +14,7 @@ interface DeviceLinkingScreenProps {
 
 export function DeviceLinkingScreen({ onLinked, onCancel }: DeviceLinkingScreenProps) {
   const [linkingCode, setLinkingCode] = useState('');
+  const [deviceName, setDeviceName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ export function DeviceLinkingScreen({ onLinked, onCancel }: DeviceLinkingScreenP
 
     setLoading(true);
     try {
-      const result = await linkDevice(linkingCode);
+      const result = await linkDevice(linkingCode, deviceName.trim() || undefined);
       toast.success('Device linked successfully!');
       onLinked(result.tenantId);
     } catch (error) {
@@ -59,6 +60,22 @@ export function DeviceLinkingScreen({ onLinked, onCancel }: DeviceLinkingScreenP
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="device-name">Device Name (Optional)</Label>
+            <Input
+              id="device-name"
+              type="text"
+              placeholder="e.g., Living Room iPad, Kitchen Tablet"
+              value={deviceName}
+              onChange={(e) => setDeviceName(e.target.value)}
+              maxLength={255}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Give this device a friendly name for easier identification
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="linking-code">Linking Code</Label>
             <Input
