@@ -21,21 +21,19 @@ export function GettingStartedMenu({ state, onUpdateState, onNavigate }: Getting
   const allComplete = completedCount === totalCount
   const hasNavigatedRef = useRef(false)
 
-  // Redirect to Welcome page when all tasks are completed
+  // Redirect to Welcome page when all tasks are completed or guide is dismissed
   useEffect(() => {
-    if (allComplete && !hasNavigatedRef.current) {
+    if ((allComplete || state.dismissed) && !hasNavigatedRef.current) {
       hasNavigatedRef.current = true
       onNavigate('welcome')
     }
-  }, [allComplete, onNavigate])
+  }, [allComplete, state.dismissed, onNavigate])
 
   const handleDismiss = () => {
     onUpdateState({
       ...state,
       dismissed: true,
     })
-    // Redirect to Welcome page after dismissing
-    onNavigate('welcome')
   }
 
   const handleTaskToggle = (taskId: string, completed: boolean) => {
