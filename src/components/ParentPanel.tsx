@@ -372,7 +372,8 @@ export function ParentPanel({
         categories={categories}
         onBack={() => {
           setSelectedChild(null)
-          setActiveTab('children')
+          setActiveTab('management')
+          setManagementSubTab('children')
         }}
         onAssign={(choreId) => onAssignChore(selectedChild.id, choreId)}
         onUnassign={onUnassignChore}
