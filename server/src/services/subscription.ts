@@ -10,7 +10,7 @@ if (!stripeSecretKey && process.env.NODE_ENV === 'production') {
 }
 
 export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2026-01-28.clover',
 }) : null;
 
 // Subscription Plan Interfaces
@@ -187,24 +187,23 @@ export async function createPaidSubscription(
     },
   });
   
-  // Calculate amount: $1 AUD per child per month
-  const amountInCents = childrenCount * 100; // $1 = 100 cents
+  // First, create a price
+  const price = await stripe.prices.create({
+    currency: 'aud',
+    unit_amount: 100, // $1 in cents
+    recurring: {
+      interval: 'month',
+    },
+    product_data: {
+      name: 'ChoreQuest Paid Subscription',
+    },
+  });
   
   // Create Stripe subscription
-  const stripeSubscription = await stripe.subscriptions.create({
+  const stripeSubscription: any = await stripe.subscriptions.create({
     customer: customerId,
     items: [{
-      price_data: {
-        currency: 'aud',
-        product_data: {
-          name: 'ChoreQuest Paid Subscription',
-          description: `$1 AUD per child per month (${childrenCount} children)`,
-        },
-        unit_amount: 100, // $1 in cents
-        recurring: {
-          interval: 'month',
-        },
-      },
+      price: price.id,
       quantity: childrenCount,
     }],
     payment_behavior: 'default_incomplete',
@@ -220,8 +219,8 @@ export async function createPaidSubscription(
   
   // Create or update subscription in database
   const subscriptionId = uuidv4();
-  const currentPeriodStart = stripeSubscription.current_period_start * 1000;
-  const currentPeriodEnd = stripeSubscription.current_period_end * 1000;
+  const currentPeriodStart = (stripeSubscription.current_period_start || 0) * 1000;
+  const currentPeriodEnd = (stripeSubscription.current_period_end || 0) * 1000;
   
   // Check if subscription already exists
   const existingSubscription = await getTenantSubscription(tenantId);
@@ -256,12 +255,15 @@ export async function createPaidSubscription(
   }
   
   // Get client secret for payment confirmation
-  const latestInvoice = stripeSubscription.latest_invoice as Stripe.Invoice;
-  const paymentIntent = latestInvoice?.payment_intent as Stripe.PaymentIntent;
+  let clientSecret: string | undefined;
+  if (stripeSubscription.latest_invoice?.payment_intent) {
+    const paymentIntent: any = stripeSubscription.latest_invoice.payment_intent;
+    clientSecret = paymentIntent.client_secret;
+  }
   
   return {
     subscription,
-    clientSecret: paymentIntent?.client_secret || undefined,
+    clientSecret,
   };
 }
 
