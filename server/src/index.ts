@@ -7,6 +7,7 @@ import { initDatabase } from './config/database.js';
 import kvRoutes from './routes/kv.js';
 import updateRoutes from './routes/update.js';
 import icsRoutes from './routes/ics.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', kvRoutes);
 app.use('/api', updateRoutes);
 app.use('/api', icsRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
