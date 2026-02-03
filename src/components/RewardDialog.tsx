@@ -12,12 +12,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, LockKey, Timer, CalendarBlank, CalendarX, ArrowsLeftRight } from '@phosphor-icons/react'
-import { Reward, Child, Chore, RewardCostOverride, RewardRequirement, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
+import { Plus, Star, Timer, CalendarBlank, CalendarX, ArrowsLeftRight } from '@phosphor-icons/react'
+import { Reward, Child, Chore, RewardCostOverride, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
@@ -41,7 +39,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
-  const [requirements, setRequirements] = useState<RewardRequirement[]>(reward?.requirements || [])
   const [hasLimit, setHasLimit] = useState(!!reward?.purchaseLimit)
   const [limitMax, setLimitMax] = useState(reward?.purchaseLimit?.maxPurchases?.toString() || '1')
   const [limitInterval, setLimitInterval] = useState<PurchaseLimitInterval>(reward?.purchaseLimit?.interval || 'day')
@@ -54,8 +51,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [swapFromAmount, setSwapFromAmount] = useState(reward?.swapConfig?.fromAmount?.toString() || '')
   const [swapToAmount, setSwapToAmount] = useState(reward?.swapConfig?.toAmount?.toString() || '')
 
-  const normalizeRequiredChoreIds = (ids?: string[]) => (Array.isArray(ids) ? ids : [])
-
   useEffect(() => {
     if (open) {
       if (reward) {
@@ -67,12 +62,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         const rewardCategoryIds = reward.categoryIds || []
         setCategoryIds(Array.isArray(rewardCategoryIds) ? [...rewardCategoryIds] : [])
         setCostOverrides(reward.costOverrides || [])
-        setRequirements(
-          (reward.requirements || []).map((requirement) => ({
-            childId: requirement.childId,
-            requiredChoreIds: normalizeRequiredChoreIds(requirement.requiredChoreIds),
-          }))
-        )
         setHasLimit(!!reward.purchaseLimit)
         setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
         setLimitInterval(reward.purchaseLimit?.interval || 'day')
@@ -91,7 +80,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setImageEmoji('🎁')
         setCategoryIds([])
         setCostOverrides([])
-        setRequirements([])
         setHasLimit(false)
         setLimitMax('1')
         setLimitInterval('day')
@@ -143,7 +131,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       imageEmoji,
       categoryIds: categoryIdsToSave,
       costOverrides: isPointSwap ? undefined : (costOverrides.length > 0 ? costOverrides : undefined),
-      requirements: isPointSwap ? undefined : (requirements.length > 0 ? requirements : undefined),
       purchaseLimit,
       startDate: startDate ? new Date(startDate).getTime() : undefined,
       expiryDate: expiryDate ? new Date(expiryDate + 'T23:59:59').getTime() : undefined,
@@ -166,7 +153,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setImageEmoji('🎁')
       setCategoryIds([])
       setCostOverrides([])
-      setRequirements([])
       setHasLimit(false)
       setLimitMax('1')
       setLimitInterval('day')
@@ -181,40 +167,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
     setOpen(false)
   }
 
-  const updateChoreRequirement = (childId: string, choreId: string, shouldRequire: boolean) => {
-    setRequirements(current => {
-      const childReq = current.find(r => r.childId === childId)
-      const requiredChoreIds = normalizeRequiredChoreIds(childReq?.requiredChoreIds)
 
-      if (shouldRequire && !childReq) {
-        return [...current, { childId, requiredChoreIds: [choreId] }]
-      }
-      
-      if (!childReq) {
-        return current
-      }
-
-      if (!shouldRequire && requiredChoreIds.includes(choreId)) {
-        const updated = requiredChoreIds.filter(id => id !== choreId)
-        if (updated.length === 0) {
-          return current.filter(r => r.childId !== childId)
-        }
-        return current.map(r => 
-          r.childId === childId ? { ...r, requiredChoreIds: updated } : r
-        )
-      }
-
-      if (shouldRequire && !requiredChoreIds.includes(choreId)) {
-        return current.map(r =>
-          r.childId === childId
-            ? { ...r, requiredChoreIds: [...requiredChoreIds, choreId] }
-            : r
-        )
-      }
-
-      return current
-    })
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -634,83 +587,6 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                   })}
                 </div>
               </div>
-              
-              {chores.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <LockKey className="h-5 w-5 text-muted-foreground" />
-                      <Label className="text-base font-fredoka font-semibold">Chore Requirements Per Child</Label>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Require specific children to complete certain chores before they can purchase this reward (optional)
-                    </p>
-                    <ScrollArea className="max-h-[300px]">
-                      <div className="space-y-4">
-                        {childrenList.map((child) => {
-                          const childReq = requirements.find(r => r.childId === child.id)
-                          const requiredChoreIds = normalizeRequiredChoreIds(childReq?.requiredChoreIds)
-                          const hasRequirements = requiredChoreIds.length > 0
-
-                          return (
-                            <Card key={child.id} className="p-3">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-fredoka font-bold flex-shrink-0"
-                                    style={{ backgroundColor: child.avatarColor }}
-                                  >
-                                    {child.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">{child.name}</span>
-                                    {hasRequirements && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {requiredChoreIds.length} chore(s) required
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                {chores.length > 0 && (
-                                  <div className="pl-11 space-y-1">
-                                    {chores.slice(0, 5).map((chore) => {
-                                      const checkboxId = `reward-req-${child.id}-${chore.id}`
-                                      const isChecked = requiredChoreIds.includes(chore.id)
-                                      return (
-                                        <div
-                                          key={chore.id}
-                                          className="flex items-center gap-2 hover:bg-accent p-1 rounded"
-                                        >
-                                          <Checkbox
-                                            id={checkboxId}
-                                            checked={isChecked}
-                                            onCheckedChange={(checked) => {
-                                              updateChoreRequirement(child.id, chore.id, checked === true)
-                                            }}
-                                          />
-                                          <label htmlFor={checkboxId} className="text-sm cursor-pointer">
-                                            {chore.name}
-                                          </label>
-                                        </div>
-                                      )
-                                    })}
-                                    {chores.length > 5 && (
-                                      <p className="text-xs text-muted-foreground pl-6">
-                                        +{chores.length - 5} more chores available
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </Card>
-                          )
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </>
-              )}
             </>
           )}
           </div>
