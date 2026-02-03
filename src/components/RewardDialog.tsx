@@ -664,6 +664,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                                       >
                                         <Checkbox 
                                           checked={childReq?.requiredChoreIds.includes(chore.id) || false}
+                                          onCheckedChange={() => toggleChoreRequirement(child.id, chore.id)}
                                           className="pointer-events-none"
                                         />
                                         <span className="text-sm">{chore.name}</span>
