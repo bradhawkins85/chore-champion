@@ -1161,10 +1161,14 @@ function App() {
   }
 
   const handleAddCategory = (categoryData: Omit<Category, 'id' | 'createdAt'>) => {
+    // Find the highest order value, defaulting to -1 if no categories exist
+    const maxOrder = (categories || []).reduce((max, c) => Math.max(max, c.order ?? -1), -1)
+    
     const newCategory: Category = {
       ...categoryData,
       id: `category_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
+      order: maxOrder + 1,
     }
     setCategories((current) => [...(current || []), newCategory])
     toast.success(`Category "${newCategory.name}" created!`)
@@ -1197,6 +1201,11 @@ function App() {
     )
     setCategories((current) => (current || []).filter((c) => c.id !== id))
     toast.success('Category deleted')
+  }
+
+  const handleReorderCategories = (reorderedCategories: Category[]) => {
+    setCategories(reorderedCategories)
+    toast.success('Category order updated')
   }
 
   const handleSwapPoints = (
@@ -2015,6 +2024,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onAddCategory={handleAddCategory}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
+          onReorderCategories={handleReorderCategories}
           onApproveCompletion={handleApproveCompletion}
           onRejectCompletion={handleRejectCompletion}
           onUndoCompletion={handleUndoCompletion}

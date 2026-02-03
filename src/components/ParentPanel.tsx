@@ -123,6 +123,7 @@ interface ParentPanelProps {
   onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void
   onEditCategory: (id: string, category: Omit<Category, 'id' | 'createdAt'>) => void
   onDeleteCategory: (id: string) => void
+  onReorderCategories: (categories: Category[]) => void
   onApproveCompletion: (completionId: string) => void
   onRejectCompletion: (completionId: string, reason?: string) => void
   onUndoCompletion: (completionId: string) => void
@@ -195,6 +196,7 @@ export function ParentPanel({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  onReorderCategories,
   onApproveCompletion,
   onRejectCompletion,
   onUndoCompletion,
@@ -948,6 +950,7 @@ export function ParentPanel({
                 onAddCategory={onAddCategory}
                 onEditCategory={onEditCategory}
                 onDeleteCategory={onDeleteCategory}
+                onReorderCategories={onReorderCategories}
               />
             </TabsContent>
 

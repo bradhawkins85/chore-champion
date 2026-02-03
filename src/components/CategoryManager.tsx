@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye, EyeSlash, Calendar as CalendarIcon } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye, EyeSlash, Calendar as CalendarIcon, CaretUp, CaretDown, DotsSixVertical } from '@phosphor-icons/react'
 import { Category } from '@/lib/types'
 import { CategoryDialog } from './CategoryDialog'
 import {
@@ -21,6 +21,7 @@ interface CategoryManagerProps {
   onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void
   onEditCategory: (id: string, category: Omit<Category, 'id' | 'createdAt'>) => void
   onDeleteCategory: (id: string) => void
+  onReorderCategories?: (categories: Category[]) => void
 }
 
 export function CategoryManager({
@@ -28,10 +29,22 @@ export function CategoryManager({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  onReorderCategories,
 }: CategoryManagerProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | undefined>()
   const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  // Sort categories by order field, or by creation date if order not set
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const orderA = a.order ?? a.createdAt
+      const orderB = b.order ?? b.createdAt
+      return orderA - orderB
+    })
+  }, [categories])
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category)
@@ -62,6 +75,64 @@ export function CategoryManager({
     }
   }
 
+  const moveCategory = (fromIndex: number, toIndex: number) => {
+    if (!onReorderCategories) return
+    if (fromIndex === toIndex) return
+    
+    const reordered = [...sortedCategories]
+    const [movedItem] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, movedItem)
+    
+    // Update order values
+    const updatedCategories = reordered.map((cat, index) => ({
+      ...cat,
+      order: index
+    }))
+    
+    onReorderCategories(updatedCategories)
+  }
+
+  const handleMoveUp = (index: number) => {
+    if (index > 0) {
+      moveCategory(index, index - 1)
+    }
+  }
+
+  const handleMoveDown = (index: number) => {
+    if (index < sortedCategories.length - 1) {
+      moveCategory(index, index + 1)
+    }
+  }
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverIndex(index)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      moveCategory(draggedIndex, dropIndex)
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -78,10 +149,52 @@ export function CategoryManager({
       </div>
 
       <div className="grid gap-3">
-        {categories.map((category) => (
-          <Card key={category.id}>
+        {sortedCategories.map((category, index) => (
+          <Card 
+            key={category.id}
+            draggable={onReorderCategories !== undefined}
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className={`transition-all ${
+              draggedIndex === index ? 'opacity-50' : ''
+            } ${
+              dragOverIndex === index ? 'border-primary border-2' : ''
+            } ${
+              onReorderCategories ? 'cursor-move' : ''
+            }`}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
+                {onReorderCategories && (
+                  <div className="flex flex-col gap-1 pt-1" role="group" aria-label="Reorder controls">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => handleMoveUp(index)}
+                      disabled={index === 0}
+                      aria-label="Move category up"
+                    >
+                      <CaretUp className="h-4 w-4" />
+                    </Button>
+                    <div className="drag-icon" aria-hidden="true">
+                      <DotsSixVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => handleMoveDown(index)}
+                      disabled={index === sortedCategories.length - 1}
+                      aria-label="Move category down"
+                    >
+                      <CaretDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 flex-1">
                   <div
                     className="w-4 h-4 rounded-full"
@@ -149,7 +262,7 @@ export function CategoryManager({
           </Card>
         ))}
 
-        {categories.length === 0 && (
+        {sortedCategories.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               No categories yet. Create your first category to get started.
@@ -166,7 +279,7 @@ export function CategoryManager({
         }}
         onSave={handleSave}
         category={editingCategory}
-        allCategories={categories}
+        allCategories={sortedCategories}
       />
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
