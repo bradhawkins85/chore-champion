@@ -13,6 +13,7 @@ import {
   Trash, 
   Copy,
   QrCode,
+  PencilSimple,
 } from '@phosphor-icons/react';
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
   generateLinkingCode, 
   getLinkedDevices, 
   unlinkDevice,
+  updateDeviceName,
   getDeviceGuid,
   DeviceInfo,
 } from '@/lib/deviceHelper';
@@ -43,6 +45,7 @@ import {
 interface DeviceInfoExtended {
   id: string;
   deviceGuid: string;
+  deviceName: string | null;
   deviceInfo: DeviceInfo;
   linkedAt: Date;
   lastSeen: Date;
@@ -57,6 +60,8 @@ export function DeviceManagement() {
   const [linkingCode, setLinkingCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<Date | null>(null);
   const [deviceToUnlink, setDeviceToUnlink] = useState<DeviceInfoExtended | null>(null);
+  const [deviceToRename, setDeviceToRename] = useState<DeviceInfoExtended | null>(null);
+  const [newDeviceName, setNewDeviceName] = useState('');
   const currentDeviceGuid = getDeviceGuid();
 
   useEffect(() => {
@@ -105,6 +110,25 @@ export function DeviceManagement() {
     }
   };
 
+  const handleRenameDevice = async () => {
+    if (!token || !deviceToRename) return;
+
+    setLoading(true);
+    try {
+      await updateDeviceName(token, deviceToRename.id, newDeviceName.trim());
+      toast.success('Device renamed successfully');
+      loadDevices();
+      setDeviceToRename(null);
+      setNewDeviceName('');
+    } catch (error) {
+      console.error('Error renaming device:', error);
+      const message = error instanceof Error ? error.message : 'Failed to rename device';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUnlinkDevice = async (device: DeviceInfoExtended) => {
     if (!token) return;
 
@@ -135,12 +159,18 @@ export function DeviceManagement() {
     }
   };
 
-  const getDeviceName = (deviceInfo: DeviceInfo) => {
-    const userAgent = deviceInfo.userAgent || 'Unknown Device';
+  const getDeviceName = (device: DeviceInfoExtended) => {
+    // Return custom name if available
+    if (device.deviceName) {
+      return device.deviceName;
+    }
+    
+    // Fall back to auto-generated name
+    const userAgent = device.deviceInfo.userAgent || 'Unknown Device';
     
     // Extract browser and OS info
     let browser = 'Unknown Browser';
-    let os = deviceInfo.platform || 'Unknown OS';
+    let os = device.deviceInfo.platform || 'Unknown OS';
     
     if (userAgent.includes('Chrome')) browser = 'Chrome';
     else if (userAgent.includes('Firefox')) browser = 'Firefox';
@@ -231,7 +261,7 @@ export function DeviceManagement() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold">
-                        {getDeviceName(device.deviceInfo)}
+                        {getDeviceName(device)}
                       </h3>
                       {device.deviceGuid === currentDeviceGuid && (
                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
@@ -252,14 +282,29 @@ export function DeviceManagement() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeviceToUnlink(device)}
-                  disabled={loading}
-                >
-                  <Trash className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDeviceToRename(device);
+                      setNewDeviceName(device.deviceName || '');
+                    }}
+                    disabled={loading}
+                    title="Rename device"
+                  >
+                    <PencilSimple className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeviceToUnlink(device)}
+                    disabled={loading}
+                    title="Unlink device"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
@@ -320,6 +365,60 @@ export function DeviceManagement() {
               className="flex-1"
             >
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Device Dialog */}
+      <Dialog open={!!deviceToRename} onOpenChange={() => {
+        setDeviceToRename(null);
+        setNewDeviceName('');
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Device</DialogTitle>
+            <DialogDescription>
+              Give this device a friendly name for easier identification
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-device-name">Device Name</Label>
+              <Input
+                id="new-device-name"
+                type="text"
+                placeholder="e.g., Living Room iPad, Kitchen Tablet"
+                value={newDeviceName}
+                onChange={(e) => setNewDeviceName(e.target.value)}
+                maxLength={255}
+                autoComplete="off"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to use the auto-generated name
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeviceToRename(null);
+                setNewDeviceName('');
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRenameDevice}
+              disabled={loading}
+              className="flex-1"
+            >
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
