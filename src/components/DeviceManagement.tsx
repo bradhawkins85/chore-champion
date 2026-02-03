@@ -546,7 +546,7 @@ export function DeviceManagement() {
           <DialogHeader>
             <DialogTitle>Manage Child Access</DialogTitle>
             <DialogDescription>
-              Control which children can access this device. Leave all unchecked to allow all children.
+              Check the children who should have access to this device. Leave all unchecked to allow all children.
             </DialogDescription>
           </DialogHeader>
           
@@ -581,8 +581,8 @@ export function DeviceManagement() {
             
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground">
-                <strong>Tip:</strong> Check individual children to restrict access to only those children. 
-                Leave all unchecked to allow all children to access this device.
+                <strong>How it works:</strong> Check specific children to restrict this device to only those children. 
+                Leave all unchecked to allow all children on this device (recommended for shared household devices).
               </p>
             </div>
           </div>
