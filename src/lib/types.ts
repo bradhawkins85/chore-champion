@@ -31,6 +31,7 @@ export interface Category {
   color: string
   description?: string
   createdAt: number
+  order?: number
   exchangeRates?: ExchangeRate[]
   completionBonus?: CategoryCompletionBonus
   pointsExpiry?: PointsExpiryConfig
