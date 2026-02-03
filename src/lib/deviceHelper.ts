@@ -1,12 +1,167 @@
+import { v4 as uuidv4 } from 'uuid';
+
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 /**
- * Get or create a unique device ID for this device.
- * The ID is stored in localStorage and persists across sessions.
+ * Device information captured from the browser
+ */
+export interface DeviceInfo {
+  userAgent: string;
+  platform: string;
+  mobile: boolean;
+  ip?: string;
+  timestamp: string;
+}
+
+/**
+ * Get or create a unique device GUID for this device.
+ * The GUID is stored in localStorage and persists across sessions.
+ * Returns a proper UUID v4.
+ */
+export const getDeviceGuid = (): string => {
+  let storedGuid = localStorage.getItem('chorequest-device-guid');
+  if (!storedGuid) {
+    storedGuid = uuidv4();
+    localStorage.setItem('chorequest-device-guid', storedGuid);
+  }
+  return storedGuid;
+};
+
+/**
+ * Legacy function for backwards compatibility.
+ * @deprecated Use getDeviceGuid instead
  */
 export const getDeviceId = (): string => {
-  let storedId = localStorage.getItem('chorequest-device-id')
-  if (!storedId) {
-    storedId = `device-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    localStorage.setItem('chorequest-device-id', storedId)
+  return getDeviceGuid();
+};
+
+/**
+ * Register device with the backend and check if it's linked to a tenant.
+ * Returns device registration info including linking status.
+ */
+export const registerDevice = async (): Promise<{
+  deviceId: string;
+  deviceGuid: string;
+  isLinked: boolean;
+  tenantId: string | null;
+}> => {
+  const deviceGuid = getDeviceGuid();
+  
+  try {
+    const response = await fetch(`${API_URL}/devices/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deviceGuid }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to register device');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error registering device:', error);
+    // Return offline mode data
+    return {
+      deviceId: deviceGuid,
+      deviceGuid,
+      isLinked: false,
+      tenantId: null,
+    };
   }
-  return storedId
-}
+};
+
+/**
+ * Link this device to a tenant using a linking code.
+ */
+export const linkDevice = async (linkingCode: string): Promise<{
+  success: boolean;
+  tenantId: string;
+  deviceId: string;
+}> => {
+  const deviceGuid = getDeviceGuid();
+  
+  const response = await fetch(`${API_URL}/devices/link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ deviceGuid, linkingCode }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to link device');
+  }
+
+  return await response.json();
+};
+
+/**
+ * Generate a linking code for the current tenant (requires authentication).
+ */
+export const generateLinkingCode = async (token: string): Promise<{
+  code: string;
+  expiresAt: Date;
+}> => {
+  const response = await fetch(`${API_URL}/devices/generate-link-code`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate linking code');
+  }
+
+  return await response.json();
+};
+
+/**
+ * Get all devices linked to the current tenant.
+ */
+export const getLinkedDevices = async (token: string): Promise<Array<{
+  id: string;
+  deviceGuid: string;
+  deviceInfo: DeviceInfo;
+  linkedAt: Date;
+  lastSeen: Date;
+  createdAt: Date;
+}>> => {
+  const response = await fetch(`${API_URL}/devices`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to get devices');
+  }
+
+  const data = await response.json();
+  return data.devices;
+};
+
+/**
+ * Unlink a device from the current tenant.
+ */
+export const unlinkDevice = async (token: string, deviceId: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/devices/${deviceId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to unlink device');
+  }
+};
+
