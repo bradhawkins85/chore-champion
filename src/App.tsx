@@ -1481,17 +1481,16 @@ Please fulfill this reward when you get a chance!
 
     if (!child || !chore) return
 
-    // Check digest mode for each user (use 'immediate' if any user has immediate)
-    const hasImmediateMode = recipientEmails.some((email) => {
-      const users = Object.keys(emailAlertSettingsMap || {})
-      const user = users.find(userId => {
-        // We'd need to match userId to email, for now assume immediate if not set
-        return emailAlertSettingsMap?.[userId]?.digestMode === 'immediate'
-      })
-      return user !== undefined
+    // Check digest mode - send immediately if ANY parent has immediate mode
+    const users = await getTenantUsers()
+    const hasImmediateMode = users.some((user) => {
+      const userSettings = emailAlertSettingsMap?.[user.id]
+      // If user has this alert enabled and has immediate mode (or no mode set, default to immediate)
+      return userSettings?.pendingApprovalAlerts && 
+             (!userSettings.digestMode || userSettings.digestMode === 'immediate')
     })
     
-    if (hasImmediateMode || !emailAlertSettings?.digestMode || emailAlertSettings.digestMode === 'immediate') {
+    if (hasImmediateMode) {
       const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
       const emailBody = `
 ${child.name} has completed a chore that requires your approval:

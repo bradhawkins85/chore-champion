@@ -63,10 +63,6 @@ export function AccountSettings({
       })
   }, [])
 
-  useEffect(() => {
-    loadTenantUsers()
-  }, [])
-
   const loadTenantUsers = async () => {
     try {
       const users = await getTenantUsers()
