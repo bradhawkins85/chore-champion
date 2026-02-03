@@ -35,6 +35,7 @@ interface ChildSelectorProps {
   schoolHolidayCountdownSettings?: SchoolHolidayCountdownSettings
   deviceIsLinked?: boolean
   blockParentModeOnLinkedDevices?: boolean
+  deviceRegistrationComplete?: boolean
 }
 
 export function ChildSelector({ 
@@ -59,6 +60,7 @@ export function ChildSelector({
   schoolHolidayCountdownSettings,
   deviceIsLinked = false,
   blockParentModeOnLinkedDevices = false,
+  deviceRegistrationComplete = false,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
@@ -359,7 +361,7 @@ export function ChildSelector({
             )
           })}
 
-          {!(deviceIsLinked && blockParentModeOnLinkedDevices) && (
+          {deviceRegistrationComplete && !(deviceIsLinked && blockParentModeOnLinkedDevices) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
