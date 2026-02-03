@@ -30,7 +30,6 @@ import {
   TrendDown,
   Calendar,
   XCircle,
-  ClockCounterClockwise,
 } from '@phosphor-icons/react'
 import { 
   Child, 
@@ -43,6 +42,7 @@ import {
   Reward,
   PointSwap,
   ChoreHistoryEvent,
+  MissedChore,
 } from '@/lib/types'
 import { 
   isCompletionApproved, 
@@ -63,11 +63,23 @@ interface ActivityViewProps {
   rewards: Reward[]
   swaps: PointSwap[]
   history: ChoreHistoryEvent[]
+  dismissedMissedChores: MissedChore[]
   onUndoCompletion: (completionId: string) => void
   onUndoDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
 }
 
 type HistoryEventType = 'earned' | 'expired' | 'spent' | 'bonus' | 'swap-in' | 'swap-out'
+
+// Unified type to represent both completions and dismissed chores
+interface CompletionOrDismissal {
+  id: string
+  childId: string
+  choreId: string
+  timestamp: number
+  timeOfDay?: 'am' | 'pm'
+  isDismissed: boolean
+  completion?: ChoreCompletion
+}
 
 interface PointsHistoryEvent {
   id: string
@@ -93,6 +105,7 @@ export function ActivityView({
   rewards,
   swaps,
   history,
+  dismissedMissedChores,
   onUndoCompletion,
   onUndoDismissMissed,
 }: ActivityViewProps) {
@@ -247,13 +260,55 @@ export function ActivityView({
   }, [completions, choresMap, assignments, bonusCompletions, purchases, rewardsMap, swaps, categories])
 
   const filteredCompletions = useMemo(() => {
-    let filtered = [...completions]
+    // Combine completions and dismissed chores into a unified list
+    const items: CompletionOrDismissal[] = []
+    
+    // Add all completions
+    completions.forEach((completion) => {
+      items.push({
+        id: completion.id,
+        childId: completion.childId,
+        choreId: completion.choreId,
+        timestamp: completion.completedAt,
+        timeOfDay: completion.timeOfDay,
+        isDismissed: false,
+        completion,
+      })
+    })
+    
+    // Add dismissed chores for today
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayTimestamp = today.getTime()
+    
+    dismissedMissedChores.forEach((dismissed) => {
+      if (dismissed.dismissed && dismissed.missedDate === todayTimestamp) {
+        // Find the corresponding history event to get the timestamp
+        const historyEvent = history.find(
+          (h) => h.type === 'override-dismiss' &&
+            h.childId === dismissed.childId &&
+            h.choreId === dismissed.choreId &&
+            h.timeOfDay === dismissed.timeOfDay
+        )
+        
+        items.push({
+          id: `dismissed_${dismissed.childId}_${dismissed.choreId}_${dismissed.timeOfDay || 'anytime'}`,
+          childId: dismissed.childId,
+          choreId: dismissed.choreId,
+          timestamp: historyEvent?.timestamp || todayTimestamp,
+          timeOfDay: dismissed.timeOfDay,
+          isDismissed: true,
+        })
+      }
+    })
+    
+    let filtered = items
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter((completion) => {
-        const child = childrenList.find((c) => c.id === completion.childId)
-        const chore = chores.find((c) => c.id === completion.choreId)
+      filtered = filtered.filter((item) => {
+        const child = childrenList.find((c) => c.id === item.childId)
+        const chore = chores.find((c) => c.id === item.choreId)
         return (
           child?.name.toLowerCase().includes(query) ||
           chore?.name.toLowerCase().includes(query)
@@ -274,26 +329,26 @@ export function ActivityView({
       today.setHours(0, 0, 0, 0)
       const todayTimestamp = today.getTime()
 
-      filtered = filtered.filter((completion) => {
+      filtered = filtered.filter((item) => {
         switch (dateFilter) {
           case 'today':
-            return completion.completedAt >= todayTimestamp
+            return item.timestamp >= todayTimestamp
           case 'week': {
             const weekAgo = new Date()
             weekAgo.setDate(weekAgo.getDate() - 7)
             weekAgo.setHours(0, 0, 0, 0)
-            return completion.completedAt >= weekAgo.getTime()
+            return item.timestamp >= weekAgo.getTime()
           }
           case 'month':
-            return completion.completedAt >= startOfMonth(today).getTime()
+            return item.timestamp >= startOfMonth(today).getTime()
           default:
             return true
         }
       })
     }
 
-    return filtered.sort((a, b) => b.completedAt - a.completedAt)
-  }, [completions, searchQuery, selectedChild, selectedChore, dateFilter, childrenList, chores])
+    return filtered.sort((a, b) => b.timestamp - a.timestamp)
+  }, [completions, dismissedMissedChores, history, searchQuery, selectedChild, selectedChore, dateFilter, childrenList, chores])
 
   const filteredPointsEvents = useMemo(() => {
     let filtered = pointsHistoryEvents
@@ -332,44 +387,6 @@ export function ActivityView({
 
     return filtered
   }, [pointsHistoryEvents, selectedChild, selectedCategory, dateFilter])
-
-  const filteredActivityHistory = useMemo(() => {
-    let filtered = [...history]
-
-    if (selectedChild !== 'all') {
-      filtered = filtered.filter((e) => e.childId === selectedChild)
-    }
-
-    if (selectedChore !== 'all') {
-      filtered = filtered.filter((e) => e.choreId === selectedChore)
-    }
-
-    if (dateFilter !== 'all') {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      let cutoffTime = 0
-
-      switch (dateFilter) {
-        case 'today':
-          cutoffTime = today.getTime()
-          break
-        case 'week': {
-          const weekAgo = new Date()
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          weekAgo.setHours(0, 0, 0, 0)
-          cutoffTime = weekAgo.getTime()
-          break
-        }
-        case 'month':
-          cutoffTime = startOfMonth(today).getTime()
-          break
-      }
-
-      filtered = filtered.filter((e) => e.timestamp >= cutoffTime)
-    }
-
-    return filtered.sort((a, b) => b.timestamp - a.timestamp)
-  }, [history, selectedChild, selectedChore, dateFilter])
 
   const categorySummaries = useMemo(() => {
     const summaries = new Map<string, { 
@@ -524,13 +541,16 @@ export function ActivityView({
 
   const totalCompletions = filteredCompletions.length
   const approvedCount = filteredCompletions.filter(
-    (c) => !c.approvalStatus || c.approvalStatus === 'approved'
+    (item) => !item.isDismissed && (!item.completion?.approvalStatus || item.completion?.approvalStatus === 'approved')
   ).length
   const pendingCount = filteredCompletions.filter(
-    (c) => c.approvalStatus === 'pending'
+    (item) => !item.isDismissed && item.completion?.approvalStatus === 'pending'
   ).length
   const rejectedCount = filteredCompletions.filter(
-    (c) => c.approvalStatus === 'rejected'
+    (item) => !item.isDismissed && item.completion?.approvalStatus === 'rejected'
+  ).length
+  const dismissedCount = filteredCompletions.filter(
+    (item) => item.isDismissed
   ).length
 
   return (
@@ -610,7 +630,7 @@ export function ActivityView({
           </div>
 
           <Tabs defaultValue="completions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="completions">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Completions
@@ -621,10 +641,6 @@ export function ActivityView({
               <TabsTrigger value="points">
                 <Star className="h-4 w-4 mr-2" />
                 Points Activity
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                <ClockCounterClockwise className="h-4 w-4 mr-2" />
-                Action History
               </TabsTrigger>
             </TabsList>
 
@@ -646,13 +662,18 @@ export function ActivityView({
                     {rejectedCount} Rejected
                   </Badge>
                 )}
+                {dismissedCount > 0 && (
+                  <Badge variant="outline" className="text-sm bg-gray-100 text-gray-700 border-gray-200">
+                    {dismissedCount} Dismissed
+                  </Badge>
+                )}
               </div>
 
               {filteredCompletions.length === 0 ? (
                 <div className="py-12 text-center">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
                   <p className="text-lg text-muted-foreground">
-                    {completions.length === 0
+                    {completions.length === 0 && dismissedMissedChores.length === 0
                       ? 'No completions yet. Chores will appear here as they are completed.'
                       : 'No completions match your filters.'}
                   </p>
@@ -660,74 +681,127 @@ export function ActivityView({
               ) : (
                 <ScrollArea className="h-[600px] pr-4">
                   <div className="space-y-3">
-                    {filteredCompletions.map((completion) => {
-                      const child = childrenList.find((c) => c.id === completion.childId)
-                      const chore = chores.find((c) => c.id === completion.choreId)
+                    {filteredCompletions.map((item) => {
+                      const child = childrenList.find((c) => c.id === item.childId)
+                      const chore = chores.find((c) => c.id === item.choreId)
 
-                      return (
-                        <div
-                          key={completion.id}
-                          className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="mt-0.5">
-                            {completion.overridden ? (
-                              <Warning className="h-5 w-5 text-primary" weight="fill" />
-                            ) : (
-                              <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="font-medium">{getChildName(completion.childId)}</span>
-                              <span className="text-muted-foreground">completed</span>
-                              <span className="font-medium">{getChoreName(completion.choreId)}</span>
-                              {completion.timeOfDay && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {completion.timeOfDay.toUpperCase()}
-                                </Badge>
-                              )}
-                              {completion.overridden && (
-                                <Badge variant="outline" className="text-xs">
-                                  Parent Override
-                                </Badge>
-                              )}
-                              {getApprovalStatusBadge(completion)}
+                      if (item.isDismissed) {
+                        // Render dismissed chore
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="mt-0.5">
+                              <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatTimestamp(completion.completedAt)}
-                            </div>
-                            {completion.rejectedReason && (
-                              <div className="text-sm text-red-600 mt-1">
-                                Reason: {completion.rejectedReason}
-                              </div>
-                            )}
-                            {completion.approvalStatus === 'approved' && completion.approvedAt && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Approved {formatTimestamp(completion.approvedAt)}
-                              </div>
-                            )}
-                          </div>
 
-                          <div className="flex items-center gap-3">
-                            {child && (
-                              <div
-                                className="w-8 h-8 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: child.avatarColor }}
-                              />
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUndoClick(completion.id)}
-                              className="flex-shrink-0"
-                            >
-                              <ArrowCounterClockwise className="h-4 w-4 mr-2" />
-                              Undo
-                            </Button>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="font-medium">{getChildName(item.childId)}</span>
+                                <span className="text-muted-foreground">dismissed</span>
+                                <span className="font-medium">{getChoreName(item.choreId)}</span>
+                                {item.timeOfDay && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.timeOfDay.toUpperCase()}
+                                  </Badge>
+                                )}
+                                <Badge variant="outline" className="text-xs bg-gray-100">
+                                  Dismissed
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {formatTimestamp(item.timestamp)}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              {child && (
+                                <div
+                                  className="w-8 h-8 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: child.avatarColor }}
+                                />
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUndoDismissClick(item.childId, item.choreId, item.timeOfDay)}
+                                className="flex-shrink-0"
+                              >
+                                <ArrowCounterClockwise className="h-4 w-4 mr-2" />
+                                Undo
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      )
+                        )
+                      } else {
+                        // Render regular completion
+                        const completion = item.completion!
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="mt-0.5">
+                              {completion.overridden ? (
+                                <Warning className="h-5 w-5 text-primary" weight="fill" />
+                              ) : (
+                                <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="font-medium">{getChildName(item.childId)}</span>
+                                <span className="text-muted-foreground">completed</span>
+                                <span className="font-medium">{getChoreName(item.choreId)}</span>
+                                {completion.timeOfDay && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {completion.timeOfDay.toUpperCase()}
+                                  </Badge>
+                                )}
+                                {completion.overridden && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Parent Override
+                                  </Badge>
+                                )}
+                                {getApprovalStatusBadge(completion)}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {formatTimestamp(completion.completedAt)}
+                              </div>
+                              {completion.rejectedReason && (
+                                <div className="text-sm text-red-600 mt-1">
+                                  Reason: {completion.rejectedReason}
+                                </div>
+                              )}
+                              {completion.approvalStatus === 'approved' && completion.approvedAt && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Approved {formatTimestamp(completion.approvedAt)}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              {child && (
+                                <div
+                                  className="w-8 h-8 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: child.avatarColor }}
+                                />
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUndoClick(item.id)}
+                                className="flex-shrink-0"
+                              >
+                                <ArrowCounterClockwise className="h-4 w-4 mr-2" />
+                                Undo
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      }
                     })}
                   </div>
                 </ScrollArea>
@@ -834,117 +908,6 @@ export function ActivityView({
                           <div className={`text-lg font-bold ${getEventColor(event.type)}`}>
                             {event.type === 'spent' || event.type === 'expired' || event.type === 'swap-out' ? '-' : '+'}
                             {event.points}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </ScrollArea>
-              )}
-            </TabsContent>
-
-            <TabsContent value="history" className="space-y-4">
-              {filteredActivityHistory.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                  <p className="text-lg text-muted-foreground">
-                    {history.length === 0
-                      ? 'No history yet. Activity will appear here as chores are completed and undone.'
-                      : 'No activity matches your filters.'}
-                  </p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[600px] pr-4">
-                  <div className="space-y-3">
-                    {filteredActivityHistory.map((event) => {
-                      const child = childrenList.find((c) => c.id === event.childId)
-                      const chore = chores.find((c) => c.id === event.choreId)
-
-                      return (
-                        <div
-                          key={event.id}
-                          className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="mt-0.5">
-                            {event.type === 'complete' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
-                            ) : event.type === 'undo' ? (
-                              <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
-                            ) : event.type === 'override-complete' ? (
-                              <Warning className="h-5 w-5 text-primary" weight="fill" />
-                            ) : event.type === 'override-dismiss' ? (
-                              <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
-                            ) : event.type === 'undo-dismiss' ? (
-                              <ArrowCounterClockwise className="h-5 w-5 text-orange-600" weight="fill" />
-                            ) : event.type === 'approve' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" weight="fill" />
-                            ) : event.type === 'reject' ? (
-                              <XCircle className="h-5 w-5 text-red-600" weight="fill" />
-                            ) : (
-                              <XCircle className="h-5 w-5 text-muted-foreground" weight="fill" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium">{getChildName(event.childId)}</span>
-                              <span className="text-muted-foreground">
-                                {event.type === 'complete' 
-                                  ? 'completed' 
-                                  : event.type === 'undo' 
-                                  ? 'undid' 
-                                  : event.type === 'override-complete'
-                                  ? 'was awarded points for'
-                                  : event.type === 'override-dismiss'
-                                  ? 'had dismissed'
-                                  : event.type === 'undo-dismiss'
-                                  ? 'had dismiss undone for'
-                                  : event.type === 'approve'
-                                  ? 'had approved'
-                                  : event.type === 'reject'
-                                  ? 'had rejected'
-                                  : 'had dismissed'}
-                              </span>
-                              <span className="font-medium">{getChoreName(event.choreId)}</span>
-                              {event.timeOfDay && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {event.timeOfDay.toUpperCase()}
-                                </Badge>
-                              )}
-                              {(event.type === 'override-complete' || event.type === 'override-dismiss') && (
-                                <Badge variant="outline" className="text-xs">
-                                  Parent Override
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground mt-1">
-                              {formatTimestamp(event.timestamp)}
-                            </div>
-                            {event.rejectedReason && (
-                              <div className="text-sm text-red-600 mt-1">
-                                Reason: {event.rejectedReason}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {child && (
-                              <div
-                                className="w-8 h-8 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: child.avatarColor }}
-                              />
-                            )}
-                            {event.type === 'override-dismiss' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleUndoDismissClick(event.childId, event.choreId, event.timeOfDay)}
-                                className="flex-shrink-0"
-                              >
-                                <ArrowCounterClockwise className="h-4 w-4 mr-2" />
-                                Undo
-                              </Button>
-                            )}
                           </div>
                         </div>
                       )

@@ -816,6 +816,7 @@ export function ParentPanel({
                 rewards={rewards}
                 swaps={pointSwaps || []}
                 history={history}
+                dismissedMissedChores={dismissedMissedChores}
                 onUndoCompletion={onUndoCompletion}
                 onUndoDismissMissed={onUndoDismissMissed}
               />
