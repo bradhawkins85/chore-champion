@@ -24,36 +24,77 @@ echo "Creating pre-update backup..."
 docker exec chorequest-backup /scripts/backup.sh || echo "WARNING: Backup container not running"
 
 echo ""
-echo "Pulling latest code/image..."
+echo "Checking for updates..."
+UPDATE_AVAILABLE=false
+
 if [ -f Dockerfile ]; then
-    # Source-based deployment - update from git if it's a repository
+    # Source-based deployment - check git if it's a repository
     if [ -d .git ]; then
-        echo "Updating from git repository..."
+        echo "Checking git repository for updates..."
         CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
         echo "Current branch: ${CURRENT_BRANCH}"
+        
+        # Get current commit
+        LOCAL_COMMIT=$(git rev-parse HEAD 2>/dev/null)
+        
         if git fetch origin; then
             echo "✓ Fetched latest changes"
-            if git reset --hard "origin/${CURRENT_BRANCH}"; then
-                echo "✓ Updated to latest version from GitHub"
+            
+            # Get remote commit
+            REMOTE_COMMIT=$(git rev-parse "origin/${CURRENT_BRANCH}" 2>/dev/null)
+            
+            if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+                echo "✓ Updates available from GitHub"
+                UPDATE_AVAILABLE=true
+                
+                echo "Updating to latest version..."
+                if git reset --hard "origin/${CURRENT_BRANCH}"; then
+                    echo "✓ Code updated to latest version from GitHub"
+                else
+                    echo "WARNING: Failed to reset to origin/${CURRENT_BRANCH}"
+                    echo "Continuing with current code..."
+                    UPDATE_AVAILABLE=false
+                fi
             else
-                echo "WARNING: Failed to reset to origin/${CURRENT_BRANCH}"
-                echo "Continuing with current code..."
+                echo "✓ Already up to date (${LOCAL_COMMIT:0:8})"
             fi
         else
-            echo "WARNING: Git fetch failed, continuing with current code..."
+            echo "WARNING: Git fetch failed"
+            echo "Cannot check for updates. Assuming no updates available."
         fi
     else
-        echo "Not a git repository, using current code"
+        echo "Not a git repository"
+        echo "Building images anyway since we can't check for updates..."
+        UPDATE_AVAILABLE=true
     fi
-    echo "Building new image..."
-    docker compose -f docker-compose.prod.yml build --no-cache
+    
+    if [ "$UPDATE_AVAILABLE" = "true" ]; then
+        echo ""
+        echo "Building new image..."
+        docker compose -f docker-compose.prod.yml build --no-cache
+    fi
 else
-    docker compose -f docker-compose.prod.yml pull
+    # Registry-based deployment - check for image updates
+    echo "Checking for image updates from registry..."
+    if docker compose -f docker-compose.prod.yml pull --dry-run 2>&1 | grep -q "Pulling"; then
+        echo "✓ Updates available from registry"
+        UPDATE_AVAILABLE=true
+        docker compose -f docker-compose.prod.yml pull
+    else
+        echo "✓ Already up to date"
+    fi
 fi
 
-echo ""
-echo "Recreating containers..."
-docker compose -f docker-compose.prod.yml up -d --force-recreate
+if [ "$UPDATE_AVAILABLE" = "true" ]; then
+    echo ""
+    echo "Recreating containers..."
+    docker compose -f docker-compose.prod.yml up -d --force-recreate
+else
+    echo ""
+    echo "No updates available - skipping build and deployment"
+    echo "✓ ChoreQuest is already running the latest version"
+    exit 0
+fi
 
 echo ""
 echo "Cleaning up old images..."
