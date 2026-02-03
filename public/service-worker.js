@@ -32,7 +32,8 @@ async function initializeCacheVersion() {
 const CACHE_EXCLUDE_PATTERNS = [
   '/_spark/',
   '/api/',
-  '/health'
+  '/health',
+  '/version.json'
 ];
 
 // Check if a URL should be excluded from caching
@@ -92,9 +93,25 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const requestUrl = event.request.url;
+  const request = event.request;
   
   // Don't intercept requests to external origins
   if (!requestUrl.startsWith(self.location.origin)) {
+    return;
+  }
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put('/index.html', responseClone);
+          });
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
     return;
   }
   
@@ -104,17 +121,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
 
       return caches.open(RUNTIME_CACHE).then((cache) => {
-        return fetch(event.request)
+        return fetch(request)
           .then((response) => {
             // Only cache successful responses
             if (response.status === 200) {
-              cache.put(event.request, response.clone());
+              cache.put(request, response.clone());
             }
             return response;
           })
