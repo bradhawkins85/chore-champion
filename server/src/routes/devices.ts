@@ -57,29 +57,21 @@ function generateLinkingCode(): string {
 function getDeviceInfo(req: Request): DeviceInfo {
   const platform = req.headers['sec-ch-ua-platform'];
   
-  // Get real client IP from X-Forwarded-For header (set by nginx proxy)
-  // When behind a proxy, X-Forwarded-For contains the real client IP
-  // With trust proxy enabled, req.ip should always be populated, but we
-  // include a fallback for completeness
+  // Get real client IP from X-Forwarded-For header
+  // nginx sets X-Forwarded-For: $proxy_add_x_forwarded_for (nginx.conf line 36)
+  // When behind nginx, this header contains: "real-client-ip, proxy-ips..."
+  // We want the leftmost IP which is the original client
   let clientIp = req.ip || req.socket.remoteAddress || 'unknown';
   
-  // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
-  // The first IP is the original client IP
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
-    let forwardedIps: string[] = [];
+    // Extract the first IP from X-Forwarded-For header (the real client)
+    const firstIp = (typeof forwardedFor === 'string' ? forwardedFor : forwardedFor[0])
+      ?.split(',')[0]
+      ?.trim();
     
-    if (typeof forwardedFor === 'string') {
-      // String format: "client, proxy1, proxy2" - split by comma
-      forwardedIps = forwardedFor.split(',').map(ip => ip.trim());
-    } else if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      // Array format: may still contain comma-separated values, so split first element
-      forwardedIps = forwardedFor[0].split(',').map(ip => ip.trim());
-    }
-    
-    // Use the first IP in the chain (the real client)
-    if (forwardedIps.length > 0 && forwardedIps[0]) {
-      clientIp = forwardedIps[0];
+    if (firstIp) {
+      clientIp = firstIp;
     }
   }
   
