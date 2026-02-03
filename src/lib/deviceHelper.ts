@@ -3,6 +3,17 @@ import { v4 as uuidv4 } from 'uuid';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
+ * Device information captured from the browser
+ */
+export interface DeviceInfo {
+  userAgent: string;
+  platform: string;
+  mobile: boolean;
+  ip?: string;
+  timestamp: string;
+}
+
+/**
  * Get or create a unique device GUID for this device.
  * The GUID is stored in localStorage and persists across sessions.
  * Returns a proper UUID v4.
@@ -117,7 +128,7 @@ export const generateLinkingCode = async (token: string): Promise<{
 export const getLinkedDevices = async (token: string): Promise<Array<{
   id: string;
   deviceGuid: string;
-  deviceInfo: any;
+  deviceInfo: DeviceInfo;
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;

@@ -29,9 +29,10 @@ export function DeviceLinkingScreen({ onLinked, onCancel }: DeviceLinkingScreenP
       const result = await linkDevice(linkingCode);
       toast.success('Device linked successfully!');
       onLinked(result.tenantId);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error linking device:', error);
-      toast.error(error.message || 'Failed to link device. Please check the code and try again.');
+      const message = error instanceof Error ? error.message : 'Failed to link device. Please check the code and try again.';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

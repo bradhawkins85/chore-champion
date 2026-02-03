@@ -26,6 +26,20 @@ interface LinkingCode {
   used_at: Date | null;
 }
 
+interface DeviceInfo {
+  userAgent: string;
+  platform: string;
+  mobile: boolean;
+  ip?: string;
+  timestamp: string;
+}
+
+interface JWTPayload {
+  userId: string;
+  tenantId: string;
+  email: string;
+}
+
 // Helper function to generate a random 6-character alphanumeric code
 function generateLinkingCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -37,10 +51,11 @@ function generateLinkingCode(): string {
 }
 
 // Helper function to get device info from user agent and other headers
-function getDeviceInfo(req: Request): any {
+function getDeviceInfo(req: Request): DeviceInfo {
+  const platform = req.headers['sec-ch-ua-platform'];
   return {
     userAgent: req.headers['user-agent'] || 'Unknown',
-    platform: req.headers['sec-ch-ua-platform'] || 'Unknown',
+    platform: typeof platform === 'string' ? platform : 'Unknown',
     mobile: req.headers['sec-ch-ua-mobile'] === '?1',
     ip: req.ip || req.socket.remoteAddress,
     timestamp: new Date().toISOString(),
@@ -125,9 +140,9 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
     const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
-    let decoded: any;
+    let decoded: JWTPayload;
     try {
-      decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+      decoded = jwt.verify(token, SECRET) as JWTPayload;
     } catch (error) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -298,9 +313,9 @@ router.get('/', async (req: Request, res: Response) => {
     const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
-    let decoded: any;
+    let decoded: JWTPayload;
     try {
-      decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+      decoded = jwt.verify(token, SECRET) as JWTPayload;
     } catch (error) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -343,9 +358,9 @@ router.delete('/:deviceId', async (req: Request, res: Response) => {
     const jwt = await import('jsonwebtoken');
     const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
-    let decoded: any;
+    let decoded: JWTPayload;
     try {
-      decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+      decoded = jwt.verify(token, SECRET) as JWTPayload;
     } catch (error) {
       return res.status(401).json({ error: 'Invalid token' });
     }

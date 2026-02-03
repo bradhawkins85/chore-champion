@@ -37,18 +37,13 @@ import {
   getLinkedDevices, 
   unlinkDevice,
   getDeviceGuid,
+  DeviceInfo,
 } from '@/lib/deviceHelper';
 
-interface DeviceInfo {
+interface DeviceInfoExtended {
   id: string;
   deviceGuid: string;
-  deviceInfo: {
-    userAgent?: string;
-    platform?: string;
-    mobile?: boolean;
-    ip?: string;
-    timestamp?: string;
-  };
+  deviceInfo: DeviceInfo;
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;
@@ -56,12 +51,12 @@ interface DeviceInfo {
 
 export function DeviceManagement() {
   const { token } = useAuth();
-  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [devices, setDevices] = useState<DeviceInfoExtended[]>([]);
   const [loading, setLoading] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkingCode, setLinkingCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<Date | null>(null);
-  const [deviceToUnlink, setDeviceToUnlink] = useState<DeviceInfo | null>(null);
+  const [deviceToUnlink, setDeviceToUnlink] = useState<DeviceInfoExtended | null>(null);
   const currentDeviceGuid = getDeviceGuid();
 
   useEffect(() => {
@@ -75,7 +70,7 @@ export function DeviceManagement() {
     try {
       const linkedDevices = await getLinkedDevices(token);
       setDevices(linkedDevices);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading devices:', error);
       toast.error('Failed to load devices');
     } finally {
@@ -92,9 +87,10 @@ export function DeviceManagement() {
       setLinkingCode(code);
       setCodeExpiresAt(new Date(expiresAt));
       setShowLinkDialog(true);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating code:', error);
-      toast.error(error.message || 'Failed to generate linking code');
+      const message = error instanceof Error ? error.message : 'Failed to generate linking code';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -107,7 +103,7 @@ export function DeviceManagement() {
     }
   };
 
-  const handleUnlinkDevice = async (device: DeviceInfo) => {
+  const handleUnlinkDevice = async (device: DeviceInfoExtended) => {
     if (!token) return;
 
     setLoading(true);
@@ -116,15 +112,16 @@ export function DeviceManagement() {
       toast.success('Device unlinked successfully');
       loadDevices();
       setDeviceToUnlink(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error unlinking device:', error);
-      toast.error(error.message || 'Failed to unlink device');
+      const message = error instanceof Error ? error.message : 'Failed to unlink device';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getDeviceIcon = (deviceInfo: DeviceInfo['deviceInfo']) => {
+  const getDeviceIcon = (deviceInfo: DeviceInfo) => {
     const userAgent = deviceInfo.userAgent?.toLowerCase() || '';
     
     if (deviceInfo.mobile || userAgent.includes('mobile')) {
@@ -136,7 +133,7 @@ export function DeviceManagement() {
     }
   };
 
-  const getDeviceName = (deviceInfo: DeviceInfo['deviceInfo']) => {
+  const getDeviceName = (deviceInfo: DeviceInfo) => {
     const userAgent = deviceInfo.userAgent || 'Unknown Device';
     
     // Extract browser and OS info
