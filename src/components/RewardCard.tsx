@@ -18,8 +18,7 @@ interface RewardCardProps {
 }
 
 export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchaseCount = 0, childrenList = [], chores = [], categories }: RewardCardProps) {
-  const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0) || 
-                             (reward.requirements && reward.requirements.length > 0)
+  const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0)
   
   const getLimitText = () => {
     if (!reward.purchaseLimit) return null
@@ -82,11 +81,6 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                   {reward.costOverrides && reward.costOverrides.length > 0 && (
                     <Badge variant="outline" className="text-xs">
                       Custom cost for {reward.costOverrides.length} {reward.costOverrides.length === 1 ? 'child' : 'children'}
-                    </Badge>
-                  )}
-                  {reward.requirements && reward.requirements.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      Requirements for {reward.requirements.length} {reward.requirements.length === 1 ? 'child' : 'children'}
                     </Badge>
                   )}
                   {reward.purchaseLimit && (
