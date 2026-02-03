@@ -202,6 +202,10 @@ else
     # We need to pull to see if there are updates
     echo "(Note: Registry-based deployments must pull images to check for updates)"
     
+    # Create a secure temporary file for pull output
+    PULL_LOG=$(mktemp)
+    trap "rm -f '$PULL_LOG'" EXIT
+    
     # Store the current image IDs before pulling
     echo "Getting current image IDs..."
     if [ -n "$COMPOSE_FILE_PATH" ]; then
@@ -212,7 +216,7 @@ else
     
     # Pull the latest images from registry
     if [ -n "$COMPOSE_FILE_PATH" ]; then
-        if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull 2>&1 | tee /tmp/pull-output.log; then
+        if ! docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" pull 2>&1 | tee "$PULL_LOG"; then
             echo ""
             echo "WARNING: Failed to pull images from registry."
             echo "This might happen if:"
@@ -224,7 +228,7 @@ else
             exit 1
         fi
     else
-        if ! docker compose -p "${COMPOSE_PROJECT}" pull 2>&1 | tee /tmp/pull-output.log; then
+        if ! docker compose -p "${COMPOSE_PROJECT}" pull 2>&1 | tee "$PULL_LOG"; then
             echo ""
             echo "WARNING: Failed to pull images from registry."
             echo "For source-based deployments, ensure your deployment directory contains"
@@ -247,9 +251,8 @@ else
         UPDATE_AVAILABLE=true
     else
         # Check the pull output for signs of updates
-        # Look for "Downloaded newer image" or specific pull activity, but not "Image is up to date"
-        if grep -qE "(Downloaded newer image|Pulling fs layer)" /tmp/pull-output.log && \
-           ! grep -q "Image is up to date" /tmp/pull-output.log; then
+        # Look for "Downloaded newer image" which only appears when images are actually updated
+        if grep -q "Downloaded newer image" "$PULL_LOG"; then
             echo "✓ Updates available from registry"
             UPDATE_AVAILABLE=true
         else

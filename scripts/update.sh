@@ -84,9 +84,8 @@ else
     PULL_OUTPUT=$(docker compose -f docker-compose.prod.yml pull 2>&1)
     
     # Check if any images were actually updated (not just cached)
-    # Look for "Downloaded newer image" or "Pulling" but not "Image is up to date"
-    if echo "$PULL_OUTPUT" | grep -qE "(Downloaded newer image|Pulling fs layer)" && \
-       ! echo "$PULL_OUTPUT" | grep -q "Image is up to date"; then
+    # Look for "Downloaded newer image" which only appears when images are actually updated
+    if echo "$PULL_OUTPUT" | grep -q "Downloaded newer image"; then
         echo "✓ Updates available from registry"
         UPDATE_AVAILABLE=true
     else
