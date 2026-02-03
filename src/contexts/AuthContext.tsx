@@ -85,7 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error.error || error.message || 'Login failed');
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
-        throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+        }
+        // Re-throw if it's the Error we threw above
+        throw parseError;
       }
     }
 
@@ -116,7 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error.error || error.message || 'Signup failed');
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
-        throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+        }
+        // Re-throw if it's the Error we threw above
+        throw parseError;
       }
     }
 

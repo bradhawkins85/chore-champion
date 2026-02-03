@@ -123,7 +123,12 @@ async function start() {
         return;
       }
       
-      // Exponential backoff: 2s, 4s, 8s, 16s, 32s (capped at 32s)
+      // Exponential backoff starting at 2s: 2s, 4s, 8s, 16s, 32s...
+      // Formula: delay = min(2000 * 2^(retryCount-1), 32000)
+      // retryCount=1: 2000 * 2^0 = 2000ms (2s)
+      // retryCount=2: 2000 * 2^1 = 4000ms (4s)
+      // retryCount=3: 2000 * 2^2 = 8000ms (8s)
+      // etc., capped at 32s
       const delay = Math.min(2000 * Math.pow(2, retryCount - 1), 32000);
       console.log(`Retrying database initialization in ${delay}ms...`);
       setTimeout(initDbWithRetry, delay);

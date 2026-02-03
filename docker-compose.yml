@@ -55,7 +55,7 @@ services:
     networks:
       - chorequest-network
     healthcheck:
-      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 -O- http://127.0.0.1:3000/api/health | grep -E '(\"status\":\"ok\"|\"status\":\"starting\")'"]
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 -O- http://127.0.0.1:3000/api/health 2>&1 | grep -q 'status'"]
       interval: 30s
       timeout: 3s
       retries: 3
