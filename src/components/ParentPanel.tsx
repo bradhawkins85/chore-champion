@@ -847,6 +847,11 @@ export function ParentPanel({
                 onUpdateEntry={onUpdateChildAvailability}
                 onDeleteEntry={onDeleteChildAvailability}
               />
+
+              <DisplayPreferencesSettings
+                hideChildrenWithNoActivity={hideChildrenWithNoActivity}
+                onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
+              />
             </TabsContent>
 
             <TabsContent value="chores" className="space-y-4">
