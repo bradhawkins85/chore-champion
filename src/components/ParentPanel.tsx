@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell } from '@phosphor-icons/react'
+import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Activity, FolderUser, Devices } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -241,7 +241,10 @@ export function ParentPanel({
   const [deleteRewardId, setDeleteRewardId] = useState<string | null>(null)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeTab, setActiveTab] = useState('welcome')
+  const [activitiesSubTab, setActivitiesSubTab] = useState('summary')
+  const [managementSubTab, setManagementSubTab] = useState('children')
+  const [settingsSubTab, setSettingsSubTab] = useState('settings')
 
   const popularTemplates = choreTemplates.slice(0, 6)
 
@@ -403,162 +406,385 @@ export function ParentPanel({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="summary">
-            <ChartBar className="h-4 w-4 mr-2" />
-            Weekly Summary
+          <TabsTrigger value="welcome">
+            <House className="h-4 w-4 mr-2" />
+            Welcome
           </TabsTrigger>
-          <TabsTrigger value="approvals">
-            <Check className="h-4 w-4 mr-2" />
-            Pending Approvals
-            {pendingApprovalsCount > 0 && (
+          <TabsTrigger value="activities">
+            <Activity className="h-4 w-4 mr-2" />
+            Activities
+            {(pendingApprovalsCount > 0 || missedChoresCount > 0 || purchases.filter((p) => !p.fulfilled).length > 0) && (
               <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
-                {pendingApprovalsCount}
+                {pendingApprovalsCount + missedChoresCount + purchases.filter((p) => !p.fulfilled).length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="missed">
-            <Warning className="h-4 w-4 mr-2" />
-            Missed Chores
-            {missedChoresCount > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
-                {missedChoresCount}
-              </Badge>
-            )}
+          <TabsTrigger value="management">
+            <FolderUser className="h-4 w-4 mr-2" />
+            Management
           </TabsTrigger>
-          <TabsTrigger value="activity">
-            <ClipboardText className="h-4 w-4 mr-2" />
-            Activity
-          </TabsTrigger>
-          <TabsTrigger value="children">
-            <Users className="h-4 w-4 mr-2" />
-            Children
-          </TabsTrigger>
-          <TabsTrigger value="chores">
-            <ListChecks className="h-4 w-4 mr-2" />
-            Chores
-          </TabsTrigger>
-          <TabsTrigger value="categories">
-            <Sparkle className="h-4 w-4 mr-2" />
-            Categories
-          </TabsTrigger>
-          <TabsTrigger value="rewards">
-            <Gift className="h-4 w-4 mr-2" />
-            Rewards
-          </TabsTrigger>
-          <TabsTrigger value="purchases">
-            <Package className="h-4 w-4 mr-2" />
-            Purchase History
-            {purchases.filter((p) => !p.fulfilled).length > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
-                {purchases.filter((p) => !p.fulfilled).length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="reports">
-            <FileText className="h-4 w-4 mr-2" />
-            Reports
-          </TabsTrigger>
-          <TabsTrigger value="settings">
+          <TabsTrigger value="settings-tab">
             <Gear className="h-4 w-4 mr-2" />
             Settings
           </TabsTrigger>
-          <TabsTrigger value="security">
-            <Shield className="h-4 w-4 mr-2" />
-            Security
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="summary" className="space-y-4">
+        {/* Welcome Tab */}
+        <TabsContent value="welcome" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-fredoka font-bold">Weekly Summary</h2>
+              <h2 className="text-2xl font-fredoka font-bold">Welcome to ChoreQuest</h2>
               <p className="text-sm text-muted-foreground">
-                Track each child's progress and achievements
+                Your family's chore management dashboard
               </p>
             </div>
           </div>
 
-          <WeeklySummary
-            childrenList={childrenList}
-            chores={chores}
-            completions={completions}
-            purchases={purchases}
-            childPoints={childPoints}
-          />
-        </TabsContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Users className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Children</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{childrenList.length}</p>
+                <p className="text-sm text-muted-foreground">Active children</p>
+              </CardContent>
+            </Card>
 
-        <TabsContent value="approvals" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Pending Approvals</h2>
-              <p className="text-sm text-muted-foreground">
-                Review and approve chore completions that require verification
-              </p>
-            </div>
-            {pendingApprovalsCount > 0 && (
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                {pendingApprovalsCount} pending
-              </Badge>
-            )}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <ListChecks className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Chores</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{chores.length}</p>
+                <p className="text-sm text-muted-foreground">Total chores</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Check className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Pending Approvals</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{pendingApprovalsCount}</p>
+                <p className="text-sm text-muted-foreground">Need attention</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Warning className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Missed Chores</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{missedChoresCount}</p>
+                <p className="text-sm text-muted-foreground">Outstanding</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Gift className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Rewards</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{rewards.length}</p>
+                <p className="text-sm text-muted-foreground">Available</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Package className="h-6 w-6 text-primary" />
+                  <h3 className="font-fredoka font-semibold text-lg">Unfulfilled Purchases</h3>
+                </div>
+                <p className="text-3xl font-bold mb-1">{purchases.filter((p) => !p.fulfilled).length}</p>
+                <p className="text-sm text-muted-foreground">To fulfill</p>
+              </CardContent>
+            </Card>
           </div>
 
-          <PendingApprovalsManager
-            childrenList={childrenList}
-            chores={chores}
-            completions={completions}
-            onApprove={onApproveCompletion}
-            onReject={onRejectCompletion}
-            emailAlertSettings={emailAlertSettings}
-            pendingDigestItems={pendingDigestItems}
-            onSendDigestNow={onSendDigestNow}
-          />
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-fredoka font-semibold text-lg mb-4">Quick Actions</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setActiveTab('activities')}>
+                  <ChartBar className="h-4 w-4 mr-2" />
+                  View Weekly Summary
+                </Button>
+                <Button variant="outline" onClick={() => { setActiveTab('activities'); setActivitiesSubTab('approvals'); }}>
+                  <Check className="h-4 w-4 mr-2" />
+                  Pending Approvals
+                </Button>
+                <Button variant="outline" onClick={() => { setActiveTab('management'); setManagementSubTab('children'); }}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Children
+                </Button>
+                <Button variant="outline" onClick={() => { setActiveTab('management'); setManagementSubTab('chores'); }}>
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Manage Chores
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="missed" className="space-y-4">
+        {/* Activities Tab with Nested Tabs */}
+        <TabsContent value="activities" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-fredoka font-bold">Missed Chores</h2>
+              <h2 className="text-2xl font-fredoka font-bold">Activities</h2>
               <p className="text-sm text-muted-foreground">
-                Override missed chores by awarding points or dismissing them
+                View and manage family chore activities
               </p>
             </div>
-            {missedChoresCount > 0 && (
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                {missedChoresCount} missed
-              </Badge>
-            )}
           </div>
 
-          <MissedChoresManager
-            childrenList={childrenList}
-            chores={chores}
-            assignments={assignments}
-            completions={completions}
-            dismissedMissedChores={dismissedMissedChores}
-            childAvailability={childAvailability}
-            onOverrideComplete={onOverrideComplete}
-            onDismissMissed={onDismissMissed}
-          />
+          <Tabs value={activitiesSubTab} onValueChange={setActivitiesSubTab} className="space-y-4">
+            <TabsList className="h-auto flex-wrap">
+              <TabsTrigger value="summary">
+                <ChartBar className="h-4 w-4 mr-2" />
+                Weekly Summary
+              </TabsTrigger>
+              <TabsTrigger value="approvals">
+                <Check className="h-4 w-4 mr-2" />
+                Pending Approvals
+                {pendingApprovalsCount > 0 && (
+                  <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                    {pendingApprovalsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="missed">
+                <Warning className="h-4 w-4 mr-2" />
+                Missed Chores
+                {missedChoresCount > 0 && (
+                  <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                    {missedChoresCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="activity">
+                <ClipboardText className="h-4 w-4 mr-2" />
+                Activity
+              </TabsTrigger>
+              <TabsTrigger value="purchases">
+                <Package className="h-4 w-4 mr-2" />
+                Purchase History
+                {purchases.filter((p) => !p.fulfilled).length > 0 && (
+                  <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                    {purchases.filter((p) => !p.fulfilled).length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="reports">
+                <FileText className="h-4 w-4 mr-2" />
+                Reports
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-fredoka font-bold">Weekly Summary</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Track each child's progress and achievements
+                  </p>
+                </div>
+              </div>
+
+              <WeeklySummary
+                childrenList={childrenList}
+                chores={chores}
+                completions={completions}
+                purchases={purchases}
+                childPoints={childPoints}
+              />
+            </TabsContent>
+
+            <TabsContent value="approvals" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-fredoka font-bold">Pending Approvals</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Review and approve chore completions that require verification
+                  </p>
+                </div>
+                {pendingApprovalsCount > 0 && (
+                  <Badge variant="secondary" className="text-base px-3 py-1">
+                    {pendingApprovalsCount} pending
+                  </Badge>
+                )}
+              </div>
+
+              <PendingApprovalsManager
+                childrenList={childrenList}
+                chores={chores}
+                completions={completions}
+                onApprove={onApproveCompletion}
+                onReject={onRejectCompletion}
+                emailAlertSettings={emailAlertSettings}
+                pendingDigestItems={pendingDigestItems}
+                onSendDigestNow={onSendDigestNow}
+              />
+            </TabsContent>
+
+            <TabsContent value="missed" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-fredoka font-bold">Missed Chores</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Override missed chores by awarding points or dismissing them
+                  </p>
+                </div>
+                {missedChoresCount > 0 && (
+                  <Badge variant="secondary" className="text-base px-3 py-1">
+                    {missedChoresCount} missed
+                  </Badge>
+                )}
+              </div>
+
+              <MissedChoresManager
+                childrenList={childrenList}
+                chores={chores}
+                assignments={assignments}
+                completions={completions}
+                dismissedMissedChores={dismissedMissedChores}
+                childAvailability={childAvailability}
+                onOverrideComplete={onOverrideComplete}
+                onDismissMissed={onDismissMissed}
+              />
+            </TabsContent>
+
+            <TabsContent value="activity" className="space-y-4">
+              <ActivityView
+                completions={completions}
+                childrenList={childrenList}
+                chores={chores}
+                categories={categories}
+                assignments={assignments}
+                bonusCompletions={bonusCompletions}
+                purchases={purchases}
+                rewards={rewards}
+                swaps={pointSwaps || []}
+                history={history}
+                onUndoCompletion={onUndoCompletion}
+                onUndoDismissMissed={onUndoDismissMissed}
+              />
+            </TabsContent>
+
+            <TabsContent value="purchases" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-fredoka font-bold">Purchase History</h2>
+                {purchases.filter((p) => !p.fulfilled).length > 0 && (
+                  <Badge variant="secondary" className="text-base px-3 py-1">
+                    {purchases.filter((p) => !p.fulfilled).length} pending
+                  </Badge>
+                )}
+              </div>
+
+              {purchases.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg text-muted-foreground">
+                      No purchases yet. Children can redeem rewards from the Reward Shop!
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const pendingPurchases = purchases.filter((p) => !p.fulfilled)
+                        pendingPurchases.forEach((p) => onFulfillPurchase(p.id))
+                      }}
+                      disabled={purchases.filter((p) => !p.fulfilled).length === 0}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Fulfill All Pending
+                    </Button>
+                  </div>
+                  {[...purchases]
+                    .sort((a, b) => b.purchasedAt - a.purchasedAt)
+                    .map((purchase) => {
+                      const reward = rewards.find((r) => r.id === purchase.rewardId)
+                      const child = childrenList.find((c) => c.id === purchase.childId)
+                      return (
+                        <PurchaseHistoryCard
+                          key={purchase.id}
+                          purchase={purchase}
+                          reward={reward}
+                          child={child}
+                          categories={categories}
+                          onFulfill={onFulfillPurchase}
+                          onUnfulfill={onUnfulfillPurchase}
+                        />
+                      )
+                    })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-4">
+              <ReportTemplatesManager
+                templates={reportTemplates}
+                childrenList={childrenList}
+                chores={chores}
+                assignments={assignments}
+                completions={completions}
+                purchases={purchases}
+                categories={categories}
+                rewards={rewards}
+                bonusCompletions={bonusCompletions}
+                parentEmail={weeklyReportSettings.parentEmail}
+                onAddTemplate={onAddReportTemplate}
+                onEditTemplate={onEditReportTemplate}
+                onDeleteTemplate={onDeleteReportTemplate}
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-4">
-          <ActivityView
-            completions={completions}
-            childrenList={childrenList}
-            chores={chores}
-            categories={categories}
-            assignments={assignments}
-            bonusCompletions={bonusCompletions}
-            purchases={purchases}
-            rewards={rewards}
-            swaps={pointSwaps || []}
-            history={history}
-            onUndoCompletion={onUndoCompletion}
-            onUndoDismissMissed={onUndoDismissMissed}
-          />
-        </TabsContent>
+        {/* Management Tab with Nested Tabs */}
+        <TabsContent value="management" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-fredoka font-bold">Management</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage children, chores, categories, and rewards
+              </p>
+            </div>
+          </div>
 
-        <TabsContent value="children" className="space-y-4">
+          <Tabs value={managementSubTab} onValueChange={setManagementSubTab} className="space-y-4">
+            <TabsList className="h-auto flex-wrap">
+              <TabsTrigger value="children">
+                <Users className="h-4 w-4 mr-2" />
+                Children
+              </TabsTrigger>
+              <TabsTrigger value="chores">
+                <ListChecks className="h-4 w-4 mr-2" />
+                Chores
+              </TabsTrigger>
+              <TabsTrigger value="categories">
+                <FolderUser className="h-4 w-4 mr-2" />
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="rewards">
+                <Gift className="h-4 w-4 mr-2" />
+                Rewards
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="children" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-fredoka font-bold">Children</h2>
@@ -602,226 +828,155 @@ export function ParentPanel({
             </div>
           )}
 
-          <ChildAvailabilitySchedule
-            childrenList={childrenList}
-            entries={childAvailability}
-            onAddEntry={onAddChildAvailability}
-            onUpdateEntry={onUpdateChildAvailability}
-            onDeleteEntry={onDeleteChildAvailability}
-          />
-        </TabsContent>
+              <ChildAvailabilitySchedule
+                childrenList={childrenList}
+                entries={childAvailability}
+                onAddEntry={onAddChildAvailability}
+                onUpdateEntry={onUpdateChildAvailability}
+                onDeleteEntry={onDeleteChildAvailability}
+              />
+            </TabsContent>
 
-        <TabsContent value="chores" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-fredoka font-bold">Chores Library</h2>
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    <Sparkle className="h-5 w-5 mr-2" />
-                    Quick Add
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-fredoka font-semibold mb-1">Popular Templates</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Click to instantly add a chore
-                      </p>
-                    </div>
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {popularTemplates.map((template, index) => (
-                        <Card
-                          key={index}
-                          className="cursor-pointer hover:bg-accent transition-colors"
-                          onClick={() => handleQuickAddTemplate(template)}
+            <TabsContent value="chores" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-fredoka font-bold">Chores Library</h2>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        <Sparkle className="h-5 w-5 mr-2" />
+                        Quick Add
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-fredoka font-semibold mb-1">Popular Templates</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Click to instantly add a chore
+                          </p>
+                        </div>
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                          {popularTemplates.map((template, index) => (
+                            <Card
+                              key={index}
+                              className="cursor-pointer hover:bg-accent transition-colors"
+                              onClick={() => handleQuickAddTemplate(template)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">{template.icon}</span>
+                                  <span className="font-medium text-sm">{template.name}</span>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Badge variant="secondary" className="text-xs h-5">
+                                    {template.points} pts
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs h-5">
+                                    {template.frequency}
+                                  </Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setChoreDialogOpen(true)}
                         >
-                          <CardContent className="p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-lg">{template.icon}</span>
-                              <span className="font-medium text-sm">{template.name}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              <Badge variant="secondary" className="text-xs h-5">
-                                {template.points} pts
-                              </Badge>
-                              <Badge variant="outline" className="text-xs h-5">
-                                {template.frequency}
-                              </Badge>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setChoreDialogOpen(true)}
-                    >
-                      Browse All Templates
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Button onClick={() => setChoreDialogOpen(true)}>
-                <Plus className="h-5 w-5 mr-2" />
-                Add Chore
-              </Button>
-            </div>
-          </div>
-
-          {chores.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-lg text-muted-foreground mb-4">
-                  No chores created yet. Create your first chore to assign to children!
-                </p>
-                <Button onClick={() => setChoreDialogOpen(true)}>
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Your First Chore
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {chores.map((chore) => (
-                <ChoreCard
-                  key={chore.id}
-                  chore={chore}
-                  categories={categories}
-                  onEdit={handleEditChore}
-                  onDelete={setDeleteChoreId}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="categories" className="space-y-4">
-          <CategoryManager
-            categories={categories}
-            onAddCategory={onAddCategory}
-            onEditCategory={onEditCategory}
-            onDeleteCategory={onDeleteCategory}
-          />
-        </TabsContent>
-
-        <TabsContent value="rewards" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
-            <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
-          </div>
-
-          {rewards.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-lg text-muted-foreground mb-4">
-                  No rewards created yet. Add rewards for children to redeem with their points!
-                </p>
-                <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {rewards.map((reward) => {
-                const purchaseCount = purchases.filter(
-                  (p) => p.rewardId === reward.id
-                ).length
-                return (
-                  <RewardCard
-                    key={reward.id}
-                    reward={reward}
-                    childrenList={childrenList}
-                    chores={chores}
-                    categories={categories}
-                    onEdit={onEditReward}
-                    onDelete={setDeleteRewardId}
-                    onToggleDisabled={onToggleRewardDisabled}
-                    purchaseCount={purchaseCount}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="purchases" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-fredoka font-bold">Purchase History</h2>
-            {purchases.filter((p) => !p.fulfilled).length > 0 && (
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                {purchases.filter((p) => !p.fulfilled).length} pending
-              </Badge>
-            )}
-          </div>
-
-          {purchases.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-lg text-muted-foreground">
-                  No purchases yet. Children can redeem rewards from the Reward Shop!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex gap-2 mb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const pendingPurchases = purchases.filter((p) => !p.fulfilled)
-                    pendingPurchases.forEach((p) => onFulfillPurchase(p.id))
-                  }}
-                  disabled={purchases.filter((p) => !p.fulfilled).length === 0}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Fulfill All Pending
-                </Button>
+                          Browse All Templates
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button onClick={() => setChoreDialogOpen(true)}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add Chore
+                  </Button>
+                </div>
               </div>
-              {[...purchases]
-                .sort((a, b) => b.purchasedAt - a.purchasedAt)
-                .map((purchase) => {
-                  const reward = rewards.find((r) => r.id === purchase.rewardId)
-                  const child = childrenList.find((c) => c.id === purchase.childId)
-                  return (
-                    <PurchaseHistoryCard
-                      key={purchase.id}
-                      purchase={purchase}
-                      reward={reward}
-                      child={child}
+
+              {chores.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-lg text-muted-foreground mb-4">
+                      No chores created yet. Create your first chore to assign to children!
+                    </p>
+                    <Button onClick={() => setChoreDialogOpen(true)}>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Create Your First Chore
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {chores.map((chore) => (
+                    <ChoreCard
+                      key={chore.id}
+                      chore={chore}
                       categories={categories}
-                      onFulfill={onFulfillPurchase}
-                      onUnfulfill={onUnfulfillPurchase}
+                      onEdit={handleEditChore}
+                      onDelete={setDeleteChoreId}
                     />
-                  )
-                })}
-            </div>
-          )}
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="categories" className="space-y-4">
+              <CategoryManager
+                categories={categories}
+                onAddCategory={onAddCategory}
+                onEditCategory={onEditCategory}
+                onDeleteCategory={onDeleteCategory}
+              />
+            </TabsContent>
+
+            <TabsContent value="rewards" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
+                <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
+              </div>
+
+              {rewards.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-lg text-muted-foreground mb-4">
+                      No rewards created yet. Add rewards for children to redeem with their points!
+                    </p>
+                    <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {rewards.map((reward) => {
+                    const purchaseCount = purchases.filter(
+                      (p) => p.rewardId === reward.id
+                    ).length
+                    return (
+                      <RewardCard
+                        key={reward.id}
+                        reward={reward}
+                        childrenList={childrenList}
+                        chores={chores}
+                        categories={categories}
+                        onEdit={onEditReward}
+                        onDelete={setDeleteRewardId}
+                        onToggleDisabled={onToggleRewardDisabled}
+                        purchaseCount={purchaseCount}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4">
-          <ReportTemplatesManager
-            templates={reportTemplates}
-            childrenList={childrenList}
-            chores={chores}
-            assignments={assignments}
-            completions={completions}
-            purchases={purchases}
-            categories={categories}
-            rewards={rewards}
-            bonusCompletions={bonusCompletions}
-            parentEmail={weeklyReportSettings.parentEmail}
-            onAddTemplate={onAddReportTemplate}
-            onEditTemplate={onEditReportTemplate}
-            onDeleteTemplate={onDeleteReportTemplate}
-          />
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-4">
+        {/* Settings Tab with Nested Tabs */}
+        <TabsContent value="settings-tab" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-fredoka font-bold">Settings</h2>
@@ -831,120 +986,128 @@ export function ParentPanel({
             </div>
           </div>
 
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-fredoka font-semibold text-lg">Parent Mode PIN</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {parentPin
-                          ? 'Change your PIN to protect Parent Mode access'
-                          : 'Set a PIN to protect Parent Mode access'}
-                      </p>
+          <Tabs value={settingsSubTab} onValueChange={setSettingsSubTab} className="space-y-4">
+            <TabsList className="h-auto flex-wrap">
+              <TabsTrigger value="settings">
+                <Gear className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+              <TabsTrigger value="security">
+                <Shield className="h-4 w-4 mr-2" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger value="devices">
+                <Devices className="h-4 w-4 mr-2" />
+                Devices
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="settings" className="space-y-4">
+              <WeatherSettingsComponent
+                settings={weatherSettings}
+                onUpdate={onUpdateWeatherSettings}
+              />
+
+              <SchoolHolidaySettings
+                holidays={schoolHolidays}
+                displaySettings={schoolHolidayCountdownSettings}
+                onUpdateDisplaySettings={onUpdateSchoolHolidayCountdownSettings}
+                onAdd={onAddSchoolHoliday}
+                onEdit={onEditSchoolHoliday}
+                onDelete={onDeleteSchoolHoliday}
+              />
+
+              <WeeklyReportSettingsComponent
+                settings={weeklyReportSettings}
+                childrenList={childrenList}
+                chores={chores}
+                completions={completions}
+                assignments={assignments}
+                purchases={purchases}
+                rewards={rewards}
+                categories={categories}
+                bonusCompletions={bonusCompletions}
+                onUpdateSettings={onUpdateWeeklyReportSettings}
+              />
+
+              <EmailSettings
+                smtpSettings={smtpSettings}
+                emailAlertSettings={emailAlertSettings}
+                onUpdateSMTPSettings={onUpdateSMTPSettings}
+                onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
+              />
+
+              <PushNotificationSettingsComponent
+                pushSettings={pushNotificationSettings}
+                deviceId={currentDeviceId}
+                onUpdatePushSettings={onUpdatePushNotificationSettings}
+              />
+
+              <CelebrationSettingsComponent 
+                settings={celebrationSettings}
+                onUpdate={onCelebrationSettingsChange}
+              />
+
+              <SpeechSettingsComponent
+                settings={speechSettings}
+                onUpdate={onUpdateSpeechSettings}
+              />
+
+              <DisplayPreferencesSettings
+                hideChildrenWithNoActivity={hideChildrenWithNoActivity}
+                onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
+              />
+
+              <AccountSettings />
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-4">
+              <Card>
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="font-fredoka font-semibold text-lg">Parent Mode PIN</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {parentPin
+                            ? 'Change your PIN to protect Parent Mode access'
+                            : 'Set a PIN to protect Parent Mode access'}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setChangePinDialogOpen(true)}
+                        variant="outline"
+                        className="font-fredoka"
+                      >
+                        {parentPin ? 'Change PIN' : 'Set PIN'}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => setChangePinDialogOpen(true)}
-                      variant="outline"
-                      className="font-fredoka"
-                    >
-                      {parentPin ? 'Change PIN' : 'Set PIN'}
-                    </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <BiometricSettingsComponent
-              settings={biometricSettings}
-              onChange={onBiometricSettingsChange}
-            />
+              <BiometricSettingsComponent
+                settings={biometricSettings}
+                onChange={onBiometricSettingsChange}
+              />
 
-            <WeatherSettingsComponent
-              settings={weatherSettings}
-              onUpdate={onUpdateWeatherSettings}
-            />
+              <IPRestrictions
+                settings={ipRestrictions}
+                currentIP={currentIP}
+                accessHistory={accessHistory}
+                onUpdateSettings={onUpdateIPRestrictions}
+              />
+            </TabsContent>
 
-            <SchoolHolidaySettings
-              holidays={schoolHolidays}
-              displaySettings={schoolHolidayCountdownSettings}
-              onUpdateDisplaySettings={onUpdateSchoolHolidayCountdownSettings}
-              onAdd={onAddSchoolHoliday}
-              onEdit={onEditSchoolHoliday}
-              onDelete={onDeleteSchoolHoliday}
-            />
+            <TabsContent value="devices" className="space-y-4">
+              <DeviceSettings
+                blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+                onBlockParentModeOnLinkedDevicesChange={onUpdateBlockParentModeOnLinkedDevices}
+              />
 
-            <WeeklyReportSettingsComponent
-              settings={weeklyReportSettings}
-              childrenList={childrenList}
-              chores={chores}
-              completions={completions}
-              assignments={assignments}
-              purchases={purchases}
-              rewards={rewards}
-              categories={categories}
-              bonusCompletions={bonusCompletions}
-              onUpdateSettings={onUpdateWeeklyReportSettings}
-            />
-
-            <EmailSettings
-              smtpSettings={smtpSettings}
-              emailAlertSettings={emailAlertSettings}
-              onUpdateSMTPSettings={onUpdateSMTPSettings}
-              onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
-            />
-
-            <PushNotificationSettingsComponent
-              pushSettings={pushNotificationSettings}
-              deviceId={currentDeviceId}
-              onUpdatePushSettings={onUpdatePushNotificationSettings}
-            />
-
-            <CelebrationSettingsComponent 
-              settings={celebrationSettings}
-              onUpdate={onCelebrationSettingsChange}
-            />
-
-            <SpeechSettingsComponent
-              settings={speechSettings}
-              onUpdate={onUpdateSpeechSettings}
-            />
-
-            <DisplayPreferencesSettings
-              hideChildrenWithNoActivity={hideChildrenWithNoActivity}
-              onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
-            />
-
-            <DeviceSettings
-              blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
-              onBlockParentModeOnLinkedDevicesChange={onUpdateBlockParentModeOnLinkedDevices}
-            />
-
-            <DeviceManagement />
-
-            <AccountSettings />
-
-            <UpdateSettings />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Security Settings</h2>
-              <p className="text-sm text-muted-foreground">
-                Control access to the application with IP restrictions
-              </p>
-            </div>
-          </div>
-
-          <IPRestrictions
-            settings={ipRestrictions}
-            currentIP={currentIP}
-            accessHistory={accessHistory}
-            onUpdateSettings={onUpdateIPRestrictions}
-          />
+              <DeviceManagement />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
