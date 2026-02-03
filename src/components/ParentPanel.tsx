@@ -521,30 +521,6 @@ export function ParentPanel({
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-fredoka font-semibold text-lg mb-4">Quick Actions</h3>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => { setActiveTab('activities'); setActivitiesSubTab('summary'); }}>
-                  <ChartBar className="h-4 w-4 mr-2" />
-                  View Weekly Summary
-                </Button>
-                <Button variant="outline" onClick={() => { setActiveTab('activities'); setActivitiesSubTab('approvals'); }}>
-                  <Check className="h-4 w-4 mr-2" />
-                  Pending Approvals
-                </Button>
-                <Button variant="outline" onClick={() => { setActiveTab('management'); setManagementSubTab('children'); }}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Children
-                </Button>
-                <Button variant="outline" onClick={() => { setActiveTab('management'); setManagementSubTab('chores'); }}>
-                  <ListChecks className="h-4 w-4 mr-2" />
-                  Manage Chores
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Activities Tab with Nested Tabs */}
