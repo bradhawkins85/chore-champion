@@ -14,6 +14,9 @@ ARG VITE_API_URL=/api
 # Build argument for application version - defaults to 1.0.0
 ARG VITE_APP_VERSION=1.0.0
 
+# Build argument for Stripe publishable key
+ARG VITE_STRIPE_PUBLISHABLE_KEY=
+
 # Disable SSL verification temporarily to fix certificate issues in build environment
 RUN npm config set strict-ssl false
 
@@ -36,6 +39,7 @@ COPY . .
 # Set Vite environment variables for build
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_APP_VERSION=${VITE_APP_VERSION}
+ENV VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY}
 
 # Work around npm bin linking issue by using node directly
 RUN node node_modules/typescript/lib/tsc.js -b && node node_modules/vite/bin/vite.js build

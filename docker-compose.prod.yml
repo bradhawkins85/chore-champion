@@ -64,6 +64,8 @@ services:
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-}
       - APP_URL=${APP_URL:-http://localhost:8080}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /usr/bin/docker:/usr/bin/docker:ro
@@ -105,6 +107,7 @@ services:
         - NODE_ENV=production
         - VITE_API_URL=/api
         - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0}
+        - VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}
     image: ${DOCKER_IMAGE:-chorequest:latest}
     container_name: chorequest-app
     restart: always
