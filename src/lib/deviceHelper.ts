@@ -130,6 +130,7 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   deviceGuid: string;
   deviceName: string | null;
   deviceInfo: DeviceInfo;
+  allowedChildrenIds: string[];
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;
@@ -165,6 +166,25 @@ export const updateDeviceName = async (token: string, deviceId: string, deviceNa
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to update device name');
+  }
+};
+
+/**
+ * Update device allowed children.
+ */
+export const updateDeviceAllowedChildren = async (token: string, deviceId: string, allowedChildrenIds: string[]): Promise<void> => {
+  const response = await fetch(`${API_URL}/devices/${deviceId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ allowedChildrenIds }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update device allowed children');
   }
 };
 
