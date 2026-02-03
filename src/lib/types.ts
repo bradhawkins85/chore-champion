@@ -268,6 +268,7 @@ export interface RewardPurchase {
   rewardId: string
   purchasedAt: number
   fulfilled: boolean
+  cost: number
 }
 
 export type AppMode = 'parent' | 'child'

@@ -65,14 +65,10 @@ export function RewardShop({
         totalPoints,
         purchases
           .filter(p => p.childId === child.id)
-          .map(p => {
-            const reward = rewardsMap.get(p.rewardId)
-            const override = reward?.costOverrides?.find(o => o.childId === child.id)
-            return { 
-              rewardId: p.rewardId, 
-              cost: override ? override.cost : (reward?.cost || 0) 
-            }
-          }),
+          .map(p => ({ 
+            rewardId: p.rewardId, 
+            cost: p.cost 
+          })),
         rewardsMap,
         category.id,
         childSwaps
