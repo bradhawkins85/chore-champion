@@ -431,6 +431,35 @@ export function ParentPanel({
         case 'set-pin':
           shouldComplete = parentPin !== null && parentPin !== '0000'
           break
+        case 'invite-parent':
+          // Check if there are multiple users in emailAlertSettingsMap or weeklyReportSettingsMap
+          shouldComplete = (emailAlertSettingsMap && Object.keys(emailAlertSettingsMap).length > 1) || 
+                          (weeklyReportSettingsMap && Object.keys(weeklyReportSettingsMap).length > 1)
+          break
+        case 'setup-weather':
+          shouldComplete = weatherSettings.enabled && !!weatherSettings.location
+          break
+        case 'add-school-holidays':
+          shouldComplete = schoolHolidays.length > 0
+          break
+        case 'configure-notifications':
+          // Check if email or push notifications are configured
+          const hasEmailAlerts = emailAlertSettingsMap && Object.values(emailAlertSettingsMap).some((settings: any) => 
+            settings.rewardPurchaseAlerts || settings.choreCompletionAlerts || 
+            settings.weeklyReportAlerts || settings.pendingApprovalAlerts
+          )
+          const hasPushNotifications = pushNotificationSettings.enabled && 
+            pushNotificationSettings.devices && pushNotificationSettings.devices.length > 0
+          shouldComplete = hasEmailAlerts || hasPushNotifications
+          break
+        case 'link-device':
+          // Check if block parent mode on linked devices is configured (indicates device awareness)
+          shouldComplete = blockParentModeOnLinkedDevices === true || blockParentModeOnLinkedDevices === false
+          break
+        case 'manage-chores-children':
+          // Same as assign-chore - check if chores are assigned
+          shouldComplete = assignments.length > 0
+          break
       }
 
       if (shouldComplete) {
@@ -446,7 +475,9 @@ export function ParentPanel({
         tasks: updatedTasks,
       })
     }
-  }, [childrenList, chores, assignments, rewards, parentPin, gettingStartedState, onUpdateGettingStartedState])
+  }, [childrenList, chores, assignments, rewards, parentPin, emailAlertSettingsMap, weeklyReportSettingsMap, 
+      weatherSettings, schoolHolidays, pushNotificationSettings, blockParentModeOnLinkedDevices, 
+      gettingStartedState, onUpdateGettingStartedState])
   // Define welcome cards with their content
   const welcomeCards = useMemo(() => {
     const cardDefinitions: Record<string, { icon: React.ReactNode; title: string; value: number; description: string }> = {
