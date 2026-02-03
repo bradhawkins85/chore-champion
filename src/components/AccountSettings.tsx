@@ -18,6 +18,7 @@ interface AccountSettingsProps {
   weeklyReportSettingsMap?: WeeklyReportSettingsMap
   onUpdateEmailAlertSettingsMap?: (settings: EmailAlertSettingsMap) => void
   onUpdateWeeklyReportSettingsMap?: (settings: WeeklyReportSettingsMap) => void
+  showOnlyNotifications?: boolean
 }
 
 export function AccountSettings({
@@ -25,6 +26,7 @@ export function AccountSettings({
   weeklyReportSettingsMap,
   onUpdateEmailAlertSettingsMap,
   onUpdateWeeklyReportSettingsMap,
+  showOnlyNotifications = false,
 }: AccountSettingsProps = {}) {
   const { user, logout, inviteParent, getPendingInvitations, getTenantUsers, revokeParent } = useAuth();
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
@@ -204,119 +206,198 @@ export function AccountSettings({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-          <CardDescription>Your account details</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label className="text-sm font-medium">Email</Label>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Tenant ID</Label>
-            <p className="text-sm text-muted-foreground font-mono text-xs">{user?.tenantId}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {!showOnlyNotifications && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Information</CardTitle>
+              <CardDescription>Your account details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Email</Label>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Tenant ID</Label>
+                <p className="text-sm text-muted-foreground font-mono text-xs">{user?.tenantId}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Shared Access
+            {showOnlyNotifications ? 'Email Notification Preferences' : 'Shared Access'}
           </CardTitle>
           <CardDescription>
-            Manage parent accounts and email notification preferences for registered parents
+            {showOnlyNotifications 
+              ? 'Configure email notifications for registered parents'
+              : 'Manage parent accounts and email notification preferences for registered parents'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Current Users ({tenantUsers.length}/2)</Label>
-            <div className="space-y-2">
-              {tenantUsers.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{u.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {u.email === user?.email && (
-                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                        You
-                      </span>
-                    )}
-                    {u.email !== user?.email && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          setUserToRevoke(u)
-                          setShowRevokeDialog(true)
-                        }}
+          {!showOnlyNotifications && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Users ({tenantUsers.length}/2)</Label>
+                <div className="space-y-2">
+                  {tenantUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{u.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(u.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {u.email === user?.email && (
+                          <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                            You
+                          </span>
+                        )}
+                        {u.email !== user?.email && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setUserToRevoke(u)
+                              setShowRevokeDialog(true)
+                            }}
+                          >
+                            <Trash className="w-4 h-4 mr-1" />
+                            Remove Access
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Show pending invitations */}
+              {pendingInvitations.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Pending Invitations</Label>
+                  <div className="space-y-2">
+                    {pendingInvitations.map((inv) => (
+                      <div
+                        key={inv.id}
+                        className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
                       >
-                        <Trash className="w-4 h-4 mr-1" />
-                        Remove Access
-                      </Button>
-                    )}
+                        <div>
+                          <p className="text-sm font-medium">{inv.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Invited {new Date(inv.createdAt).toLocaleDateString()} • Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className="text-xs bg-amber-500 text-white px-2 py-1 rounded">
+                          Pending
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* Show pending invitations */}
-          {pendingInvitations.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Pending Invitations</Label>
-              <div className="space-y-2">
-                {pendingInvitations.map((inv) => (
-                  <div
-                    key={inv.id}
-                    className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{inv.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Invited {new Date(inv.createdAt).toLocaleDateString()} • Expires {new Date(inv.expiresAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="text-xs bg-amber-500 text-white px-2 py-1 rounded">
-                      Pending
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              {canInviteParent && (
+                <>
+                  {!smtpEnabled && (
+                    <Alert>
+                      <AlertDescription>
+                        Email service is not configured. You need to configure SMTP settings to send invitations.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <Dialog open={showInviteParent} onOpenChange={setShowInviteParent}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full" disabled={!smtpEnabled}>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Invite Second Parent
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Invite Second Parent</DialogTitle>
+                        <DialogDescription>
+                          Send an email invitation to another parent to share access to this ChoreQuest account. They will receive an email with a link to set up their password.
+                        </DialogDescription>
+                      </DialogHeader>
 
-          {canInviteParent && (
-            <>
-              {!smtpEnabled && (
+                      <div className="space-y-4">
+                        {error && (
+                          <Alert variant="destructive">
+                            <AlertDescription>{error}</AlertDescription>
+                          </Alert>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="newParentEmail">Email Address</Label>
+                          <Input
+                            id="newParentEmail"
+                            type="email"
+                            placeholder="parent@example.com"
+                            value={newParentEmail}
+                            onChange={(e) => setNewParentEmail(e.target.value)}
+                            disabled={loading}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            An invitation link will be sent to this email address
+                          </p>
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowInviteParent(false)
+                            setError('')
+                            setNewParentEmail('')
+                          }}
+                          disabled={loading}
+                        >
+                          Cancel
+                        </Button>
+                        <Button onClick={handleInviteParent} disabled={loading}>
+                          {loading ? 'Sending...' : 'Send Invitation'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+
+              {!canInviteParent && tenantUsers.length >= 2 && (
                 <Alert>
                   <AlertDescription>
-                    Email service is not configured. You need to configure SMTP settings to send invitations.
+                    Maximum of 2 parents reached. You already have a second parent account.
                   </AlertDescription>
                 </Alert>
               )}
-              <Dialog open={showInviteParent} onOpenChange={setShowInviteParent}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full" disabled={!smtpEnabled}>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Invite Second Parent
-                  </Button>
-                </DialogTrigger>
+
+              {!canInviteParent && pendingInvitations.length > 0 && tenantUsers.length < 2 && (
+                <Alert>
+                  <AlertDescription>
+                    An invitation is pending. Please wait for it to be accepted or expire before sending another.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Revoke Access Confirmation Dialog */}
+              <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Invite Second Parent</DialogTitle>
+                    <DialogTitle>Revoke Parent Access?</DialogTitle>
                     <DialogDescription>
-                      Send an email invitation to another parent to share access to this ChoreQuest account. They will receive an email with a link to set up their password.
+                      Are you sure you want to revoke access for {userToRevoke?.email || 'this user'}? This action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -327,107 +408,39 @@ export function AccountSettings({
                       </Alert>
                     )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="newParentEmail">Email Address</Label>
-                      <Input
-                        id="newParentEmail"
-                        type="email"
-                        placeholder="parent@example.com"
-                        value={newParentEmail}
-                        onChange={(e) => setNewParentEmail(e.target.value)}
-                        disabled={loading}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        An invitation link will be sent to this email address
-                      </p>
-                    </div>
+                    <Alert>
+                      <AlertDescription>
+                        <strong>Note:</strong> The user will immediately lose access to this account and all its data. They can be re-invited later if needed.
+                      </AlertDescription>
+                    </Alert>
                   </div>
 
                   <DialogFooter>
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setShowInviteParent(false)
+                        setShowRevokeDialog(false)
+                        setUserToRevoke(null)
                         setError('')
-                        setNewParentEmail('')
                       }}
-                      disabled={loading}
+                      disabled={revokeLoading}
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleInviteParent} disabled={loading}>
-                      {loading ? 'Sending...' : 'Send Invitation'}
+                    <Button
+                      variant="destructive"
+                      onClick={handleRevokeAccess}
+                      disabled={revokeLoading}
+                    >
+                      {revokeLoading ? 'Revoking...' : 'Revoke Access'}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+
+              <Separator className="my-6" />
             </>
           )}
-
-          {!canInviteParent && tenantUsers.length >= 2 && (
-            <Alert>
-              <AlertDescription>
-                Maximum of 2 parents reached. You already have a second parent account.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {!canInviteParent && pendingInvitations.length > 0 && tenantUsers.length < 2 && (
-            <Alert>
-              <AlertDescription>
-                An invitation is pending. Please wait for it to be accepted or expire before sending another.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Revoke Access Confirmation Dialog */}
-          <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Revoke Parent Access?</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to revoke access for {userToRevoke?.email || 'this user'}? This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Alert>
-                  <AlertDescription>
-                    <strong>Note:</strong> The user will immediately lose access to this account and all its data. They can be re-invited later if needed.
-                  </AlertDescription>
-                </Alert>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowRevokeDialog(false)
-                    setUserToRevoke(null)
-                    setError('')
-                  }}
-                  disabled={revokeLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleRevokeAccess}
-                  disabled={revokeLoading}
-                >
-                  {revokeLoading ? 'Revoking...' : 'Revoke Access'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Separator className="my-6" />
 
           {/* Per-parent email alert settings */}
           <div className="space-y-6">
@@ -691,18 +704,20 @@ export function AccountSettings({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Sign Out</CardTitle>
-          <CardDescription>Sign out of your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={handleLogout} className="w-full">
-            <SignOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+      {!showOnlyNotifications && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign Out</CardTitle>
+            <CardDescription>Sign out of your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={handleLogout} className="w-full">
+              <SignOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
