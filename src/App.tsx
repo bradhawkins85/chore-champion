@@ -2260,6 +2260,8 @@ Please log in to ChoreQuest to approve or reject this completion.
               deviceIsLinked={deviceIsLinked}
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               deviceRegistrationComplete={deviceRegistrationComplete}
+              pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
+              onOpenSettings={handleRequestParentMode}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}
             />
