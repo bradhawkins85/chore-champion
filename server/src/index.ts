@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import deviceRoutes from './routes/devices.js';
 import migrationRoutes from './routes/migration.js';
 import configRoutes from './routes/config.js';
+import ipAccessRoutes from './routes/ip-access.js';
 
 dotenv.config();
 
@@ -99,6 +100,7 @@ app.use('/api/ics', requireDb, icsRoutes);
 app.use('/api/auth', requireDb, authRoutes);
 app.use('/api/devices', requireDb, deviceRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/ip-access', requireDb, ipAccessRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
