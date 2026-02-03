@@ -294,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error.error || 'Failed to revoke parent access');
     }
 
-    return await response.json();
+    await response.json();
   };
 
   return (

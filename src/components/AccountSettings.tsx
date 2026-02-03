@@ -386,7 +386,7 @@ export function AccountSettings({
               <DialogHeader>
                 <DialogTitle>Revoke Parent Access?</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to revoke access for {userToRevoke?.email}? This action cannot be undone.
+                  Are you sure you want to revoke access for {userToRevoke?.email || 'this user'}? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
 
@@ -399,7 +399,7 @@ export function AccountSettings({
 
                 <Alert>
                   <AlertDescription>
-                    <strong>Note:</strong> The user will immediately lose access to this ChoreQuest account and all its data. They can be re-invited later if needed.
+                    <strong>Note:</strong> The user will immediately lose access to this account and all its data. They can be re-invited later if needed.
                   </AlertDescription>
                 </Alert>
               </div>
