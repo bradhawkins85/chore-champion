@@ -41,6 +41,41 @@ SMTP_FROM_NAME=ChoreQuest
 APP_URL=https://chorequest.example.com
 ```
 
+### Docker Compose Configuration
+
+If you're using Docker Compose, the APP_URL and SMTP settings are automatically passed to the API container. The environment variables from your `.env` file will be used.
+
+**Default APP_URL Values:**
+- `docker-compose.yml` / `docker-compose.prod.yml`: Defaults to `http://localhost:8080`
+- `docker-compose.traefik.yml`: Defaults to `https://{DOMAIN}` (uses your DOMAIN variable)
+
+You can override these by setting `APP_URL` in your `.env` file:
+
+```env
+APP_URL=https://your-chorequest-domain.com
+```
+
+After updating your `.env` file, restart the services:
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+For more details on Docker Compose configuration, see [DOCKER_COMPOSE_CHANGES.md](DOCKER_COMPOSE_CHANGES.md).
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+# Email Details
+SMTP_FROM_EMAIL=chorequest@example.com
+SMTP_FROM_NAME=ChoreQuest
+
+# Application URL (for invitation links)
+APP_URL=https://chorequest.example.com
+```
+
 #### Gmail Setup
 
 If using Gmail, you'll need to:
