@@ -6,6 +6,8 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
+import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity, getWeeklyChoreMessage } from '@/lib/helpers'
 import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, PushNotificationSettings } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
@@ -232,7 +234,7 @@ export function ChildSelector({
           animate={{ opacity: 1, y: 0 }}
           className="text-5xl font-fredoka font-bold text-center mb-4 text-foreground"
         >
-          Who's ready for chores?
+          {getWeeklyChoreMessage()}
         </motion.h1>
         
         <motion.p

@@ -2078,3 +2078,75 @@ export function resetRotationState(
   
   return undefined
 }
+
+/**
+ * Get a kid-friendly weekly message that rotates based on the week number.
+ * The message changes each week to keep things fresh and exciting!
+ */
+export function getWeeklyChoreMessage(): string {
+  const messages = [
+    "Who's ready to be awesome today?",
+    "Time to shine with some chores!",
+    "Let's make today amazing!",
+    "Who's up for some fun tasks?",
+    "Ready to earn those stars?",
+    "Let's tackle today's adventures!",
+    "Who wants to be a chore champion?",
+    "Time to show what you can do!",
+    "Let's get started with some tasks!",
+    "Who's ready to make a difference?",
+    "Time to earn some super points!",
+    "Let's be helpful heroes today!",
+    "Who's excited for today's missions?",
+    "Ready to be a superstar?",
+    "Let's make things sparkle!",
+    "Who wants to level up today?",
+    "Time for some task-tastic fun!",
+    "Let's accomplish great things!",
+    "Who's ready to help out?",
+    "Time to be incredible!",
+    "Let's do something fantastic!",
+    "Who's pumped for tasks today?",
+    "Ready to make magic happen?",
+    "Let's be super helpers!",
+    "Who's ready for action?",
+    "Time to show your skills!",
+    "Let's be amazing together!",
+    "Who wants to earn rewards?",
+    "Ready to take on the day?",
+    "Let's make today count!",
+    "Who's eager to help today?",
+    "Time to be a task master!",
+    "Let's create awesomeness!",
+    "Who's ready to rock this?",
+    "Time for some helpful fun!",
+    "Let's be winners today!",
+    "Who's up for the challenge?",
+    "Ready to make progress?",
+    "Let's be super productive!",
+    "Who wants to succeed today?",
+    "Time to be outstanding!",
+    "Let's do our best!",
+    "Who's ready to shine bright?",
+    "Time for task adventures!",
+    "Let's be fantastic helpers!",
+    "Who's ready to go for it?",
+    "Time to be brilliant!",
+    "Let's make things happen!",
+    "Who's excited to contribute?",
+    "Ready to be terrific?",
+    "Let's show what we've got!",
+    "Who's ready for chores?", // Keep the original as one of many options
+  ]
+  
+  // Use ISO week number to determine which message to show
+  // This ensures the message changes weekly and stays consistent for all users in the same week
+  const now = new Date()
+  const weekNumber = getWeekNumber(now)
+  
+  // Use modulo to cycle through messages
+  // Subtract 1 from weekNumber since ISO weeks are 1-based but array indices are 0-based
+  const messageIndex = (weekNumber - 1) % messages.length
+  
+  return messages[messageIndex]
+}
