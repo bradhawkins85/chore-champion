@@ -1964,6 +1964,8 @@ Please log in to ChoreQuest to approve or reject this completion.
               hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
               schoolHolidays={schoolHolidays || []}
               schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
+              deviceIsLinked={deviceIsLinked}
+              blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}
             />
