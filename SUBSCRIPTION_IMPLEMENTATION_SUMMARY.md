@@ -57,9 +57,24 @@ STRIPE_WEBHOOK_SECRET=whsec_...  # From Stripe Dashboard > Webhooks
 
 1. Create account at https://stripe.com
 2. Get API keys from Dashboard > Developers > API keys
-3. Configure webhook endpoint: `https://your-domain.com/api/subscriptions/webhook`
-4. Add webhook secret to environment variables
+3. **Configure webhook endpoint:**
+   - Go to Dashboard > Developers > Webhooks
+   - Click "Add endpoint"
+   - Enter webhook URL based on your deployment:
+     - Development: Use Stripe CLI (see below)
+     - Production: `https://your-domain.com/api/subscriptions/webhook`
+     - Docker: `http://your-server-ip:PORT/api/subscriptions/webhook`
+   - Select events: `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`
+   - Copy signing secret (starts with `whsec_`)
+4. Add webhook secret to `.env`: `STRIPE_WEBHOOK_SECRET=whsec_...`
 5. Test with Stripe test mode first
+
+**For local development:**
+```bash
+# Install Stripe CLI: https://stripe.com/docs/stripe-cli
+stripe listen --forward-to localhost:3000/api/subscriptions/webhook
+# Copy the webhook secret and add to .env
+```
 
 ## Testing
 

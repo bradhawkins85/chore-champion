@@ -132,8 +132,68 @@ All environment variables have sensible defaults (empty strings or placeholder v
    docker compose up -d chorequest
    ```
 
+## Stripe Webhook Configuration
+
+After deploying with Docker, you need to configure the Stripe webhook endpoint:
+
+### Webhook Endpoint URL
+
+The webhook endpoint URL depends on your Docker deployment type:
+
+| Deployment | Webhook URL | Configuration |
+|------------|-------------|---------------|
+| **Standard Docker** | `http://your-server-ip:8080/api/subscriptions/webhook` | Use server's public IP, port from `CHOREQUEST_PORT` (default: 8080) |
+| **Docker with Traefik** | `https://your-domain.com/api/subscriptions/webhook` | SSL automatically handled by Traefik |
+| **Custom Port** | `http://your-domain.com:PORT/api/subscriptions/webhook` | Replace PORT with your `CHOREQUEST_PORT` value |
+
+### Setup Steps
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com) > Developers > Webhooks
+2. Click "Add endpoint"
+3. Enter your webhook URL (see table above)
+4. Select events to listen for:
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+5. Click "Add endpoint"
+6. Copy the webhook signing secret (starts with `whsec_`)
+7. Add to your `.env` file:
+   ```bash
+   STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret
+   ```
+8. Restart the API container:
+   ```bash
+   docker compose restart api
+   ```
+
+### Testing Webhooks
+
+Verify webhooks are working:
+
+```bash
+# Check API container logs for webhook events
+docker logs chorequest-api -f
+
+# In Stripe Dashboard, send a test webhook
+# You should see the event in the container logs
+```
+
+### Troubleshooting
+
+**Webhooks not receiving:**
+- Ensure your server's firewall allows incoming connections on the specified port
+- For Docker standard deployment, ensure port mapping is correct in docker-compose
+- Verify the API container is running: `docker ps | grep chorequest-api`
+
+**Signature verification fails:**
+- Double-check `STRIPE_WEBHOOK_SECRET` matches the signing secret from Stripe Dashboard
+- Ensure you copied the entire secret including the `whsec_` prefix
+- Restart the API container after updating the secret
+
 ## References
 
 - [Docker Compose Environment Variables](https://docs.docker.com/compose/environment-variables/)
 - [Docker Build Arguments](https://docs.docker.com/engine/reference/builder/#arg)
 - [Vite Environment Variables](https://vitejs.dev/guide/env-and-mode.html)
+- [Stripe Webhooks Documentation](https://stripe.com/docs/webhooks)

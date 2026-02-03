@@ -198,15 +198,38 @@ STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
    - Use test keys for development
    - Use live keys for production
 
-3. **Configure Webhook**:
-   - Dashboard > Developers > Webhooks
-   - Add endpoint: `https://your-domain.com/api/subscriptions/webhook`
-   - Select events:
+3. **Configure Webhook Endpoint**:
+   
+   Stripe needs to send events to your server. Configure the webhook endpoint URL based on your deployment:
+   
+   **Step-by-step:**
+   - Go to Stripe Dashboard > Developers > Webhooks
+   - Click "Add endpoint"
+   - Enter your webhook endpoint URL (see examples below)
+   - Click "Select events" and choose:
      - `customer.subscription.updated`
      - `customer.subscription.deleted`
      - `invoice.paid`
      - `invoice.payment_failed`
-   - Copy webhook signing secret
+   - Click "Add endpoint"
+   - Copy the "Signing secret" (starts with `whsec_`)
+   - Add to your `.env` file as `STRIPE_WEBHOOK_SECRET`
+   
+   **Webhook Endpoint URL Examples:**
+   
+   | Deployment Type | Webhook URL | Notes |
+   |----------------|-------------|-------|
+   | **Development (local)** | `http://localhost:3000/api/subscriptions/webhook` | Only works with Stripe CLI for testing |
+   | **Production (domain)** | `https://your-domain.com/api/subscriptions/webhook` | Replace `your-domain.com` with your actual domain |
+   | **Docker (standard)** | `http://your-server-ip:8080/api/subscriptions/webhook` | Use server's public IP, port from `CHOREQUEST_PORT` |
+   | **Docker with Traefik** | `https://your-domain.com/api/subscriptions/webhook` | SSL handled by Traefik |
+   | **Docker (custom port)** | `http://your-domain.com:PORT/api/subscriptions/webhook` | Replace PORT with your `CHOREQUEST_PORT` value |
+   
+   **Important Notes:**
+   - For local development, use [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward webhooks
+   - Production webhooks require HTTPS (except for testing)
+   - The endpoint path is always `/api/subscriptions/webhook`
+   - Test your webhook with "Send test webhook" in Stripe Dashboard
 
 ### Payment Flow
 
@@ -321,10 +344,52 @@ Use Stripe test keys to test subscription flows:
    - Verify it stays active until period end
    - Verify reactivation works
 
+### Testing Webhooks
+
+**Local Development with Stripe CLI:**
+
+1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
+2. Login: `stripe login`
+3. Forward webhooks to local server:
+   ```bash
+   stripe listen --forward-to localhost:3000/api/subscriptions/webhook
+   ```
+4. Copy the webhook signing secret shown (starts with `whsec_`)
+5. Add to `.env`: `STRIPE_WEBHOOK_SECRET=whsec_...`
+6. Trigger test events:
+   ```bash
+   stripe trigger customer.subscription.updated
+   stripe trigger invoice.paid
+   stripe trigger invoice.payment_failed
+   ```
+7. Check server logs for webhook processing
+
+**Production Webhook Testing:**
+
+1. In Stripe Dashboard > Developers > Webhooks
+2. Click on your webhook endpoint
+3. Click "Send test webhook"
+4. Select an event type (e.g., `invoice.paid`)
+5. Click "Send test webhook"
+6. Check webhook delivery logs in Stripe Dashboard
+7. Verify server logs show webhook was received and processed
+
+**Troubleshooting Webhooks:**
+
+- **Webhook not receiving**: Check firewall rules, ensure endpoint is publicly accessible
+- **Signature verification fails**: Ensure `STRIPE_WEBHOOK_SECRET` matches the webhook's signing secret
+- **Events not processing**: Check server logs (`docker logs chorequest-api`) for errors
+- **Test mode vs Live mode**: Ensure webhook secret matches the key mode (test/live)
+
 ## Production Checklist
 
 - [ ] Replace Stripe test keys with live keys
-- [ ] Configure production webhook endpoint
+- [ ] Configure production webhook endpoint in Stripe Dashboard
+  - [ ] URL: `https://your-domain.com/api/subscriptions/webhook`
+  - [ ] Events: subscription.updated, subscription.deleted, invoice.paid, invoice.payment_failed
+  - [ ] Copy signing secret to `STRIPE_WEBHOOK_SECRET` in `.env`
+- [ ] Test webhook delivery using "Send test webhook" in Stripe Dashboard
+- [ ] Verify webhook signature verification in server logs
 - [ ] Test payment flow in production mode
 - [ ] Set up email notifications for payment failures
 - [ ] Monitor subscription status and failed payments
