@@ -65,11 +65,15 @@ function getDeviceInfo(req: Request): DeviceInfo {
   // The first IP is the original client IP
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
-    const forwardedIps = typeof forwardedFor === 'string' 
-      ? forwardedFor.split(',').map(ip => ip.trim())
-      : (Array.isArray(forwardedFor) && forwardedFor.length > 0)
-        ? forwardedFor[0].split(',').map(ip => ip.trim())
-        : [];
+    let forwardedIps: string[] = [];
+    
+    if (typeof forwardedFor === 'string') {
+      // String format: "client, proxy1, proxy2" - split by comma
+      forwardedIps = forwardedFor.split(',').map(ip => ip.trim());
+    } else if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+      // Array format: already split by Express, use first element
+      forwardedIps = [forwardedFor[0].trim()];
+    }
     
     // Use the first IP in the chain (the real client)
     if (forwardedIps.length > 0 && forwardedIps[0]) {
