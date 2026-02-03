@@ -331,16 +331,16 @@ export function DeviceManagement() {
                         <div className="flex items-center gap-2 mb-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
-                            Allowed Children {device.allowedChildrenIds.length > 0 ? `(${device.allowedChildrenIds.length})` : '(All)'}
+                            Allowed Children {device.allowedChildrenIds?.length > 0 ? `(${device.allowedChildrenIds?.length})` : '(All)'}
                           </span>
                         </div>
-                        {device.allowedChildrenIds.length === 0 ? (
+                        {(device.allowedChildrenIds?.length ?? 0) === 0 ? (
                           <p className="text-xs text-muted-foreground ml-6">
                             All children can access this device
                           </p>
                         ) : (
                           <div className="flex flex-wrap gap-2 ml-6">
-                            {device.allowedChildrenIds.map((childId) => {
+                            {(device.allowedChildrenIds ?? []).map((childId) => {
                               const child = children.find((c) => c.id === childId);
                               if (!child) return null;
                               return (
