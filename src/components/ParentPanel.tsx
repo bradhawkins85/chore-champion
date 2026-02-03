@@ -246,7 +246,7 @@ export function ParentPanel({
   const [activeTab, setActiveTab] = useState('welcome')
   const [activitiesSubTab, setActivitiesSubTab] = useState('summary')
   const [managementSubTab, setManagementSubTab] = useState('children')
-  const [settingsSubTab, setSettingsSubTab] = useState('settings')
+  const [settingsSubTab, setSettingsSubTab] = useState('account')
 
   const popularTemplates = choreTemplates.slice(0, 6)
 
@@ -1005,6 +1005,10 @@ export function ParentPanel({
 
           <Tabs value={settingsSubTab} onValueChange={setSettingsSubTab} className="space-y-4">
             <TabsList className="h-auto flex-wrap">
+              <TabsTrigger value="account">
+                <FolderUser className="h-4 w-4 mr-2" />
+                Account
+              </TabsTrigger>
               <TabsTrigger value="settings">
                 <Gear className="h-4 w-4 mr-2" />
                 Settings
@@ -1012,10 +1016,6 @@ export function ParentPanel({
               <TabsTrigger value="notifications">
                 <Bell className="h-4 w-4 mr-2" />
                 Notifications
-              </TabsTrigger>
-              <TabsTrigger value="account">
-                <FolderUser className="h-4 w-4 mr-2" />
-                Account
               </TabsTrigger>
               <TabsTrigger value="security">
                 <Shield className="h-4 w-4 mr-2" />
