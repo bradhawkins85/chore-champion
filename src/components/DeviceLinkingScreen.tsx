@@ -70,6 +70,7 @@ export function DeviceLinkingScreen({ onLinked, onCancel }: DeviceLinkingScreenP
               onChange={(e) => setDeviceName(e.target.value)}
               maxLength={255}
               autoComplete="off"
+              autoFocus
             />
             <p className="text-xs text-muted-foreground">
               Give this device a friendly name for easier identification
