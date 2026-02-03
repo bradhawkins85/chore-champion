@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { useApiKV as useKV } from '@/hooks/use-api-kv'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -70,14 +70,10 @@ const DEFAULT_PUSH_NOTIFICATION_SETTINGS: PushNotificationSettings = { enabled: 
 
 function App() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
   
-  // Handle admin route
-  if (location.pathname === '/admin') {
-    return <AdminPanel />
-  }
-  
-  // Handle accept-invitation route
+  // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
     return <AcceptInvitationPage />
   }
@@ -2012,6 +2008,18 @@ Please log in to ChoreQuest to approve or reject this completion.
   // Show auth page if not authenticated
   if (!user) {
     return <AuthPage />
+  }
+
+  // Handle admin route (after authentication check)
+  if (location.pathname === '/admin') {
+    // Verify admin role before rendering AdminPanel
+    if (user.role !== 'admin') {
+      toast.error('Access denied. Admin role required.')
+      // Redirect non-admin users back to main page
+      navigate('/')
+      return null
+    }
+    return <AdminPanel />
   }
 
   // Show approval page if token is present in URL
