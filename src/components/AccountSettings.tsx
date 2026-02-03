@@ -539,7 +539,10 @@ export function AccountSettings({
                         checked={weeklySettings.enabled && emailSettings.weeklyReportAlerts}
                         onCheckedChange={(checked) => {
                           updateUserWeeklyReportSettings(parentUser.id, { enabled: checked })
-                          // Always sync the email alert setting with the weekly report enabled state
+                          // Always sync the email alert setting with the weekly report enabled state.
+                          // This ensures both settings stay in sync when toggled from this control.
+                          // Note: Users can also toggle weeklyReportAlerts independently in the 
+                          // Email Alert Preferences section, which preserves the schedule settings.
                           handleToggleAlert(parentUser.id, 'weeklyReportAlerts', checked)
                         }}
                         disabled={!smtpEnabled}
