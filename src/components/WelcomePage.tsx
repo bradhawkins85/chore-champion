@@ -1,10 +1,64 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, Star, Trophy, Gift, Shield, TrendUp, EnvelopeSimple } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+// Sortable card component for feature cards
+interface SortableFeatureCardProps {
+  id: string
+  children: React.ReactNode
+}
+
+function SortableFeatureCard({ id, children }: SortableFeatureCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      role="button"
+      aria-label={`Draggable feature card: ${id}`}
+    >
+      {children}
+    </div>
+  )
+}
 
 interface WelcomePageProps {
   currentIP: string | null
@@ -18,6 +72,36 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
   const [showPinInput, setShowPinInput] = useState(false)
   const [showRequestAccess, setShowRequestAccess] = useState(false)
   const [isRequestingAccess, setIsRequestingAccess] = useState(false)
+
+  // Load card order from localStorage, default to the original order
+  const defaultOrder = ['chore-tracking', 'points-system', 'reward-shop', 'goal-tracking', 'parent-approval', 'multi-device']
+  const [featureCardOrder, setFeatureCardOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('welcomeFeatureCardOrder')
+    return saved ? JSON.parse(saved) : defaultOrder
+  })
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = featureCardOrder.indexOf(active.id as string)
+      const newIndex = featureCardOrder.indexOf(over.id as string)
+      
+      const newOrder = arrayMove(featureCardOrder, oldIndex, newIndex)
+      setFeatureCardOrder(newOrder)
+      // Persist to localStorage
+      localStorage.setItem('welcomeFeatureCardOrder', JSON.stringify(newOrder))
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,38 +136,47 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
     }
   }
 
-  const features = [
-    {
+  // Define feature cards with IDs
+  const featureDefinitions: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
+    'chore-tracking': {
       icon: <Trophy className="h-8 w-8" />,
       title: 'Chore Tracking',
       description: 'Create and assign chores to each child with customizable points and schedules',
     },
-    {
+    'points-system': {
       icon: <Star className="h-8 w-8" />,
       title: 'Points System',
       description: 'Children earn points for completing chores and can track their progress',
     },
-    {
+    'reward-shop': {
       icon: <Gift className="h-8 w-8" />,
       title: 'Reward Shop',
       description: 'Set up rewards that children can purchase with their earned points',
     },
-    {
+    'goal-tracking': {
       icon: <TrendUp className="h-8 w-8" />,
       title: 'Goal Tracking',
       description: 'Kids can set goals and watch their progress towards special rewards',
     },
-    {
+    'parent-approval': {
       icon: <CheckCircle className="h-8 w-8" />,
       title: 'Parent Approval',
       description: 'Optional approval system for chores that need verification',
     },
-    {
+    'multi-device': {
       icon: <Shield className="h-8 w-8" />,
       title: 'Multi-Device Support',
       description: 'Configure different child profiles for each device in your home',
     },
-  ]
+  }
+
+  // Return features in the saved order
+  const features = useMemo(() => {
+    return featureCardOrder.map((cardId) => ({
+      id: cardId,
+      ...featureDefinitions[cardId],
+    }))
+  }, [featureCardOrder])
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
@@ -97,25 +190,38 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {features.map((feature, index) => (
-            <Card key={index} className="border-2 hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="text-primary">
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={featureCardOrder}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {features.map((feature) => (
+                <SortableFeatureCard key={feature.id} id={feature.id}>
+                  <Card className="border-2 hover:border-primary/50 transition-colors">
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="text-primary">
+                          {feature.icon}
+                        </div>
+                        <CardTitle className="text-xl">{feature.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base">
+                        {feature.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </SortableFeatureCard>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         <Card className="max-w-md mx-auto border-2 border-primary/20">
           <CardHeader className="text-center">
