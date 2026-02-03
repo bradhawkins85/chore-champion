@@ -56,6 +56,7 @@ import {
   SchoolHoliday,
   ChildAvailabilityEntry,
   SchoolHolidayCountdownSettings,
+  GettingStartedState,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -174,6 +175,17 @@ function App() {
   })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const [blockParentModeOnLinkedDevices, setBlockParentModeOnLinkedDevices] = useKV<boolean>('block-parent-mode-on-linked-devices', false)
+  const [gettingStartedState, setGettingStartedState] = useKV<GettingStartedState>('getting-started-state', {
+    dismissed: false,
+    tasks: [
+      { id: 'dismiss', label: "I Don't Need Help Getting Started", completed: false, ignored: false },
+      { id: 'add-child', label: 'Add Your First Child', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'children' },
+      { id: 'create-chore', label: 'Create Your First Chore', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'chores' },
+      { id: 'assign-chore', label: 'Assign Chores to Children', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'children' },
+      { id: 'add-reward', label: 'Add Your First Reward', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'rewards' },
+      { id: 'set-pin', label: 'Set Your Parent PIN', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'security' },
+    ],
+  })
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
       return parentPin ?? null
@@ -2054,6 +2066,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           schoolHolidays={schoolHolidays || []}
           childAvailability={safeChildAvailability}
           schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
+          gettingStartedState={gettingStartedState}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -2103,6 +2116,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onEditSchoolHoliday={handleEditSchoolHoliday}
           onDeleteSchoolHoliday={handleDeleteSchoolHoliday}
           onUpdateSchoolHolidayCountdownSettings={(settings) => setSchoolHolidayCountdownSettings(settings)}
+          onUpdateGettingStartedState={(state) => setGettingStartedState(state)}
           onSendDigestNow={sendDigestEmail}
           onExitParentMode={() => {
             setMode('child')

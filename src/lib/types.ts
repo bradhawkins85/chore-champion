@@ -627,3 +627,17 @@ export interface PushNotificationSettings {
   enabled: boolean
   devices: DevicePushSettings[]
 }
+
+export interface GettingStartedTask {
+  id: string
+  label: string
+  completed: boolean
+  ignored: boolean
+  targetTab?: string
+  targetSubTab?: string
+}
+
+export interface GettingStartedState {
+  dismissed: boolean
+  tasks: GettingStartedTask[]
+}

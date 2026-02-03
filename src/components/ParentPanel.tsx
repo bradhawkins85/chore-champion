@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,6 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch } from '@phosphor-icons/react'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState } from '@/lib/types'
 import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
 import {
   DndContext,
@@ -66,6 +68,7 @@ import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { AccountSettings } from './AccountSettings'
 import { DeviceManagement } from './DeviceManagement'
 import { LegacyDataMigration } from './LegacyDataMigration'
+import { GettingStartedMenu } from './GettingStartedMenu'
 import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
@@ -144,6 +147,7 @@ interface ParentPanelProps {
   schoolHolidays: SchoolHoliday[]
   childAvailability: ChildAvailabilityEntry[]
   schoolHolidayCountdownSettings: SchoolHolidayCountdownSettings
+  gettingStartedState: GettingStartedState
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -200,6 +204,7 @@ interface ParentPanelProps {
   onEditSchoolHoliday: (id: string, holiday: Omit<SchoolHoliday, 'id' | 'createdAt'>) => void
   onDeleteSchoolHoliday: (id: string) => void
   onUpdateSchoolHolidayCountdownSettings: (settings: SchoolHolidayCountdownSettings) => void
+  onUpdateGettingStartedState: (state: GettingStartedState) => void
   onSendDigestNow: () => void
   onExitParentMode: () => void
 }
@@ -284,10 +289,12 @@ export function ParentPanel({
   schoolHolidays,
   childAvailability,
   schoolHolidayCountdownSettings,
+  gettingStartedState,
   onAddSchoolHoliday,
   onEditSchoolHoliday,
   onDeleteSchoolHoliday,
   onUpdateSchoolHolidayCountdownSettings,
+  onUpdateGettingStartedState,
   onSendDigestNow,
   onExitParentMode,
 }: ParentPanelProps) {
@@ -400,6 +407,48 @@ export function ParentPanel({
     return count
   }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
 
+  // Auto-update getting started tasks based on actual progress
+  useEffect(() => {
+    if (gettingStartedState.dismissed) return
+
+    let updated = false
+    const updatedTasks = gettingStartedState.tasks.map(task => {
+      if (task.completed || task.ignored) return task
+
+      let shouldComplete = false
+
+      switch (task.id) {
+        case 'add-child':
+          shouldComplete = childrenList.length > 0
+          break
+        case 'create-chore':
+          shouldComplete = chores.length > 0
+          break
+        case 'assign-chore':
+          shouldComplete = assignments.length > 0
+          break
+        case 'add-reward':
+          shouldComplete = rewards.length > 0
+          break
+        case 'set-pin':
+          shouldComplete = parentPin !== null && parentPin !== '0000'
+          break
+      }
+
+      if (shouldComplete) {
+        updated = true
+        return { ...task, completed: true }
+      }
+      return task
+    })
+
+    if (updated) {
+      onUpdateGettingStartedState({
+        ...gettingStartedState,
+        tasks: updatedTasks,
+      })
+    }
+  }, [childrenList, chores, assignments, rewards, parentPin, gettingStartedState, onUpdateGettingStartedState])
   // Define welcome cards with their content
   const welcomeCards = useMemo(() => {
     const cardDefinitions: Record<string, { icon: React.ReactNode; title: string; value: number; description: string }> = {
@@ -563,6 +612,12 @@ export function ParentPanel({
             <Gear className="h-4 w-4 mr-2" />
             Settings
           </TabsTrigger>
+          {!gettingStartedState.dismissed && (
+            <TabsTrigger value="getting-started">
+              <RocketLaunch className="h-4 w-4 mr-2" />
+              Getting Started
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Welcome Tab */}
@@ -1127,6 +1182,12 @@ export function ParentPanel({
                 weeklyReportSettingsMap={weeklyReportSettingsMap}
                 onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
                 onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
+                onResetGettingStarted={() => {
+                  onUpdateGettingStartedState({
+                    ...gettingStartedState,
+                    dismissed: false,
+                  })
+                }}
               />
             </TabsContent>
 
@@ -1178,6 +1239,35 @@ export function ParentPanel({
             </TabsContent>
           </Tabs>
         </TabsContent>
+
+        {/* Getting Started Tab */}
+        {!gettingStartedState.dismissed && (
+          <TabsContent value="getting-started" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-fredoka font-bold">Getting Started</h2>
+                <p className="text-sm text-muted-foreground">
+                  Set up your ChoreQuest account
+                </p>
+              </div>
+            </div>
+
+            <GettingStartedMenu
+              state={gettingStartedState}
+              onUpdateState={onUpdateGettingStartedState}
+              onNavigate={(tab, subTab) => {
+                setActiveTab(tab)
+                if (subTab) {
+                  if (tab === 'management') {
+                    setManagementSubTab(subTab)
+                  } else if (tab === 'settings-tab') {
+                    setSettingsSubTab(subTab)
+                  }
+                }
+              }}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       <ChangePinDialog
