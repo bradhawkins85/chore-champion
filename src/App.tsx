@@ -17,6 +17,7 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
+import { ApproveAccessPage } from '@/components/ApproveAccessPage'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
 import {
@@ -178,6 +179,8 @@ function App() {
   const [ipAccessGranted, setIPAccessGranted] = useState<boolean>(false)
   const [isCheckingIP, setIsCheckingIP] = useState<boolean>(true)
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null)
+  const [showApprovalPage, setShowApprovalPage] = useState<boolean>(false)
+  const [approvalToken, setApprovalToken] = useState<string | null>(null)
 
   const coerceArray = <T,>(value: unknown): T[] => {
     if (Array.isArray(value)) return value
@@ -226,6 +229,14 @@ function App() {
 
   useEffect(() => {
     initializePWA()
+    
+    // Check if URL contains an approval token
+    const urlParams = new URLSearchParams(window.location.search)
+    const token = urlParams.get('token')
+    if (token) {
+      setApprovalToken(token)
+      setShowApprovalPage(true)
+    }
   }, [])
 
   // Register device on app mount and handle auto-login
@@ -1325,6 +1336,71 @@ function App() {
     }
   }
 
+  const handleRequestAccess = async (parentPin: string) => {
+    if (!user?.tenantId || !currentIP) {
+      toast.error('Unable to request access')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/ip-access/request-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenantId: user.tenantId,
+          ip: currentIP,
+          parentPin: parentPin,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        toast.success(data.message)
+      } else {
+        toast.error(data.error || 'Failed to request access')
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Error requesting access:', error)
+      throw error
+    }
+  }
+
+  const handleApproveAccess = async (token: string) => {
+    try {
+      const response = await fetch('/api/ip-access/approve-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        return { success: true, ip: data.ip }
+      } else {
+        return { success: false, error: data.error || 'Failed to approve access' }
+      }
+    } catch (error) {
+      console.error('Error approving access:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  const handleApprovalComplete = () => {
+    setShowApprovalPage(false)
+    setApprovalToken(null)
+    // Remove token from URL
+    window.history.replaceState({}, document.title, window.location.pathname)
+    // Reload the page to check IP access again
+    window.location.reload()
+  }
+
   const handleUpdateWeeklyReportSettings = (settings: WeeklyReportSettings) => {
     setWeeklyReportSettings(settings)
   }
@@ -1823,6 +1899,20 @@ Please log in to ChoreQuest to approve or reject this completion.
     return <AuthPage />
   }
 
+  // Show approval page if token is present in URL
+  if (showApprovalPage && approvalToken) {
+    return (
+      <>
+        <Toaster position="top-center" />
+        <ApproveAccessPage
+          token={approvalToken}
+          onApprove={handleApproveAccess}
+          onComplete={handleApprovalComplete}
+        />
+      </>
+    )
+  }
+
   return (
     <div className="h-screen overflow-y-auto bg-background">
       {isCheckingIP ? (
@@ -1836,6 +1926,7 @@ Please log in to ChoreQuest to approve or reject this completion.
         <WelcomePage
           currentIP={currentIP}
           onPinSubmit={handlePinOverride}
+          onRequestAccess={handleRequestAccess}
         />
       ) : mode === 'parent' ? (
         <ParentPanel

@@ -352,6 +352,23 @@ export interface IPAccessAttempt {
   usedPin: boolean
 }
 
+export interface IPAccessRequest {
+  id: string
+  ip: string
+  token: string
+  requestedAt: number
+  expiresAt: number
+  approved: boolean
+  approvedAt?: number
+}
+
+export interface IPRequestThrottle {
+  ip: string
+  attempts: number
+  lastAttempt: number
+  blockedUntil: number | null
+}
+
 export interface DeviceConfig {
   id: string
   name: string
