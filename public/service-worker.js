@@ -1,5 +1,7 @@
-const CACHE_NAME = 'chorequest-v3';
-const RUNTIME_CACHE = 'chorequest-runtime-v3';
+// Cache version will be set dynamically based on app version
+let CACHE_VERSION = 'v3'; // Default fallback version
+let CACHE_NAME = `chorequest-${CACHE_VERSION}`;
+let RUNTIME_CACHE = `chorequest-runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   '/',
@@ -7,6 +9,20 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/icons/icon.svg'
 ];
+
+// Fetch version from version.json to set cache names
+async function initializeCacheVersion() {
+  try {
+    const response = await fetch('/version.json');
+    const data = await response.json();
+    CACHE_VERSION = data.version.replace(/\./g, '-'); // Replace dots with dashes for cache name
+    CACHE_NAME = `chorequest-${CACHE_VERSION}`;
+    RUNTIME_CACHE = `chorequest-runtime-${CACHE_VERSION}`;
+    console.log(`Service worker initialized with cache version: ${CACHE_VERSION}`);
+  } catch (error) {
+    console.warn('Failed to fetch version.json, using default cache version:', error);
+  }
+}
 
 // URLs that should never be cached (API endpoints, dynamic data)
 const CACHE_EXCLUDE_PATTERNS = [
@@ -29,7 +45,8 @@ function shouldExcludeFromCache(url) {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    initializeCacheVersion()
+      .then(() => caches.open(CACHE_NAME))
       .then((cache) => {
         // Cache each resource individually to avoid failing the entire install
         return Promise.all(
@@ -52,15 +69,20 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return cacheNames.filter((cacheName) => !currentCaches.includes(cacheName));
-    }).then((cachesToDelete) => {
-      return Promise.all(cachesToDelete.map((cacheToDelete) => {
-        return caches.delete(cacheToDelete);
-      }));
-    }).then(() => self.clients.claim())
+    initializeCacheVersion()
+      .then(() => {
+        const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
+        return caches.keys().then((cacheNames) => {
+          return cacheNames.filter((cacheName) => !currentCaches.includes(cacheName));
+        }).then((cachesToDelete) => {
+          console.log(`Deleting old caches: ${cachesToDelete.join(', ')}`);
+          return Promise.all(cachesToDelete.map((cacheToDelete) => {
+            return caches.delete(cacheToDelete);
+          }));
+        });
+      })
+      .then(() => self.clients.claim())
   );
 });
 
