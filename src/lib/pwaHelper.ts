@@ -5,7 +5,46 @@ export interface BeforeInstallPromptEvent extends Event {
 
 let deferredPrompt: BeforeInstallPromptEvent | null = null
 
+// Check for version updates periodically
+const checkForVersionUpdate = async () => {
+  try {
+    const response = await fetch('/version.json', { cache: 'no-cache' });
+    const data = await response.json();
+    const currentVersion = data.version;
+    
+    // Store the version in localStorage
+    const storedVersion = localStorage.getItem('app-version');
+    
+    if (storedVersion && storedVersion !== currentVersion) {
+      console.log(`Version update detected: ${storedVersion} -> ${currentVersion}`);
+      
+      if (confirm(`A new version of ChoreQuest (${currentVersion}) is available. Reload to update?`)) {
+        // Store the new version before clearing caches to avoid race condition
+        localStorage.setItem('app-version', currentVersion);
+        
+        // Clear all caches before reload
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        window.location.reload();
+      }
+    } else if (!storedVersion) {
+      // First time loading, store the version
+      localStorage.setItem('app-version', currentVersion);
+    }
+  } catch (error) {
+    console.warn('Failed to check for version update:', error);
+  }
+};
+
 export const initializePWA = () => {
+  // Check for version updates on initialization
+  checkForVersionUpdate();
+  
+  // Check for updates every 5 minutes
+  setInterval(checkForVersionUpdate, 5 * 60 * 1000);
+  
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
