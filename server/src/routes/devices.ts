@@ -169,6 +169,11 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const connection = await pool.getConnection();
 
     try {
@@ -350,6 +355,11 @@ router.get('/', async (req: Request, res: Response) => {
 
     const tenantId = decoded.tenantId;
 
+    if (!tenantId) {
+      console.error('[ERROR] GET /api/devices - tenantId is null/undefined in JWT');
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const [devices] = await pool.query<RowDataPacket[]>(
       'SELECT id, device_guid, device_name, device_info, allowed_children_ids, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
       [tenantId]
@@ -418,6 +428,11 @@ router.patch('/:deviceId', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const { deviceId } = req.params;
     const { deviceName, allowedChildrenIds } = req.body;
 
@@ -491,6 +506,11 @@ router.delete('/:deviceId', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const { deviceId } = req.params;
 
     const connection = await pool.getConnection();
