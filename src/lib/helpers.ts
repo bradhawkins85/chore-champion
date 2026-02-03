@@ -2145,7 +2145,8 @@ export function getWeeklyChoreMessage(): string {
   const weekNumber = getWeekNumber(now)
   
   // Use modulo to cycle through messages
-  const messageIndex = weekNumber % messages.length
+  // Subtract 1 from weekNumber since ISO weeks are 1-based but array indices are 0-based
+  const messageIndex = (weekNumber - 1) % messages.length
   
   return messages[messageIndex]
 }
