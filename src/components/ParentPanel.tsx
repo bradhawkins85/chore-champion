@@ -1022,24 +1022,6 @@ export function ParentPanel({
                 onDelete={onDeleteSchoolHoliday}
               />
 
-              <WeeklyReportSettingsComponent
-                settings={weeklyReportSettings}
-                childrenList={childrenList}
-                chores={chores}
-                completions={completions}
-                assignments={assignments}
-                purchases={purchases}
-                rewards={rewards}
-                categories={categories}
-                bonusCompletions={bonusCompletions}
-                onUpdateSettings={onUpdateWeeklyReportSettings}
-              />
-
-              <EmailSettings
-                emailAlertSettings={emailAlertSettings}
-                onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
-              />
-
               <PushNotificationSettingsComponent
                 pushSettings={pushNotificationSettings}
                 deviceId={currentDeviceId}
@@ -1061,7 +1043,20 @@ export function ParentPanel({
                 onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
               />
 
-              <AccountSettings />
+              <AccountSettings
+                emailAlertSettings={emailAlertSettings}
+                weeklyReportSettings={weeklyReportSettings}
+                childrenList={childrenList}
+                chores={chores}
+                completions={completions}
+                assignments={assignments}
+                purchases={purchases}
+                rewards={rewards}
+                categories={categories}
+                bonusCompletions={bonusCompletions}
+                onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
+                onUpdateWeeklyReportSettings={onUpdateWeeklyReportSettings}
+              />
             </TabsContent>
 
             <TabsContent value="security" className="space-y-4">
