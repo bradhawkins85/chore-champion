@@ -50,6 +50,7 @@ import { SchoolHolidaySettings } from './SchoolHolidaySettings'
 import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { AccountSettings } from './AccountSettings'
 import { DeviceManagement } from './DeviceManagement'
+import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -85,6 +86,7 @@ interface ParentPanelProps {
   pushNotificationSettings: PushNotificationSettings
   currentDeviceId: string
   hideChildrenWithNoActivity: boolean
+  blockParentModeOnLinkedDevices: boolean
   schoolHolidays: SchoolHoliday[]
   childAvailability: ChildAvailabilityEntry[]
   schoolHolidayCountdownSettings: SchoolHolidayCountdownSettings
@@ -134,6 +136,7 @@ interface ParentPanelProps {
   onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => void
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
+  onUpdateBlockParentModeOnLinkedDevices: (value: boolean) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -214,6 +217,8 @@ export function ParentPanel({
   onUpdateSpeechSettings,
   hideChildrenWithNoActivity,
   onUpdateHideChildrenWithNoActivity,
+  blockParentModeOnLinkedDevices,
+  onUpdateBlockParentModeOnLinkedDevices,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -909,6 +914,11 @@ export function ParentPanel({
             <DisplayPreferencesSettings
               hideChildrenWithNoActivity={hideChildrenWithNoActivity}
               onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
+            />
+
+            <DeviceSettings
+              blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+              onBlockParentModeOnLinkedDevicesChange={onUpdateBlockParentModeOnLinkedDevices}
             />
 
             <DeviceManagement />

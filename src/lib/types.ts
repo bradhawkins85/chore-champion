@@ -362,6 +362,10 @@ export interface DeviceConfig {
   parentModeEnabled: boolean
 }
 
+export interface DeviceSettings {
+  blockParentModeOnLinkedDevices: boolean
+}
+
 export interface WeeklyReportSettings {
   enabled: boolean
   parentEmail: string | null
