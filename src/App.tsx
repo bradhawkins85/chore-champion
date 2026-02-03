@@ -20,6 +20,7 @@ import { AuthPage } from '@/components/AuthPage'
 import { AcceptInvitationPage } from '@/components/AcceptInvitationPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { ApproveAccessPage } from '@/components/ApproveAccessPage'
+import { AdminPanel } from '@/components/AdminPanel'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
 import {
@@ -70,6 +71,11 @@ const DEFAULT_PUSH_NOTIFICATION_SETTINGS: PushNotificationSettings = { enabled: 
 function App() {
   const location = useLocation()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
+  
+  // Handle admin route
+  if (location.pathname === '/admin') {
+    return <AdminPanel />
+  }
   
   // Handle accept-invitation route
   if (location.pathname === '/accept-invitation') {
