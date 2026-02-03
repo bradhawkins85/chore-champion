@@ -933,6 +933,15 @@ function App() {
     setMode('parent')
   }
 
+  const handleRequestParentMode = () => {
+    // Check if parent mode should be blocked on this linked device
+    if (deviceIsLinked && blockParentModeOnLinkedDevices) {
+      toast.error('Parent Mode is blocked on linked devices. Please use the primary device to access Parent Mode.')
+      return
+    }
+    setShowPinDialog(true)
+  }
+
   const handleSetPin = (pin: string) => {
     setParentPin(pin)
     toast.success('Parent PIN set successfully!')
@@ -1914,7 +1923,7 @@ Please log in to ChoreQuest to approve or reject this completion.
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => setShowPinDialog(true)}
+                  onClick={handleRequestParentMode}
                   className="font-fredoka text-lg"
                 >
                   <Gear className="h-5 w-5 mr-2" />
@@ -1942,7 +1951,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               schoolHolidays={schoolHolidays || []}
               schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
               onSelect={setSelectedChild}
-              onParentMode={() => setShowPinDialog(true)}
+              onParentMode={handleRequestParentMode}
             />
           )}
         </>
