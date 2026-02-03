@@ -59,7 +59,9 @@
 
 ### 🔒 Security & Access Control
 - **Multi-Tenant Authentication** - Secure email & password authentication with tenant isolation - [See Guide](MULTI_TENANT_AUTH.md)
-- **Shared Family Access** - Share your account with one other parent
+- **Email-Based Parent Invitations** - Invite additional parents via secure email invitations - [See Guide](PARENT_INVITATION_GUIDE.md)
+- **Shared Family Access** - Primary parent can invite one other parent to co-manage the account
+- **Primary Account Holder** - Parents can only be primary for one account, but can be invited to multiple
 - PIN-protected parent mode
 - Optional biometric authentication
 - PIN brute-force protection with lockout
@@ -68,6 +70,7 @@
 - Secure parent approval workflows
 
 ### 📧 Communication
+- **Parent Invitation Emails** - Secure email invitations with 7-day expiration
 - Email alerts for reward purchases
 - Pending approval notifications
 - Digest mode for batched notifications
@@ -521,10 +524,12 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 3. **Set Parent PIN** - Create a Parent Mode PIN for quick access
 
-4. **Add Second Parent** (Optional)
+4. **Invite Second Parent** (Optional)
    - Go to Parent Mode > Settings > Account Settings
-   - Click "Add Second Parent"
-   - Enter their email and password
+   - Click "Invite Second Parent"
+   - Enter their email address
+   - They will receive an email invitation to join
+   - See [Parent Invitation Guide](PARENT_INVITATION_GUIDE.md) for details
 
 5. **Add Children**
    - Navigate to "Children" tab

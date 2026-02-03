@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { pool } from '../config/database.js';
+import { emailService } from '../services/email.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 const router = Router();
@@ -306,7 +308,328 @@ router.get('/tenant-users', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Add second parent to tenant
+// Invite second parent to tenant (sends email invitation)
+router.post('/invite-parent', async (req: AuthRequest, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if email service is enabled
+    if (!emailService.isEnabled()) {
+      return res.status(503).json({ 
+        error: 'Email service is not configured. Please configure SMTP settings to send invitations.' 
+      });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Check how many users are in the tenant
+      const [tenantUsers] = await connection.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM users WHERE tenant_id = ?',
+        [decoded.tenantId]
+      );
+
+      if (tenantUsers[0].count >= 2) {
+        await connection.rollback();
+        return res.status(400).json({ error: 'Maximum of 2 parents per tenant allowed' });
+      }
+
+      // Check if user already exists (either as primary account holder or invited)
+      const [existingUsers] = await connection.query<RowDataPacket[]>(
+        'SELECT id, tenant_id FROM users WHERE email = ?',
+        [email.toLowerCase()]
+      );
+
+      if (existingUsers.length > 0) {
+        await connection.rollback();
+        // Check if user is already in this tenant
+        if (existingUsers[0].tenant_id === decoded.tenantId) {
+          return res.status(409).json({ error: 'This user is already a member of your account' });
+        } else {
+          return res.status(409).json({ 
+            error: 'This email is already registered as a primary account holder. Parents can only be primary for one account.' 
+          });
+        }
+      }
+
+      // Check for existing pending invitation
+      const [existingInvitations] = await connection.query<RowDataPacket[]>(
+        'SELECT id FROM parent_invitations WHERE email = ? AND tenant_id = ? AND status = ? AND expires_at > NOW()',
+        [email.toLowerCase(), decoded.tenantId, 'pending']
+      );
+
+      if (existingInvitations.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({ error: 'An invitation has already been sent to this email' });
+      }
+
+      // Generate invitation token
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      const invitationId = uuidv4();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+
+      // Create invitation
+      await connection.query(
+        'INSERT INTO parent_invitations (id, token, email, tenant_id, inviter_id, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [invitationId, invitationToken, email.toLowerCase(), decoded.tenantId, decoded.userId, expiresAt]
+      );
+
+      await connection.commit();
+
+      // Send invitation email
+      const appUrl = process.env.APP_URL || 'http://localhost:5000';
+      try {
+        await emailService.sendParentInvitation(
+          email.toLowerCase(),
+          decoded.email,
+          invitationToken,
+          appUrl
+        );
+      } catch (emailError) {
+        console.error('Error sending invitation email:', emailError);
+        // Delete the invitation since email failed
+        await connection.query(
+          'DELETE FROM parent_invitations WHERE id = ?',
+          [invitationId]
+        );
+        return res.status(500).json({ error: 'Failed to send invitation email. Please try again.' });
+      }
+
+      res.status(201).json({
+        success: true,
+        invitation: {
+          id: invitationId,
+          email: email.toLowerCase(),
+          expiresAt,
+        }
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    console.error('Error inviting parent:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Accept parent invitation and create account
+router.post('/accept-invitation', async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Find invitation
+      const [invitations] = await connection.query<RowDataPacket[]>(
+        'SELECT id, email, tenant_id, status, expires_at FROM parent_invitations WHERE token = ?',
+        [token]
+      );
+
+      if (invitations.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Invalid invitation token' });
+      }
+
+      const invitation = invitations[0];
+
+      // Check if invitation is already accepted
+      if (invitation.status === 'accepted') {
+        await connection.rollback();
+        return res.status(400).json({ error: 'This invitation has already been accepted' });
+      }
+
+      // Check if invitation is expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        await connection.rollback();
+        // Mark as expired
+        await connection.query(
+          'UPDATE parent_invitations SET status = ? WHERE id = ?',
+          ['expired', invitation.id]
+        );
+        return res.status(400).json({ error: 'This invitation has expired' });
+      }
+
+      // Check if user already exists
+      const [existingUsers] = await connection.query<RowDataPacket[]>(
+        'SELECT id FROM users WHERE email = ?',
+        [invitation.email]
+      );
+
+      if (existingUsers.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({ error: 'User with this email already exists' });
+      }
+
+      // Check how many users are in the tenant
+      const [tenantUsers] = await connection.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM users WHERE tenant_id = ?',
+        [invitation.tenant_id]
+      );
+
+      if (tenantUsers[0].count >= 2) {
+        await connection.rollback();
+        return res.status(400).json({ error: 'Maximum of 2 parents per tenant already reached' });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+      // Create user
+      const userId = uuidv4();
+      await connection.query(
+        'INSERT INTO users (id, email, password_hash, tenant_id, role) VALUES (?, ?, ?, ?, ?)',
+        [userId, invitation.email, passwordHash, invitation.tenant_id, 'parent']
+      );
+
+      // Mark invitation as accepted
+      await connection.query(
+        'UPDATE parent_invitations SET status = ?, accepted_at = NOW() WHERE id = ?',
+        ['accepted', invitation.id]
+      );
+
+      await connection.commit();
+
+      // Generate JWT token
+      const authToken = jwt.sign(
+        { userId, tenantId: invitation.tenant_id, email: invitation.email },
+        SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.status(201).json({
+        success: true,
+        token: authToken,
+        user: {
+          id: userId,
+          email: invitation.email,
+          tenantId: invitation.tenant_id,
+          role: 'parent'
+        }
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error accepting invitation:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get invitation details (for the accept invitation page)
+router.get('/invitation/:token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+
+    const [invitations] = await pool.query<RowDataPacket[]>(
+      'SELECT email, status, expires_at FROM parent_invitations WHERE token = ?',
+      [token]
+    );
+
+    if (invitations.length === 0) {
+      return res.status(404).json({ error: 'Invalid invitation token' });
+    }
+
+    const invitation = invitations[0];
+
+    // Check if expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'This invitation has expired', status: 'expired' });
+    }
+
+    // Check if already accepted
+    if (invitation.status === 'accepted') {
+      return res.status(400).json({ error: 'This invitation has already been accepted', status: 'accepted' });
+    }
+
+    res.json({
+      success: true,
+      email: invitation.email,
+      status: invitation.status,
+      expiresAt: invitation.expires_at
+    });
+  } catch (error) {
+    console.error('Error getting invitation:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get pending invitations for a tenant
+router.get('/invitations', async (req: AuthRequest, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+
+    const [invitations] = await pool.query<RowDataPacket[]>(
+      'SELECT id, email, status, created_at, expires_at, accepted_at FROM parent_invitations WHERE tenant_id = ? ORDER BY created_at DESC',
+      [decoded.tenantId]
+    );
+
+    res.json({
+      success: true,
+      invitations: invitations.map(inv => ({
+        id: inv.id,
+        email: inv.email,
+        status: inv.status,
+        createdAt: inv.created_at,
+        expiresAt: inv.expires_at,
+        acceptedAt: inv.accepted_at
+      }))
+    });
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    console.error('Error getting invitations:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Keep the old add-parent endpoint for backward compatibility (deprecated)
 router.post('/add-parent', async (req: AuthRequest, res: Response) => {
   try {
     const authHeader = req.headers.authorization;

@@ -26,13 +26,12 @@ export function AccountSettings({
   onUpdateEmailAlertSettingsMap,
   onUpdateWeeklyReportSettingsMap,
 }: AccountSettingsProps = {}) {
-  const { user, logout, addParent, getTenantUsers } = useAuth()
+  const { user, logout, inviteParent, getPendingInvitations, getTenantUsers } = useAuth();
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [showAddParent, setShowAddParent] = useState(false)
+  const [showInviteParent, setShowInviteParent] = useState(false)
   const [newParentEmail, setNewParentEmail] = useState('')
-  const [newParentPassword, setNewParentPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [smtpConfigured, setSmtpConfigured] = useState(false)
   const [smtpEnabled, setSmtpEnabled] = useState(false)
@@ -41,7 +40,7 @@ export function AccountSettings({
   const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
   useEffect(() => {
-    loadTenantUsers()
+    loadTenantData()
     // Fetch SMTP status from the server
     fetch('/api/config/smtp-status')
       .then((res) => {
@@ -63,40 +62,37 @@ export function AccountSettings({
       })
   }, [])
 
-  const loadTenantUsers = async () => {
+  const loadTenantData = async () => {
     try {
-      const users = await getTenantUsers()
+      const [users, invitations] = await Promise.all([
+        getTenantUsers(),
+        getPendingInvitations()
+      ])
       setTenantUsers(users)
+      setPendingInvitations(invitations.filter((inv: any) => inv.status === 'pending'))
     } catch (err) {
-      console.error('Error loading tenant users:', err)
+      console.error('Error loading tenant data:', err)
     }
   }
 
-  const handleAddParent = async () => {
+  const handleInviteParent = async () => {
     setError('')
 
-    if (newParentPassword !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (newParentPassword.length < 8) {
-      setError('Password must be at least 8 characters long')
+    if (!newParentEmail) {
+      setError('Email is required')
       return
     }
 
     setLoading(true)
 
     try {
-      await addParent(newParentEmail, newParentPassword)
-      toast.success('Second parent added successfully')
-      setShowAddParent(false)
+      await inviteParent(newParentEmail)
+      toast.success('Invitation sent successfully')
+      setShowInviteParent(false)
       setNewParentEmail('')
-      setNewParentPassword('')
-      setConfirmPassword('')
-      loadTenantUsers()
+      loadTenantData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add parent')
+      setError(err instanceof Error ? err.message : 'Failed to send invitation')
     } finally {
       setLoading(false)
     }
@@ -107,7 +103,7 @@ export function AccountSettings({
     toast.success('Logged out successfully')
   }
 
-  const canAddParent = tenantUsers.length < 2
+  const canInviteParent = tenantUsers.length < 2 && pendingInvitations.length === 0
 
   // Get or create settings for a specific user
   const getUserEmailSettings = (userId: string): ParentEmailAlertSettings => {
@@ -237,95 +233,111 @@ export function AccountSettings({
             </div>
           </div>
 
-          {canAddParent && (
-            <Dialog open={showAddParent} onOpenChange={setShowAddParent}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Second Parent
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Second Parent</DialogTitle>
-                  <DialogDescription>
-                    Create an account for the second parent to share access to this ChoreQuest
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="newParentEmail">Email</Label>
-                    <Input
-                      id="newParentEmail"
-                      type="email"
-                      placeholder="parent@example.com"
-                      value={newParentEmail}
-                      onChange={(e) => setNewParentEmail(e.target.value)}
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="newParentPassword">Password</Label>
-                    <Input
-                      id="newParentPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={newParentPassword}
-                      onChange={(e) => setNewParentPassword(e.target.value)}
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Must be at least 8 characters
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddParent(false)
-                      setError('')
-                      setNewParentEmail('')
-                      setNewParentPassword('')
-                      setConfirmPassword('')
-                    }}
-                    disabled={loading}
+          {/* Show pending invitations */}
+          {pendingInvitations.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Pending Invitations</Label>
+              <div className="space-y-2">
+                {pendingInvitations.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
                   >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddParent} disabled={loading}>
-                    {loading ? 'Adding...' : 'Add Parent'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                    <div>
+                      <p className="text-sm font-medium">{inv.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Invited {new Date(inv.createdAt).toLocaleDateString()} • Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-amber-500 text-white px-2 py-1 rounded">
+                      Pending
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
-          {!canAddParent && (
+          {canInviteParent && (
+            <>
+              {!smtpEnabled && (
+                <Alert>
+                  <AlertDescription>
+                    Email service is not configured. You need to configure SMTP settings to send invitations.
+                  </AlertDescription>
+                </Alert>
+              )}
+              <Dialog open={showInviteParent} onOpenChange={setShowInviteParent}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full" disabled={!smtpEnabled}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite Second Parent
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite Second Parent</DialogTitle>
+                    <DialogDescription>
+                      Send an email invitation to another parent to share access to this ChoreQuest account. They will receive an email with a link to set up their password.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="newParentEmail">Email Address</Label>
+                      <Input
+                        id="newParentEmail"
+                        type="email"
+                        placeholder="parent@example.com"
+                        value={newParentEmail}
+                        onChange={(e) => setNewParentEmail(e.target.value)}
+                        disabled={loading}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        An invitation link will be sent to this email address
+                      </p>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowInviteParent(false)
+                        setError('')
+                        setNewParentEmail('')
+                      }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleInviteParent} disabled={loading}>
+                      {loading ? 'Sending...' : 'Send Invitation'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+
+          {!canInviteParent && tenantUsers.length >= 2 && (
             <Alert>
               <AlertDescription>
                 Maximum of 2 parents reached. You already have a second parent account.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!canInviteParent && pendingInvitations.length > 0 && tenantUsers.length < 2 && (
+            <Alert>
+              <AlertDescription>
+                An invitation is pending. Please wait for it to be accepted or expire before sending another.
               </AlertDescription>
             </Alert>
           )}
