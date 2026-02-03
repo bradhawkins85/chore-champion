@@ -1184,11 +1184,6 @@ export function ParentPanel({
                 settings={speechSettings}
                 onUpdate={onUpdateSpeechSettings}
               />
-
-              <DisplayPreferencesSettings
-                hideChildrenWithNoActivity={hideChildrenWithNoActivity}
-                onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
-              />
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-4">
