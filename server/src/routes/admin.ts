@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
-import type { RowDataPacket } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { getTenantSubscription, getSubscriptionPlan } from '../services/subscription.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -262,6 +264,132 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+/**
+ * Get subscription details for a specific tenant
+ * GET /api/admin/subscriptions/:tenantId
+ */
+router.get('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = req.params;
+
+    // Check if tenant exists
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Get subscription details
+    const subscription = await getTenantSubscription(tenantId);
+
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found for this tenant' });
+    }
+
+    // Get plan details
+    const plan = await getSubscriptionPlan(subscription.plan_id);
+
+    res.json({
+      subscription,
+      plan
+    });
+  } catch (error) {
+    console.error('Error fetching tenant subscription:', error);
+    res.status(500).json({ error: 'Failed to fetch tenant subscription' });
+  }
+});
+
+/**
+ * Update subscription plan for a tenant (admin only)
+ * PUT /api/admin/subscriptions/:tenantId
+ * Body: { planId: string }
+ */
+router.put('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: Response) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    const { tenantId } = req.params;
+    const { planId } = req.body;
+
+    if (!planId) {
+      return res.status(400).json({ error: 'planId is required' });
+    }
+
+    // Validate plan exists
+    const plan = await getSubscriptionPlan(planId);
+    if (!plan) {
+      return res.status(400).json({ error: 'Invalid plan ID' });
+    }
+
+    await connection.beginTransaction();
+
+    // Check if tenant exists
+    const [tenantRows] = await connection.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Get existing subscription
+    const [existingSubRows] = await connection.query<RowDataPacket[]>(
+      'SELECT id FROM subscriptions WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1',
+      [tenantId]
+    );
+
+    const now = Date.now();
+    const oneYearFromNow = now + (365 * 24 * 60 * 60 * 1000);
+
+    if (existingSubRows.length > 0) {
+      // Update existing subscription
+      await connection.query<ResultSetHeader>(
+        `UPDATE subscriptions 
+         SET plan_id = ?, 
+             status = 'active',
+             current_period_start = ?,
+             current_period_end = ?,
+             cancel_at_period_end = FALSE,
+             canceled_at = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [planId, now, oneYearFromNow, existingSubRows[0].id]
+      );
+    } else {
+      // Create new subscription
+      const subscriptionId = uuidv4();
+      await connection.query<ResultSetHeader>(
+        `INSERT INTO subscriptions 
+         (id, tenant_id, plan_id, status, current_period_start, current_period_end, cancel_at_period_end)
+         VALUES (?, ?, ?, 'active', ?, ?, FALSE)`,
+        [subscriptionId, tenantId, planId, now, oneYearFromNow]
+      );
+    }
+
+    await connection.commit();
+
+    // Fetch and return updated subscription
+    const updatedSubscription = await getTenantSubscription(tenantId);
+
+    res.json({
+      success: true,
+      message: `Subscription updated to ${plan.name} plan`,
+      subscription: updatedSubscription
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating tenant subscription:', error);
+    res.status(500).json({ error: 'Failed to update tenant subscription' });
+  } finally {
+    connection.release();
   }
 });
 
