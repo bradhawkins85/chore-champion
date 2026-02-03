@@ -42,9 +42,12 @@ import {
   IPRestrictionSettings,
   IPAccessAttempt,
   WeeklyReportSettings,
+  EmailAlertSettings,
+  EmailAlertSettingsMap,
+  WeeklyReportSettingsMap,
+  ParentEmailAlertSettings,
   ReportTemplate,
   WeatherSettings,
-  EmailAlertSettings,
   SpeechSettings,
   PushNotificationSettings,
   SchoolHoliday,
@@ -59,7 +62,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, token, loading: authLoading, logout, loginWithDevice } = useAuth()
+  const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -141,6 +144,9 @@ function App() {
     digestMode: 'immediate',
     lastDigestSent: null,
   })
+  // New per-parent settings maps
+  const [emailAlertSettingsMap, setEmailAlertSettingsMap] = useKV<EmailAlertSettingsMap>('email-alert-settings-map', {})
+  const [weeklyReportSettingsMap, setWeeklyReportSettingsMap] = useKV<WeeklyReportSettingsMap>('weekly-report-settings-map', {})
   const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
@@ -1390,12 +1396,35 @@ function App() {
     }
   }
 
+  // Helper function to get parent emails for a specific alert type
+  const getParentEmailsForAlert = async (alertType: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>): Promise<string[]> => {
+    try {
+      const users = await getTenantUsers()
+      const enabledEmails: string[] = []
+      
+      for (const user of users) {
+        const userSettings = emailAlertSettingsMap?.[user.id]
+        if (userSettings && userSettings[alertType]) {
+          enabledEmails.push(user.email)
+        }
+      }
+      
+      return enabledEmails
+    } catch (error) {
+      console.error('Failed to get tenant users for email alerts:', error)
+      return []
+    }
+  }
+
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
-    if (!smtpEnabled || !emailAlertSettings?.rewardPurchaseAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('rewardPurchaseAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1417,7 +1446,7 @@ Reward Details:
 Please fulfill this reward when you get a chance!
     `.trim()
 
-    console.log('Email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Email would be sent to:', recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
     console.log('SMTP is enabled via environment variables')
@@ -1436,11 +1465,14 @@ Please fulfill this reward when you get a chance!
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
-    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('pendingApprovalAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1449,7 +1481,16 @@ Please fulfill this reward when you get a chance!
 
     if (!child || !chore) return
 
-    if (emailAlertSettings.digestMode === 'immediate') {
+    // Check digest mode - send immediately if ANY parent has immediate mode
+    const users = await getTenantUsers()
+    const hasImmediateMode = users.some((user) => {
+      const userSettings = emailAlertSettingsMap?.[user.id]
+      // If user has this alert enabled and has immediate mode (or no mode set, default to immediate)
+      return userSettings?.pendingApprovalAlerts && 
+             (!userSettings.digestMode || userSettings.digestMode === 'immediate')
+    })
+    
+    if (hasImmediateMode) {
       const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
       const emailBody = `
 ${child.name} has completed a chore that requires your approval:
@@ -1463,7 +1504,7 @@ Chore Details:
 Please log in to ChoreQuest to approve or reject this completion.
       `.trim()
 
-      console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
+      console.log('Pending approval email would be sent to:', recipientEmails)
       console.log('Subject:', emailSubject)
       console.log('Body:', emailBody)
       console.log('SMTP is enabled via environment variables')
@@ -1500,11 +1541,14 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('pendingApprovalAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1540,25 +1584,25 @@ Please log in to ChoreQuest to approve or reject this completion.
 
     const emailSubject = `⏳ ${items.length} Chore${items.length > 1 ? 's' : ''} Pending Approval`
 
-    console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Digest email would be sent to:', recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
     console.log('SMTP is enabled via environment variables')
 
     setPendingDigestItems([])
     
-    setEmailAlertSettings((current) => ({
-      ...(current || {
-        rewardPurchaseAlerts: false,
-        choreCompletionAlerts: false,
-        weeklyReportAlerts: false,
-        pendingApprovalAlerts: false,
-        recipientEmails: [],
-        digestMode: 'immediate',
-        lastDigestSent: null,
-      }),
-      lastDigestSent: Date.now(),
-    }))
+    // Update lastDigestSent for all users who have this alert enabled
+    const updatedMap = { ...(emailAlertSettingsMap || {}) }
+    const users = await getTenantUsers()
+    for (const user of users) {
+      if (updatedMap[user.id]?.pendingApprovalAlerts) {
+        updatedMap[user.id] = {
+          ...updatedMap[user.id],
+          lastDigestSent: Date.now(),
+        }
+      }
+    }
+    setEmailAlertSettingsMap(updatedMap)
 
     toast.success('Digest email sent to parents', {
       description: `${items.length} pending approval${items.length > 1 ? 's' : ''} notified`,
@@ -1815,10 +1859,12 @@ Please log in to ChoreQuest to approve or reject this completion.
           currentIP={currentIP}
           accessHistory={safeAccessHistory}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
+          emailAlertSettingsMap={emailAlertSettingsMap || {}}
+          weeklyReportSettingsMap={weeklyReportSettingsMap || {}}
           reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
-          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
           pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
@@ -1861,6 +1907,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
+          onUpdateEmailAlertSettingsMap={(settings) => setEmailAlertSettingsMap(settings)}
+          onUpdateWeeklyReportSettingsMap={(settings) => setWeeklyReportSettingsMap(settings)}
           onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
