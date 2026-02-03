@@ -466,7 +466,7 @@ export function ParentPanel({
         case 'configure-notifications':
           // Check if email or push notifications are configured
           const hasEmailAlerts = emailAlertSettingsMap && Object.values(emailAlertSettingsMap).some((settings: any) => 
-            settings.rewardPurchaseAlerts || settings.choreCompletionAlerts || 
+            settings.rewardPurchaseAlerts || 
             settings.weeklyReportAlerts || settings.pendingApprovalAlerts
           )
           const hasPushNotifications = pushNotificationSettings.enabled && 

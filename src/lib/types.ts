@@ -568,7 +568,6 @@ export type DigestInterval = 'immediate' | '15min' | '30min' | '1hour' | '2hours
 
 export interface EmailAlertSettings {
   rewardPurchaseAlerts: boolean
-  choreCompletionAlerts: boolean
   weeklyReportAlerts: boolean
   pendingApprovalAlerts: boolean
   recipientEmails: string[]
@@ -579,7 +578,6 @@ export interface EmailAlertSettings {
 // Per-parent email alert settings
 export interface ParentEmailAlertSettings {
   rewardPurchaseAlerts: boolean
-  choreCompletionAlerts: boolean
   weeklyReportAlerts: boolean
   pendingApprovalAlerts: boolean
   digestMode: DigestInterval

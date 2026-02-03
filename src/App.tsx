@@ -150,7 +150,6 @@ function App() {
   const [smtpEnabled, setSmtpEnabled] = useState(false)
   const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
     rewardPurchaseAlerts: false,
-    choreCompletionAlerts: false,
     weeklyReportAlerts: false,
     pendingApprovalAlerts: false,
     recipientEmails: [],
@@ -1583,7 +1582,7 @@ function App() {
   }
 
   // Helper function to get parent emails for a specific alert type
-  const getParentEmailsForAlert = async (alertType: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>): Promise<string[]> => {
+  const getParentEmailsForAlert = async (alertType: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>): Promise<string[]> => {
     try {
       const users = await getTenantUsers()
       const enabledEmails: string[] = []
@@ -2060,7 +2059,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           currentIP={currentIP}
           accessHistory={safeAccessHistory}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
-          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           emailAlertSettingsMap={emailAlertSettingsMap || {}}
           weeklyReportSettingsMap={weeklyReportSettingsMap || {}}
           reportTemplates={safeReportTemplates}
