@@ -17,7 +17,10 @@ interface AuthContextType {
   loginWithDevice: (deviceGuid: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  addParent: (email: string, password: string) => Promise<void>;
+  inviteParent: (email: string) => Promise<void>;
+  acceptInvitation: (token: string, password: string) => Promise<void>;
+  getInvitationDetails: (token: string) => Promise<any>;
+  getPendingInvitations: () => Promise<any[]>;
   getTenantUsers: () => Promise<any[]>;
 }
 
@@ -176,26 +179,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('auth_token');
   };
 
-  const addParent = async (email: string, password: string) => {
+  const inviteParent = async (email: string) => {
     if (!token) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_URL}/auth/add-parent`, {
+    const response = await fetch(`${API_URL}/auth/invite-parent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to add parent');
+      throw new Error(error.error || 'Failed to invite parent');
     }
 
     return await response.json();
+  };
+
+  const acceptInvitation = async (invitationToken: string, password: string) => {
+    const response = await fetch(`${API_URL}/auth/accept-invitation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: invitationToken, password }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to accept invitation');
+    }
+
+    const data = await response.json();
+    setToken(data.token);
+    setUser(data.user);
+    localStorage.setItem('auth_token', data.token);
+  };
+
+  const getInvitationDetails = async (invitationToken: string) => {
+    const response = await fetch(`${API_URL}/auth/invitation/${invitationToken}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get invitation details');
+    }
+
+    return await response.json();
+  };
+
+  const getPendingInvitations = async () => {
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_URL}/auth/invitations`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get invitations');
+    }
+
+    const data = await response.json();
+    return data.invitations;
   };
 
   const getTenantUsers = async () => {
@@ -228,7 +286,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithDevice,
         signup,
         logout,
-        addParent,
+        inviteParent,
+        acceptInvitation,
+        getInvitationDetails,
+        getPendingInvitations,
         getTenantUsers,
       }}
     >

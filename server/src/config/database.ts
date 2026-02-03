@@ -96,6 +96,28 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Create parent_invitations table for inviting additional parents
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS parent_invitations (
+            id VARCHAR(36) PRIMARY KEY,
+            token VARCHAR(64) NOT NULL UNIQUE,
+            email VARCHAR(255) NOT NULL,
+            tenant_id VARCHAR(36) NOT NULL,
+            inviter_id VARCHAR(36) NOT NULL,
+            status ENUM('pending', 'accepted', 'expired') DEFAULT 'pending',
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            accepted_at TIMESTAMP NULL,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE,
+            INDEX idx_token (token),
+            INDEX idx_email (email),
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_status (status),
+            INDEX idx_expires_at (expires_at)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // Check if device_name column exists in devices table
         const [deviceColumns] = await connection.query<RowDataPacket[]>(
           "SHOW COLUMNS FROM devices LIKE 'device_name'"

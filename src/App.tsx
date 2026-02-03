@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useApiKV as useKV } from '@/hooks/use-api-kv'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
+import { AcceptInvitationPage } from '@/components/AcceptInvitationPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
@@ -62,7 +64,14 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
+  const location = useLocation()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
+  
+  // Handle accept-invitation route
+  if (location.pathname === '/accept-invitation') {
+    return <AcceptInvitationPage />
+  }
+  
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
