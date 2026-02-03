@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RocketLaunch, CheckCircle, X, ArrowRight } from '@phosphor-icons/react'
 import { GettingStartedState, GettingStartedTask } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
+import { useEffect } from 'react'
 
 interface GettingStartedMenuProps {
   state: GettingStartedState
@@ -19,11 +20,20 @@ export function GettingStartedMenu({ state, onUpdateState, onNavigate }: Getting
   const totalCount = state.tasks.length
   const allComplete = completedCount === totalCount
 
+  // Redirect to Welcome page when all tasks are completed
+  useEffect(() => {
+    if (allComplete) {
+      onNavigate('welcome')
+    }
+  }, [allComplete, onNavigate])
+
   const handleDismiss = () => {
     onUpdateState({
       ...state,
       dismissed: true,
     })
+    // Redirect to Welcome page after dismissing
+    onNavigate('welcome')
   }
 
   const handleTaskToggle = (taskId: string, completed: boolean) => {
