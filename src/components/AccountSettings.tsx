@@ -188,6 +188,12 @@ export function AccountSettings({
     }
 
     updateUserEmailSettings(userId, { [type]: enabled })
+    
+    // Also sync the weeklyReportSettings.enabled when toggling weeklyReportAlerts
+    if (type === 'weeklyReportAlerts') {
+      updateUserWeeklyReportSettings(userId, { enabled })
+    }
+    
     toast.success(enabled ? 'Alert enabled' : 'Alert disabled')
   }
 
@@ -587,113 +593,62 @@ export function AccountSettings({
                         disabled={!smtpEnabled}
                       />
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
 
-          <Separator className="my-6" />
-
-          {/* Per-parent weekly report settings */}
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Weekly Report Settings
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Configure when each parent receives their weekly activity reports
-              </p>
-            </div>
-
-            {tenantUsers.map((parentUser) => {
-              const weeklySettings = getUserWeeklyReportSettings(parentUser.id)
-              const emailSettings = getUserEmailSettings(parentUser.id)
-              return (
-                <Card key={parentUser.id} className="border-2">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Envelope className="w-4 h-4" />
-                        {parentUser.email}
-                      </span>
-                      {parentUser.email === user?.email && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                          You
-                        </span>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Enable Weekly Reports</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically send activity summaries each week
-                        </p>
-                      </div>
-                      <Switch
-                        checked={weeklySettings.enabled && emailSettings.weeklyReportAlerts}
-                        onCheckedChange={(checked) => {
-                          updateUserWeeklyReportSettings(parentUser.id, { enabled: checked })
-                          // Always sync the email alert setting with the weekly report enabled state.
-                          // This ensures both settings stay in sync when toggled from this control.
-                          // Note: Users can also toggle weeklyReportAlerts independently in the 
-                          // Email Alert Preferences section, which preserves the schedule settings.
-                          handleToggleAlert(parentUser.id, 'weeklyReportAlerts', checked)
-                        }}
-                        disabled={!smtpEnabled}
-                      />
-                    </div>
-
-                    {weeklySettings.enabled && emailSettings.weeklyReportAlerts && (
+                    {emailSettings.weeklyReportAlerts && (
                       <>
                         <Separator />
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label>Send Day</Label>
-                            <Select
-                              value={weeklySettings.sendDay}
-                              onValueChange={(value) => {
-                                updateUserWeeklyReportSettings(parentUser.id, { sendDay: value as DayOfWeek })
-                                toast.success('Weekly report day updated')
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {daysOfWeek.map((day) => (
-                                  <SelectItem key={day} value={day}>
-                                    {day.charAt(0).toUpperCase() + day.slice(1)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <Label>Weekly Report Schedule</Label>
                           </div>
+                          <p className="text-sm text-muted-foreground">
+                            Configure when to receive weekly activity reports
+                          </p>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label>Send Day</Label>
+                              <Select
+                                value={getUserWeeklyReportSettings(parentUser.id).sendDay}
+                                onValueChange={(value) => {
+                                  updateUserWeeklyReportSettings(parentUser.id, { sendDay: value as DayOfWeek })
+                                  toast.success('Weekly report day updated')
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {daysOfWeek.map((day) => (
+                                    <SelectItem key={day} value={day}>
+                                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                          <div className="space-y-2">
-                            <Label>Send Time</Label>
-                            <Input
-                              type="time"
-                              value={weeklySettings.sendTime}
-                              onChange={(e) => {
-                                updateUserWeeklyReportSettings(parentUser.id, { sendTime: e.target.value })
-                                toast.success('Weekly report time updated')
-                              }}
-                            />
+                            <div className="space-y-2">
+                              <Label>Send Time</Label>
+                              <Input
+                                type="time"
+                                value={getUserWeeklyReportSettings(parentUser.id).sendTime}
+                                onChange={(e) => {
+                                  updateUserWeeklyReportSettings(parentUser.id, { sendTime: e.target.value })
+                                  toast.success('Weekly report time updated')
+                                }}
+                              />
+                            </div>
                           </div>
+                          {getUserWeeklyReportSettings(parentUser.id).lastSent && (
+                            <div className="rounded-lg bg-muted p-3 mt-2">
+                              <p className="text-sm">
+                                <Clock className="inline h-4 w-4 mr-2" />
+                                Last sent: {new Date(getUserWeeklyReportSettings(parentUser.id).lastSent!).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
                         </div>
-
-                        {weeklySettings.lastSent && (
-                          <div className="rounded-lg bg-muted p-3">
-                            <p className="text-sm">
-                              <Clock className="inline h-4 w-4 mr-2" />
-                              Last sent: {new Date(weeklySettings.lastSent).toLocaleString()}
-                            </p>
-                          </div>
-                        )}
                       </>
                     )}
                   </CardContent>
