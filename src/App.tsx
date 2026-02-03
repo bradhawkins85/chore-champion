@@ -1804,7 +1804,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
-          blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices || false}
+          blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
