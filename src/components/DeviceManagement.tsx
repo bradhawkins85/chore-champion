@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   DeviceMobile, 
@@ -14,6 +16,7 @@ import {
   Copy,
   QrCode,
   PencilSimple,
+  Users,
 } from '@phosphor-icons/react';
 import {
   Dialog,
@@ -38,15 +41,19 @@ import {
   getLinkedDevices, 
   unlinkDevice,
   updateDeviceName,
+  updateDeviceAllowedChildren,
   getDeviceGuid,
   DeviceInfo,
 } from '@/lib/deviceHelper';
+import { useApiKV } from '@/hooks/use-api-kv';
+import type { Child } from '@/lib/types';
 
 interface DeviceInfoExtended {
   id: string;
   deviceGuid: string;
   deviceName: string | null;
   deviceInfo: DeviceInfo;
+  allowedChildrenIds: string[];
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;
@@ -61,8 +68,13 @@ export function DeviceManagement() {
   const [codeExpiresAt, setCodeExpiresAt] = useState<Date | null>(null);
   const [deviceToUnlink, setDeviceToUnlink] = useState<DeviceInfoExtended | null>(null);
   const [deviceToRename, setDeviceToRename] = useState<DeviceInfoExtended | null>(null);
+  const [deviceToEditChildren, setDeviceToEditChildren] = useState<DeviceInfoExtended | null>(null);
   const [newDeviceName, setNewDeviceName] = useState('');
+  const [editingAllowedChildren, setEditingAllowedChildren] = useState<string[]>([]);
   const currentDeviceGuid = getDeviceGuid();
+  
+  // Load children list
+  const [children] = useApiKV<Child[]>('children', []);
 
   useEffect(() => {
     if (token) {
@@ -145,6 +157,38 @@ export function DeviceManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditChildren = (device: DeviceInfoExtended) => {
+    setDeviceToEditChildren(device);
+    setEditingAllowedChildren(device.allowedChildrenIds || []);
+  };
+
+  const handleSaveAllowedChildren = async () => {
+    if (!token || !deviceToEditChildren) return;
+
+    setLoading(true);
+    try {
+      await updateDeviceAllowedChildren(token, deviceToEditChildren.id, editingAllowedChildren);
+      toast.success('Device child restrictions updated successfully');
+      loadDevices();
+      setDeviceToEditChildren(null);
+      setEditingAllowedChildren([]);
+    } catch (error) {
+      console.error('Error updating device allowed children:', error);
+      const message = error instanceof Error ? error.message : 'Failed to update device allowed children';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleChild = (childId: string) => {
+    setEditingAllowedChildren(prev => 
+      prev.includes(childId) 
+        ? prev.filter(id => id !== childId)
+        : [...prev, childId]
+    );
   };
 
   const getDeviceIcon = (deviceInfo: DeviceInfo) => {
@@ -254,7 +298,7 @@ export function DeviceManagement() {
           {devices.map((device) => (
             <Card key={device.id} className="p-4">
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 flex-1">
                   <div className="p-3 bg-muted rounded-lg">
                     {getDeviceIcon(device.deviceInfo)}
                   </div>
@@ -280,6 +324,49 @@ export function DeviceManagement() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Linked: {new Date(device.linkedAt).toLocaleString()}
                     </p>
+                    
+                    {/* Display allowed children */}
+                    {children.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">
+                            Allowed Children {device.allowedChildrenIds.length > 0 ? `(${device.allowedChildrenIds.length})` : '(All)'}
+                          </span>
+                        </div>
+                        {device.allowedChildrenIds.length === 0 ? (
+                          <p className="text-xs text-muted-foreground ml-6">
+                            All children can access this device
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2 ml-6">
+                            {device.allowedChildrenIds.map((childId) => {
+                              const child = children.find((c) => c.id === childId);
+                              if (!child) return null;
+                              return (
+                                <Badge key={childId} variant="secondary" className="gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: child.avatarColor }}
+                                  />
+                                  {child.name}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-8 text-xs"
+                          onClick={() => handleEditChildren(device)}
+                          disabled={loading}
+                        >
+                          <Users className="w-3 h-3 mr-1" />
+                          Edit Restrictions
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -449,6 +536,78 @@ export function DeviceManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Allowed Children Dialog */}
+      <Dialog open={!!deviceToEditChildren} onOpenChange={() => {
+        setDeviceToEditChildren(null);
+        setEditingAllowedChildren([]);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Child Access</DialogTitle>
+            <DialogDescription>
+              Check the children who should have access to this device. Leave all unchecked to allow all children.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {children.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No children have been created yet. Create children first to manage device access.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {children.map((child) => (
+                  <div key={child.id} className="flex items-center gap-3">
+                    <Checkbox
+                      id={`child-${child.id}`}
+                      checked={editingAllowedChildren.includes(child.id)}
+                      onCheckedChange={() => handleToggleChild(child.id)}
+                    />
+                    <Label
+                      htmlFor={`child-${child.id}`}
+                      className="flex items-center gap-2 cursor-pointer flex-1"
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full"
+                        style={{ backgroundColor: child.avatarColor }}
+                      />
+                      <span>{child.name}</span>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="pt-2 border-t">
+              <p className="text-xs text-muted-foreground">
+                <strong>How it works:</strong> Check specific children to restrict this device to only those children. 
+                Leave all unchecked to allow all children on this device (recommended for shared household devices).
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeviceToEditChildren(null);
+                setEditingAllowedChildren([]);
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAllowedChildren}
+              disabled={loading || children.length === 0}
+              className="flex-1"
+            >
+              {loading ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

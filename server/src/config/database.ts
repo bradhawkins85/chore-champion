@@ -109,6 +109,19 @@ export async function initDatabase() {
           console.log('Added device_name column to devices table');
         }
 
+        // Check if allowed_children_ids column exists in devices table
+        const [allowedChildrenColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM devices LIKE 'allowed_children_ids'"
+        );
+        
+        if (allowedChildrenColumns.length === 0) {
+          // allowed_children_ids column doesn't exist, add it
+          await connection.query(
+            'ALTER TABLE devices ADD COLUMN allowed_children_ids JSON AFTER device_info'
+          );
+          console.log('Added allowed_children_ids column to devices table');
+        }
+
         // Create kv_store table or modify it if it exists
         // First check if the table exists
         const [tables] = await connection.query<RowDataPacket[]>(

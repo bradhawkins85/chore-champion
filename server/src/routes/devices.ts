@@ -12,6 +12,7 @@ interface Device {
   device_guid: string;
   device_name: string | null;
   device_info: DeviceInfo;
+  allowed_children_ids: string[] | null;
   tenant_id: string | null;
   linked_at: Date | null;
   last_seen: Date;
@@ -323,7 +324,7 @@ router.get('/', async (req: Request, res: Response) => {
     const tenantId = decoded.tenantId;
 
     const [devices] = await pool.query<RowDataPacket[]>(
-      'SELECT id, device_guid, device_name, device_info, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
+      'SELECT id, device_guid, device_name, device_info, allowed_children_ids, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
       [tenantId]
     );
 
@@ -333,6 +334,7 @@ router.get('/', async (req: Request, res: Response) => {
         deviceGuid: d.device_guid,
         deviceName: d.device_name,
         deviceInfo: typeof d.device_info === 'string' ? JSON.parse(d.device_info) : d.device_info,
+        allowedChildrenIds: typeof d.allowed_children_ids === 'string' ? JSON.parse(d.allowed_children_ids) : (d.allowed_children_ids || []),
         linkedAt: d.linked_at,
         lastSeen: d.last_seen,
         createdAt: d.created_at,
@@ -347,7 +349,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Update device name
 // PATCH /api/devices/:deviceId
 // Headers: Authorization: Bearer <token>
-// Body: { deviceName: string }
+// Body: { deviceName?: string, allowedChildrenIds?: string[] }
 // Returns: { success: true }
 router.patch('/:deviceId', async (req: Request, res: Response) => {
   try {
@@ -368,10 +370,10 @@ router.patch('/:deviceId', async (req: Request, res: Response) => {
 
     const tenantId = decoded.tenantId;
     const { deviceId } = req.params;
-    const { deviceName } = req.body;
+    const { deviceName, allowedChildrenIds } = req.body;
 
-    if (!('deviceName' in req.body)) {
-      return res.status(400).json({ error: 'deviceName is required' });
+    if (!('deviceName' in req.body) && !('allowedChildrenIds' in req.body)) {
+      return res.status(400).json({ error: 'deviceName or allowedChildrenIds is required' });
     }
 
     const connection = await pool.getConnection();
@@ -386,18 +388,34 @@ router.patch('/:deviceId', async (req: Request, res: Response) => {
         return res.status(404).json({ error: 'Device not found or not authorized' });
       }
 
-      // Update the device name
-      await connection.query(
-        'UPDATE devices SET device_name = ? WHERE id = ?',
-        [deviceName || null, deviceId]
-      );
+      // Build update query dynamically based on provided fields
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      if ('deviceName' in req.body) {
+        updates.push('device_name = ?');
+        values.push(deviceName || null);
+      }
+
+      if ('allowedChildrenIds' in req.body) {
+        updates.push('allowed_children_ids = ?');
+        values.push(allowedChildrenIds ? JSON.stringify(allowedChildrenIds) : null);
+      }
+
+      if (updates.length > 0) {
+        values.push(deviceId);
+        await connection.query(
+          `UPDATE devices SET ${updates.join(', ')} WHERE id = ?`,
+          values
+        );
+      }
 
       res.json({ success: true });
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error('Error updating device name:', error);
+    console.error('Error updating device:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
