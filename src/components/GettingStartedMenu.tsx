@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,15 @@ export function GettingStartedMenu({ state, onUpdateState, onNavigate }: Getting
   const completedCount = state.tasks.filter(t => t.completed || t.ignored).length
   const totalCount = state.tasks.length
   const allComplete = completedCount === totalCount
+  const hasNavigatedRef = useRef(false)
+
+  // Redirect to Welcome page when all tasks are completed or guide is dismissed
+  useEffect(() => {
+    if ((allComplete || state.dismissed) && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true
+      onNavigate('welcome')
+    }
+  }, [allComplete, state.dismissed, onNavigate])
 
   const handleDismiss = () => {
     onUpdateState({
