@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
         if (parseError instanceof SyntaxError) {
-          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+          throw new Error(`Unable to connect to the server. Please try again later.`);
         }
         // Re-throw if it's the Error we threw above
         throw parseError;
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
         if (parseError instanceof SyntaxError) {
-          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+          throw new Error(`Unable to connect to the server. Please try again later.`);
         }
         // Re-throw if it's the Error we threw above
         throw parseError;

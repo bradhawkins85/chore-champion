@@ -190,9 +190,9 @@ router.post('/device-login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Device is not linked to a tenant' });
     }
 
-    // Get any parent user from the tenant
+    // Get any parent user from the tenant (prefer the first created parent for consistency)
     const [users] = await pool.query<RowDataPacket[]>(
-      'SELECT id, email, tenant_id, role FROM users WHERE tenant_id = ? AND role = ? LIMIT 1',
+      'SELECT id, email, tenant_id, role FROM users WHERE tenant_id = ? AND role = ? ORDER BY created_at ASC LIMIT 1',
       [device.tenant_id, 'parent']
     );
 
