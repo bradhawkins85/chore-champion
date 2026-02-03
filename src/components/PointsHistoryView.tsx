@@ -133,14 +133,11 @@ export function PointsHistoryView({
         if (!reward) return
 
         ;(reward.categoryIds || []).forEach((categoryId) => {
-          const override = reward.costOverrides?.find((o) => o.childId === child.id)
-          const cost = override ? override.cost : reward.cost
-
           events.push({
             id: `spent_${purchase.id}_${categoryId}`,
             type: 'spent',
             categoryId,
-            points: cost,
+            points: purchase.cost,
             timestamp: purchase.purchasedAt,
             description: reward.name,
             rewardId: reward.id,

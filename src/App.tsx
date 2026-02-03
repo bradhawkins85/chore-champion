@@ -538,6 +538,31 @@ function App() {
     })
   }, [safeRewards, safeCategories])
 
+  const migratedPurchases = useMemo(() => {
+    if (!safePurchases || safePurchases.length === 0) return safePurchases || []
+    
+    const needsMigration = safePurchases.some(p => typeof p.cost !== 'number')
+    if (!needsMigration) return safePurchases
+    
+    const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
+    
+    return safePurchases.map((purchase) => {
+      if (typeof purchase.cost === 'number') {
+        return purchase
+      }
+      
+      const reward = rewardsMap.get(purchase.rewardId)
+      if (!reward) {
+        return { ...purchase, cost: 0 }
+      }
+      
+      const override = reward.costOverrides?.find(o => o.childId === purchase.childId)
+      const cost = override ? override.cost : reward.cost
+      
+      return { ...purchase, cost }
+    })
+  }, [safePurchases, migratedRewards])
+
   const childCategoryPoints = useMemo(() => {
     const categoryPointsMap = new Map<string, Map<string, number>>()
     safeChildrenList.forEach((child) => {
@@ -564,16 +589,12 @@ function App() {
     safeChildrenList.forEach((child) => {
       const childAvailPoints = new Map<string, number>()
       const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
-      const childPurchases = safePurchases
+      const childPurchases = migratedPurchases
         .filter((p) => p.childId === child.id)
-        .map((p) => {
-          const reward = rewardsMap.get(p.rewardId)
-          const override = reward?.costOverrides?.find(o => o.childId === child.id)
-          return {
-            rewardId: p.rewardId,
-            cost: override ? override.cost : (reward?.cost || 0),
-          }
-        })
+        .map((p) => ({
+          rewardId: p.rewardId,
+          cost: p.cost,
+        }))
       const childSwaps = safePointSwaps.filter((s) => s.childId === child.id)
       
       safeCategories.forEach((category) => {
@@ -590,7 +611,7 @@ function App() {
       availableCategoryPointsMap.set(child.id, childAvailPoints)
     })
     return availableCategoryPointsMap
-  }, [safeChildrenList, safeCategories, childCategoryPoints, safePurchases, migratedRewards, safePointSwaps])
+  }, [safeChildrenList, safeCategories, childCategoryPoints, migratedPurchases, migratedRewards, safePointSwaps])
 
   const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     const newChore: Chore = {
@@ -966,7 +987,7 @@ function App() {
     const reward = safeRewards.find((r) => r.id === rewardId)
     if (!reward) return
 
-    const limitCheck = canPurchaseReward(reward, childId, safePurchases)
+    const limitCheck = canPurchaseReward(reward, childId, migratedPurchases)
     if (!limitCheck.canPurchase) {
       toast.error('Cannot purchase reward', {
         description: limitCheck.reason,
@@ -1025,6 +1046,7 @@ function App() {
       rewardId,
       purchasedAt: Date.now(),
       fulfilled: false,
+      cost,
     }
     setPurchases((current) => [...(current || []), newPurchase])
     
@@ -1947,8 +1969,8 @@ Please log in to ChoreQuest to approve or reject this completion.
   }, [weatherSettings?.seasonalThemesEnabled, currentWeather, mode, selectedChild])
 
   const pendingPurchasesCount = useMemo(() => {
-    return safePurchases.filter((p) => !p.fulfilled).length
-  }, [safePurchases])
+    return migratedPurchases.filter((p) => !p.fulfilled).length
+  }, [migratedPurchases])
 
   // Show loading screen while checking authentication
   if (authLoading) {
@@ -2004,7 +2026,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           completions={safeCompletions}
           childPoints={childPoints}
           rewards={migratedRewards || []}
-          purchases={safePurchases}
+          purchases={migratedPurchases}
           history={safeHistory}
           dismissedMissedChores={safeDismissedMissedChores}
           parentPin={normalizedParentPin}
@@ -2110,7 +2132,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             categories={safeCategories}
             assignments={safeAssignments}
             bonusCompletions={safeBonusCompletions}
-            purchases={safePurchases}
+            purchases={migratedPurchases}
             rewards={migratedRewards || []}
             swaps={safePointSwaps}
             onBack={() => setShowPointsHistory(false)}
@@ -2121,20 +2143,16 @@ Please log in to ChoreQuest to approve or reject this completion.
             rewards={migratedRewards || []}
             chores={migratedChores || []}
             completions={safeCompletions}
-            purchases={safePurchases}
+            purchases={migratedPurchases}
             trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
             categories={safeCategories}
             swaps={safePointSwaps}
             availablePoints={getChildAvailablePoints(
               childPoints.get(selectedChild.id) || 0,
-              safePurchases
+              migratedPurchases
                 .filter((p) => p.childId === selectedChild.id)
-                .map((p) => {
-                  const reward = (migratedRewards || []).find((r) => r.id === p.rewardId)
-                  const override = reward?.costOverrides?.find(o => o.childId === selectedChild.id)
-                  return { cost: override ? override.cost : (reward?.cost || 0) }
-                })
+                .map((p) => ({ cost: p.cost }))
             )}
             onPurchase={(rewardId) => {
               const reward = (migratedRewards || []).find((r) => r.id === rewardId)
