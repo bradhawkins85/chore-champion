@@ -38,7 +38,8 @@ const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key: string, value: string) {
   originalSetItem.call(this, key, value);
   if (key === 'auth_token') {
-    notifyAuthTokenChange();
+    // Defer notification to avoid nested calls and allow setState to complete
+    setTimeout(() => notifyAuthTokenChange(), 0);
   }
 };
 
@@ -47,7 +48,8 @@ const originalRemoveItem = localStorage.removeItem;
 localStorage.removeItem = function(key: string) {
   originalRemoveItem.call(this, key);
   if (key === 'auth_token') {
-    notifyAuthTokenChange();
+    // Defer notification to avoid nested calls
+    setTimeout(() => notifyAuthTokenChange(), 0);
   }
 };
 
