@@ -34,9 +34,13 @@ function getAuthHeaders(): HeadersInit {
 }
 
 // Override localStorage.setItem to detect auth token changes
-const originalSetItem = localStorage.setItem;
+// Note: This override is specifically for the 'auth_token' key to enable
+// automatic data refresh after login. It's a minimal, targeted approach that
+// avoids requiring changes to AuthContext or other parts of the codebase.
+// The notification is deferred with setTimeout to prevent nested calls.
+const originalSetItem = localStorage.setItem.bind(localStorage);
 localStorage.setItem = function(key: string, value: string) {
-  originalSetItem.call(this, key, value);
+  originalSetItem(key, value);
   if (key === 'auth_token') {
     // Defer notification to avoid nested calls and allow setState to complete
     setTimeout(() => notifyAuthTokenChange(), 0);
@@ -44,9 +48,9 @@ localStorage.setItem = function(key: string, value: string) {
 };
 
 // Override localStorage.removeItem to detect auth token removal
-const originalRemoveItem = localStorage.removeItem;
+const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 localStorage.removeItem = function(key: string) {
-  originalRemoveItem.call(this, key);
+  originalRemoveItem(key);
   if (key === 'auth_token') {
     // Defer notification to avoid nested calls
     setTimeout(() => notifyAuthTokenChange(), 0);
