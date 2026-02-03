@@ -155,7 +155,21 @@ export function GettingStartedMenu({ state, onUpdateState, onNavigate }: Getting
                       Dismiss Guide
                     </Button>
                   )}
-                  {task.completed && (
+                  {task.completed && task.id !== 'dismiss' && (
+                    <>
+                      {task.targetTab && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTaskNavigate(task)}
+                        >
+                          Go <ArrowRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      )}
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </>
+                  )}
+                  {task.completed && task.id === 'dismiss' && (
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   )}
                 </div>
