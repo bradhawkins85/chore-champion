@@ -14,6 +14,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithDevice: (deviceGuid: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
   addParent: (email: string, password: string) => Promise<void>;
@@ -86,7 +87,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
         if (parseError instanceof SyntaxError) {
-          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+          throw new Error(`Unable to connect to the server. Please try again later.`);
+        }
+        // Re-throw if it's the Error we threw above
+        throw parseError;
+      }
+    }
+
+    const data = await response.json();
+    setToken(data.token);
+    setUser(data.user);
+    localStorage.setItem('auth_token', data.token);
+  };
+
+  const loginWithDevice = async (deviceGuid: string) => {
+    const response = await fetch(`${API_URL}/auth/device-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deviceGuid }),
+    });
+
+    if (!response.ok) {
+      // Handle service unavailable error
+      if (response.status === 503) {
+        throw new Error('Service is starting up. Please wait a moment and try again.');
+      }
+      
+      // Handle other errors
+      try {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Device login failed');
+      } catch (parseError) {
+        // If response is not JSON (e.g., HTML error page from nginx)
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`Unable to connect to the server. Please try again later.`);
         }
         // Re-throw if it's the Error we threw above
         throw parseError;
@@ -121,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         // If response is not JSON (e.g., HTML error page from nginx)
         if (parseError instanceof SyntaxError) {
-          throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+          throw new Error(`Unable to connect to the server. Please try again later.`);
         }
         // Re-throw if it's the Error we threw above
         throw parseError;
@@ -189,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         loading,
         login,
+        loginWithDevice,
         signup,
         logout,
         addParent,
