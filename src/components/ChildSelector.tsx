@@ -14,6 +14,9 @@ import { NotificationSetupCard } from '@/components/NotificationSetupCard'
 import { isStandalone } from '@/lib/pwaHelper'
 import { fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
 import { getDeviceId } from '@/lib/deviceHelper'
+import { isPushNotificationSupported } from '@/lib/pushNotificationHelper'
+
+const NOTIFICATION_SETUP_DISMISSED_KEY = 'notification-setup-dismissed'
 
 interface ChildSelectorProps {
   childrenList: Child[]
@@ -73,7 +76,7 @@ export function ChildSelector({
   const [showBiometricBadge, setShowBiometricBadge] = useState(false)
   const [childICSEventsMap, setChildICSEventsMap] = useState<Map<string, boolean>>(new Map())
   const [isNotificationCardDismissed, setIsNotificationCardDismissed] = useState(() => {
-    return localStorage.getItem('notification-setup-dismissed') === 'true'
+    return localStorage.getItem(NOTIFICATION_SETUP_DISMISSED_KEY) === 'true'
   })
 
   // Create a stable key based on child IDs and ICS URLs to avoid unnecessary refetches
@@ -202,7 +205,7 @@ export function ChildSelector({
     // Don't show if already dismissed
     if (isNotificationCardDismissed) return false
     // Don't show if push notifications are not supported
-    if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) return false
+    if (!isPushNotificationSupported()) return false
     // Don't show if notifications are already enabled for this device
     if (isPushNotificationEnabled()) return false
     // Don't show if no onOpenSettings handler is provided
@@ -211,7 +214,7 @@ export function ChildSelector({
   }
 
   const handleDismissNotificationCard = () => {
-    localStorage.setItem('notification-setup-dismissed', 'true')
+    localStorage.setItem(NOTIFICATION_SETUP_DISMISSED_KEY, 'true')
     setIsNotificationCardDismissed(true)
   }
 
