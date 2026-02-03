@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApiKV as useKV } from '@/hooks/use-api-kv'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
@@ -14,6 +15,7 @@ import { PointsHistoryView } from '@/components/PointsHistoryView'
 import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
+import { AuthPage } from '@/components/AuthPage'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId } from '@/lib/deviceHelper'
 import {
@@ -57,6 +59,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
+  const { user, loading: authLoading } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -1664,6 +1667,23 @@ Please log in to ChoreQuest to approve or reject this completion.
   const pendingPurchasesCount = useMemo(() => {
     return safePurchases.filter((p) => !p.fulfilled).length
   }, [safePurchases])
+
+  // Show loading screen while checking authentication
+  if (authLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h2 className="text-2xl font-fredoka font-bold mb-2">Loading...</h2>
+          <p className="text-muted-foreground">Checking authentication</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show auth page if not authenticated
+  if (!user) {
+    return <AuthPage />
+  }
 
   return (
     <div className="h-screen overflow-y-auto bg-background">

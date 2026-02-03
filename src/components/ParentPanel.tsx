@@ -48,6 +48,7 @@ import { UpdateSettings } from './UpdateSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
 import { SchoolHolidaySettings } from './SchoolHolidaySettings'
 import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
+import { AccountSettings } from './AccountSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -908,6 +909,8 @@ export function ParentPanel({
               hideChildrenWithNoActivity={hideChildrenWithNoActivity}
               onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
             />
+
+            <AccountSettings />
 
             <UpdateSettings />
           </div>

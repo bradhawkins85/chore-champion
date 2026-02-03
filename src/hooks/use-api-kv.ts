@@ -8,6 +8,23 @@ import { toast } from 'sonner';
 // API base URL from environment or default to /api
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Get auth token from localStorage
+function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
+// Get auth headers if token exists
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Track if API is available
 let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
@@ -83,7 +100,7 @@ async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
     try {
       const response = await fetch(`${API_URL}/health`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
       });
       apiAvailable = response.ok;
       apiCheckTimestamp = now;
@@ -159,7 +176,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
           try {
             const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
               method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getAuthHeaders(),
             });
 
             if (response.ok) {
@@ -234,7 +251,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         await queueRequest(async () => {
           const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ value: computedValue }),
           });
           
@@ -305,7 +322,7 @@ export async function migrateToApi(): Promise<boolean> {
     // Send to API
     const response = await fetch(`${API_URL}/kv`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
