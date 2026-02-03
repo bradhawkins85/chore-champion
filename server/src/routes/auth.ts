@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { pool } from '../config/database.js';
 import { emailService } from '../services/email.js';
+import { createFreeSubscription } from '../services/subscription.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 const router = Router();
@@ -87,6 +88,14 @@ router.post('/signup', async (req: Request, res: Response) => {
       );
 
       await connection.commit();
+      
+      // Create free subscription for the new tenant (outside transaction)
+      try {
+        await createFreeSubscription(tenantId);
+      } catch (subError) {
+        console.error('Failed to create free subscription:', subError);
+        // Don't fail signup if subscription creation fails
+      }
 
       // Generate JWT token
       const token = jwt.sign(

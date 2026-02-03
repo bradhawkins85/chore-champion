@@ -192,6 +192,109 @@ export async function initDatabase() {
             console.log('Note: Existing data has been assigned to "legacy" tenant');
           }
         }
+
+        // Create subscription_plans table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS subscription_plans (
+            id VARCHAR(36) PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            tier ENUM('free', 'paid', 'unlimited') NOT NULL,
+            description TEXT,
+            max_children INT NULL,
+            max_devices INT NULL,
+            max_chores INT NULL,
+            max_rewards INT NULL,
+            price_per_child_aud DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            base_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            billing_interval ENUM('monthly', 'annual') DEFAULT 'monthly',
+            features JSON,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_tier (tier),
+            INDEX idx_is_active (is_active)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Create subscriptions table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS subscriptions (
+            id VARCHAR(36) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            plan_id VARCHAR(36) NOT NULL,
+            status ENUM('active', 'past_due', 'canceled', 'incomplete', 'incomplete_expired', 'trialing', 'unpaid') DEFAULT 'active',
+            current_period_start BIGINT NOT NULL,
+            current_period_end BIGINT NOT NULL,
+            cancel_at_period_end BOOLEAN DEFAULT FALSE,
+            canceled_at BIGINT NULL,
+            stripe_customer_id VARCHAR(255) NULL,
+            stripe_subscription_id VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE RESTRICT,
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_plan_id (plan_id),
+            INDEX idx_status (status),
+            INDEX idx_stripe_customer_id (stripe_customer_id),
+            INDEX idx_stripe_subscription_id (stripe_subscription_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Create invoices table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS invoices (
+            id VARCHAR(36) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            subscription_id VARCHAR(36) NOT NULL,
+            amount_due INT NOT NULL,
+            amount_paid INT NOT NULL DEFAULT 0,
+            status ENUM('draft', 'open', 'paid', 'void', 'uncollectible') DEFAULT 'draft',
+            due_date BIGINT NOT NULL,
+            paid_at BIGINT NULL,
+            hosted_invoice_url TEXT NULL,
+            invoice_pdf TEXT NULL,
+            stripe_invoice_id VARCHAR(255) NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_subscription_id (subscription_id),
+            INDEX idx_status (status),
+            INDEX idx_due_date (due_date),
+            INDEX idx_stripe_invoice_id (stripe_invoice_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Create payment_methods table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS payment_methods (
+            id VARCHAR(36) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            stripe_payment_method_id VARCHAR(255) NOT NULL,
+            type ENUM('card', 'bank_account') DEFAULT 'card',
+            last4 VARCHAR(4) NOT NULL,
+            brand VARCHAR(50) NOT NULL,
+            expiry_month INT NOT NULL,
+            expiry_year INT NOT NULL,
+            is_default BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_stripe_payment_method_id (stripe_payment_method_id),
+            INDEX idx_is_default (is_default)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Insert default subscription plans if they don't exist
+        await connection.query(`
+          INSERT IGNORE INTO subscription_plans (id, name, tier, description, max_children, max_devices, max_chores, max_rewards, price_per_child_aud, base_price, billing_interval, features, is_active)
+          VALUES 
+            ('plan_free', 'Free', 'free', 'Perfect for trying out ChoreQuest with basic features', 1, 1, 3, 3, 0.00, 0.00, 'monthly', JSON_ARRAY('1 Child', '1 Linked Device', 'Up to 3 Chores', 'Up to 3 Rewards', 'Basic Notifications'), TRUE),
+            ('plan_paid', 'Paid', 'paid', 'Full access to ChoreQuest for growing families', NULL, NULL, NULL, NULL, 1.00, 0.00, 'monthly', JSON_ARRAY('Unlimited Children', 'Unlimited Devices', 'Unlimited Chores', 'Unlimited Rewards', 'Priority Support', 'Advanced Analytics'), TRUE),
+            ('plan_unlimited', 'Unlimited', 'unlimited', 'Unlimited plan for special accounts (admin configurable only)', NULL, NULL, NULL, NULL, 0.00, 0.00, 'monthly', JSON_ARRAY('Unlimited Children', 'Unlimited Devices', 'Unlimited Chores', 'Unlimited Rewards', 'VIP Support', 'Advanced Analytics'), TRUE)
+        `);
         
         console.log('Database initialized successfully');
         return; // Success, exit the function

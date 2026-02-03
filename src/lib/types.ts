@@ -639,3 +639,82 @@ export interface GettingStartedState {
   dismissed: boolean
   tasks: GettingStartedTask[]
 }
+
+// Subscription & Billing Types
+export type SubscriptionTier = 'free' | 'paid' | 'unlimited'
+export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid'
+export type BillingInterval = 'monthly' | 'annual'
+
+export interface SubscriptionPlanLimits {
+  maxChildren: number | null // null = unlimited
+  maxDevices: number | null // null = unlimited
+  maxChores: number | null // null = unlimited
+  maxRewards: number | null // null = unlimited
+}
+
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  tier: SubscriptionTier
+  description: string
+  limits: SubscriptionPlanLimits
+  pricePerChildAUD: number // Price in AUD per child per month (0 for free/unlimited)
+  basePrice: number // Base monthly price (for non-per-child tiers)
+  billingInterval: BillingInterval
+  features: string[]
+  isActive: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Subscription {
+  id: string
+  tenantId: string
+  planId: string
+  plan?: SubscriptionPlan
+  status: SubscriptionStatus
+  currentPeriodStart: number
+  currentPeriodEnd: number
+  cancelAtPeriodEnd: boolean
+  canceledAt: number | null
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Invoice {
+  id: string
+  tenantId: string
+  subscriptionId: string
+  amountDue: number // Amount in cents (AUD)
+  amountPaid: number
+  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
+  dueDate: number
+  paidAt: number | null
+  hostedInvoiceUrl: string | null
+  invoicePdf: string | null
+  stripeInvoiceId: string | null
+  description: string
+  createdAt: number
+}
+
+export interface PaymentMethod {
+  id: string
+  tenantId: string
+  stripePaymentMethodId: string
+  type: 'card' | 'bank_account'
+  last4: string
+  brand: string // e.g., 'visa', 'mastercard'
+  expiryMonth: number
+  expiryYear: number
+  isDefault: boolean
+  createdAt: number
+}
+
+export interface UsageStats {
+  childrenCount: number
+  devicesCount: number
+  choresCount: number
+  rewardsCount: number
+}
