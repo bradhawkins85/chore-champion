@@ -12,6 +12,7 @@ import deviceRoutes from './routes/devices.js';
 import configRoutes from './routes/config.js';
 import ipAccessRoutes from './routes/ip-access.js';
 import adminRoutes from './routes/admin.js';
+import subscriptionRoutes from './routes/subscriptions.js';
 
 dotenv.config();
 
@@ -95,6 +96,7 @@ app.use('/api/devices', requireDb, deviceRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/ip-access', requireDb, ipAccessRoutes);
 app.use('/api/admin', requireDb, adminRoutes);
+app.use('/api/subscriptions', requireDb, subscriptionRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {

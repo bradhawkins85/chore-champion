@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question } from '@phosphor-icons/react'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState } from '@/lib/types'
 import {
   DndContext,
@@ -68,6 +68,7 @@ import { DeviceManagement } from './DeviceManagement'
 import { GettingStartedMenu } from './GettingStartedMenu'
 import { HelpMenu } from './HelpMenu'
 import { DeviceSettings } from './DeviceSettings'
+import { SubscriptionSettings } from './SubscriptionSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -1091,6 +1092,10 @@ export function ParentPanel({
                 <FolderUser className="h-4 w-4 mr-2" />
                 Account
               </TabsTrigger>
+              <TabsTrigger value="subscription">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Subscription
+              </TabsTrigger>
               <TabsTrigger value="settings">
                 <Gear className="h-4 w-4 mr-2" />
                 Settings
@@ -1158,6 +1163,10 @@ export function ParentPanel({
                 onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
                 onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
               />
+            </TabsContent>
+
+            <TabsContent value="subscription" className="space-y-4">
+              <SubscriptionSettings childrenCount={childrenList.length} />
             </TabsContent>
 
             <TabsContent value="security" className="space-y-4">
