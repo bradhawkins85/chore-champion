@@ -58,6 +58,8 @@
 - Undo history with timestamps
 
 ### 🔒 Security & Access Control
+- **Multi-Tenant Authentication** - Secure email & password authentication with tenant isolation - [See Guide](MULTI_TENANT_AUTH.md)
+- **Shared Family Access** - Share your account with one other parent
 - PIN-protected parent mode
 - Optional biometric authentication
 - PIN brute-force protection with lockout
@@ -515,34 +517,39 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 1. **Access ChoreQuest** - Navigate to the application URL in your browser
 
-2. **Set Parent PIN** - On first access, you'll be prompted to create a Parent Mode PIN
+2. **Create Account** - Sign up with your email and password (See [Multi-Tenant Auth Guide](MULTI_TENANT_AUTH.md))
 
-3. **Enter Parent Mode** - Click the gear icon to enter Parent Mode using your PIN
+3. **Set Parent PIN** - Create a Parent Mode PIN for quick access
 
-4. **Add Children**
+4. **Add Second Parent** (Optional)
+   - Go to Parent Mode > Settings > Account Settings
+   - Click "Add Second Parent"
+   - Enter their email and password
+
+5. **Add Children**
    - Navigate to "Children" tab
    - Click "Add Child"
    - Enter name, optional avatar emoji, and pin (if desired)
 
-5. **Create Categories** (Optional)
+6. **Create Categories** (Optional)
    - Navigate to "Categories" tab
    - Create point categories like "Regular" and "Extra"
    - Configure point swaps if desired
 
-6. **Add Chores**
+7. **Add Chores**
    - Navigate to "Chores" tab
    - Click "Add Chore"
    - Set name, description, points, and schedule
    - Assign to children
    - **Optional:** Set Completion Type to "Rotational" to automatically rotate the chore between children ([Learn more](ROTATIONAL_CHORES_GUIDE.md))
 
-7. **Create Rewards**
+8. **Create Rewards**
    - Navigate to "Rewards" tab
    - Click "Add Reward"
    - Set name, description, cost, and categories
    - Configure limits and availability
 
-8. **Exit Parent Mode** - Children can now start completing chores!
+9. **Exit Parent Mode** - Children can now start completing chores!
 
 ### Daily Usage
 
@@ -736,6 +743,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ChoreQuest includes comprehensive documentation:
 
 - **[README.md](./README.md)** - Main project overview (you are here)
+- **[MULTI_TENANT_AUTH.md](./MULTI_TENANT_AUTH.md)** - Multi-tenant authentication guide
 - **[ROTATIONAL_CHORES_GUIDE.md](./ROTATIONAL_CHORES_GUIDE.md)** - How to configure rotational chores
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
 - **[CI-CD.md](./CI-CD.md)** - CI/CD pipeline configuration
