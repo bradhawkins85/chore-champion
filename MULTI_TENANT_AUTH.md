@@ -165,20 +165,24 @@ This will:
 The database schema is automatically updated when the server starts:
 
 1. New tables (`tenants`, `users`) are created if they don't exist
-2. The `kv_store` table is updated to include `tenant_id`
-3. Existing data in `kv_store` will have `tenant_id = NULL`
+2. The `kv_store` table is updated to include `tenant_id` as a required field
+3. Existing data in `kv_store` will be assigned to the "legacy" tenant automatically
 
-⚠️ **Note**: Existing data without a tenant_id will not be accessible to authenticated users. This is by design to ensure data security.
+⚠️ **Note**: Existing data is assigned to a special "legacy" tenant to maintain backward compatibility. You can access this data by logging in without authentication (it uses tenant_id = "legacy").
 
 ### Recommended Migration Path
 
 1. **Backup your data** before updating
 2. Deploy the new version
-3. Have users sign up with new accounts
-4. Optionally migrate old data by:
-   - Signing up as a new user
-   - Manually re-entering important data
-   - Or contact support for assisted migration
+3. Option A - Keep existing data accessible:
+   - Don't sign up for a new account
+   - Continue using without authentication (legacy tenant)
+   - Data is still isolated from new authenticated users
+   
+4. Option B - Migrate to authenticated accounts:
+   - Sign up for a new account
+   - Manually re-enter important data
+   - Old legacy data will remain accessible if you don't authenticate
 
 ## Account Management
 

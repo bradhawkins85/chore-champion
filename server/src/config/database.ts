@@ -72,7 +72,7 @@ export async function initDatabase() {
           await connection.query(`
             CREATE TABLE kv_store (
               key_name VARCHAR(255) NOT NULL,
-              tenant_id VARCHAR(36) DEFAULT NULL,
+              tenant_id VARCHAR(36) NOT NULL,
               value_data LONGTEXT NOT NULL,
               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -87,13 +87,10 @@ export async function initDatabase() {
           );
 
           if (columns.length === 0) {
-            // tenant_id column doesn't exist, add it
-            // First drop the primary key
-            await connection.query('ALTER TABLE kv_store DROP PRIMARY KEY');
-            
-            // Add tenant_id column
+            // tenant_id column doesn't exist, add it with default value for existing data
+            // First, add tenant_id column with a default value
             await connection.query(
-              'ALTER TABLE kv_store ADD COLUMN tenant_id VARCHAR(36) DEFAULT NULL'
+              'ALTER TABLE kv_store ADD COLUMN tenant_id VARCHAR(36) NOT NULL DEFAULT "legacy"'
             );
             
             // Add index on tenant_id
@@ -101,10 +98,15 @@ export async function initDatabase() {
               'ALTER TABLE kv_store ADD INDEX idx_tenant_id (tenant_id)'
             );
             
+            // Drop the old primary key
+            await connection.query('ALTER TABLE kv_store DROP PRIMARY KEY');
+            
             // Add composite primary key
             await connection.query(
               'ALTER TABLE kv_store ADD PRIMARY KEY (key_name, tenant_id)'
             );
+            
+            console.log('Note: Existing data has been assigned to "legacy" tenant');
           }
         }
         

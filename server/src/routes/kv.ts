@@ -41,11 +41,11 @@ function sendNullResponse(req: Request, res: Response): void {
 router.get('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
-    const tenantId = req.tenantId || null;
+    const tenantId = req.tenantId || 'legacy';
     
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT value_data FROM kv_store WHERE key_name = ? AND (tenant_id = ? OR (tenant_id IS NULL AND ? IS NULL))',
-      [key, tenantId, tenantId]
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      [key, tenantId]
     );
     
     // Return null for non-existent keys (standard KV store behavior)
@@ -95,7 +95,7 @@ router.get('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => 
 router.post('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
-    const tenantId = req.tenantId || null;
+    const tenantId = req.tenantId || 'legacy';
     let value;
     
     // Handle both Spark runtime format (text/plain with raw JSON) and standard format (application/json with {value: ...})
@@ -150,8 +150,8 @@ router.post('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) =>
 router.delete('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
-    const tenantId = req.tenantId || null;
-    await pool.query('DELETE FROM kv_store WHERE key_name = ? AND (tenant_id = ? OR (tenant_id IS NULL AND ? IS NULL))', [key, tenantId, tenantId]);
+    const tenantId = req.tenantId || 'legacy';
+    await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting value:', error);
@@ -162,10 +162,10 @@ router.delete('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) 
 // Get all keys (for debugging/migration)
 router.get('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = req.tenantId || null;
+    const tenantId = req.tenantId || 'legacy';
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT key_name, value_data FROM kv_store WHERE (tenant_id = ? OR (tenant_id IS NULL AND ? IS NULL))',
-      [tenantId, tenantId]
+      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
+      [tenantId]
     );
     
     const data: Record<string, any> = {};
@@ -200,7 +200,7 @@ router.get('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
 router.post('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
-    const tenantId = req.tenantId || null;
+    const tenantId = req.tenantId || 'legacy';
     
     if (!data || typeof data !== 'object') {
       return res.status(400).json({ error: 'Invalid data format' });
