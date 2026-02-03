@@ -54,9 +54,9 @@ interface DeviceInfoExtended {
   deviceName: string | null;
   deviceInfo: DeviceInfo;
   allowedChildrenIds: string[];
-  linkedAt: Date;
-  lastSeen: Date;
-  createdAt: Date;
+  linkedAt: Date | null;
+  lastSeen: Date | null;
+  createdAt: Date | null;
 }
 
 export function DeviceManagement() {
@@ -82,13 +82,26 @@ export function DeviceManagement() {
     }
   }, [token]);
 
+  const parseDate = (value: string | Date | null): Date | null => {
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const loadDevices = async () => {
     if (!token) return;
     
     setLoading(true);
     try {
       const linkedDevices = await getLinkedDevices(token);
-      setDevices(linkedDevices);
+      setDevices(
+        linkedDevices.map((device) => ({
+          ...device,
+          linkedAt: parseDate(device.linkedAt),
+          lastSeen: parseDate(device.lastSeen),
+          createdAt: parseDate(device.createdAt),
+        }))
+      );
     } catch (error) {
       console.error('Error loading devices:', error);
       toast.error('Failed to load devices');
@@ -230,7 +243,8 @@ export function DeviceManagement() {
     return `${browser} on ${os}`;
   };
 
-  const formatLastSeen = (date: Date) => {
+  const formatLastSeen = (date: Date | null) => {
+    if (!date) return 'Never';
     const now = new Date();
     const lastSeen = new Date(date);
     const diffMs = now.getTime() - lastSeen.getTime();
@@ -322,7 +336,7 @@ export function DeviceManagement() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Linked: {new Date(device.linkedAt).toLocaleString()}
+                      Linked: {device.linkedAt ? device.linkedAt.toLocaleString() : 'Unknown'}
                     </p>
                     
                     {/* Display allowed children */}
