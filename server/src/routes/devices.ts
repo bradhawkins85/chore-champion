@@ -301,11 +301,11 @@ router.post('/link', async (req: Request, res: Response) => {
       );
 
       // Verify the update worked
-      const [updated] = await connection.query(
+      const [verificationResult] = await connection.query<RowDataPacket[]>(
         'SELECT tenant_id FROM devices WHERE id = ?',
         [device.id]
       );
-      console.log(`[DEBUG] Device ${device.id} after linking - tenant_id: ${updated[0]?.tenant_id}`);
+      console.log(`[DEBUG] Device ${device.id} after linking - tenant_id: ${verificationResult[0]?.tenant_id}`);
 
       // Mark the code as used
       await connection.query(

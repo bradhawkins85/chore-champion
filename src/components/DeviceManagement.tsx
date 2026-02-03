@@ -94,7 +94,7 @@ export function DeviceManagement() {
       return;
     }
     
-    console.log('[DEBUG] loadDevices: starting with token:', token.substring(0, 20) + '...');
+    console.log('[DEBUG] loadDevices: starting device fetch');
     setLoading(true);
     try {
       const linkedDevices = await getLinkedDevices(token);
