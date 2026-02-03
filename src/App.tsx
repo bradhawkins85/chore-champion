@@ -18,7 +18,7 @@ import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { initializePWA } from '@/lib/pwaHelper'
-import { getDeviceId, registerDevice, getDeviceGuid } from '@/lib/deviceHelper'
+import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
 import {
   AppMode,
   Child,
@@ -69,6 +69,7 @@ function App() {
   const [showPinDialog, setShowPinDialog] = useState(false)
   const [showDeviceLinking, setShowDeviceLinking] = useState(false)
   const [deviceIsLinked, setDeviceIsLinked] = useState(false)
+  const [deviceAllowedChildrenIds, setDeviceAllowedChildrenIds] = useState<string[]>([])
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
   const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
@@ -206,6 +207,16 @@ function App() {
   const safePendingDigestItems = coerceArray<any>(pendingDigestItems)
   const safeChildAvailability = coerceArray<ChildAvailabilityEntry>(childAvailability)
   
+  // Filter children based on device restrictions
+  // If deviceAllowedChildrenIds is empty array, all children are allowed (default behavior)
+  // If it has specific IDs, only those children are allowed
+  const filteredChildrenList = useMemo(() => {
+    if (deviceIsLinked && deviceAllowedChildrenIds.length > 0) {
+      return safeChildrenList.filter(child => deviceAllowedChildrenIds.includes(child.id))
+    }
+    return safeChildrenList
+  }, [safeChildrenList, deviceIsLinked, deviceAllowedChildrenIds])
+  
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
   const hasMigratedPinSecurity = useRef(false)
@@ -250,6 +261,35 @@ function App() {
     
     registerDeviceOnMount()
   }, [authLoading, user, loginWithDevice])
+
+  // Fetch device configuration to get allowed children IDs
+  useEffect(() => {
+    const fetchDeviceConfig = async () => {
+      if (!user?.token || !deviceIsLinked) {
+        setDeviceAllowedChildrenIds([])
+        return
+      }
+      
+      try {
+        const devices = await getLinkedDevices(user.token)
+        const currentDeviceGuid = getDeviceGuid()
+        const currentDevice = devices.find(d => d.deviceGuid === currentDeviceGuid)
+        
+        if (currentDevice && currentDevice.allowedChildrenIds) {
+          setDeviceAllowedChildrenIds(currentDevice.allowedChildrenIds)
+        } else {
+          // Empty array means all children are allowed
+          setDeviceAllowedChildrenIds([])
+        }
+      } catch (error) {
+        console.error('Error fetching device configuration:', error)
+        // On error, allow all children
+        setDeviceAllowedChildrenIds([])
+      }
+    }
+    
+    fetchDeviceConfig()
+  }, [user, deviceIsLinked])
 
   useEffect(() => {
     if (parentPin !== normalizedParentPin) {
@@ -1947,7 +1987,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             </div>
           ) : (
             <ChildSelector
-              childrenList={safeChildrenList}
+              childrenList={filteredChildrenList}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={safeTrackedGoals}
