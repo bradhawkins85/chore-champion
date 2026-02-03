@@ -204,7 +204,11 @@ else
     
     # Store the current image IDs before pulling
     echo "Getting current image IDs..."
-    BEFORE_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" $([ -n "$COMPOSE_FILE_PATH" ] && echo "-f $COMPOSE_FILE_PATH") images -q | sort)
+    if [ -n "$COMPOSE_FILE_PATH" ]; then
+        BEFORE_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" images -q | sort)
+    else
+        BEFORE_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" images -q | sort)
+    fi
     
     # Pull the latest images from registry
     if [ -n "$COMPOSE_FILE_PATH" ]; then
@@ -231,7 +235,11 @@ else
     
     # Check the image IDs after pulling
     echo "Checking if images were updated..."
-    AFTER_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" $([ -n "$COMPOSE_FILE_PATH" ] && echo "-f $COMPOSE_FILE_PATH") images -q | sort)
+    if [ -n "$COMPOSE_FILE_PATH" ]; then
+        AFTER_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" images -q | sort)
+    else
+        AFTER_IMAGES=$(docker compose -p "${COMPOSE_PROJECT}" images -q | sort)
+    fi
     
     # Compare the image IDs
     if [ "$BEFORE_IMAGES" != "$AFTER_IMAGES" ]; then
@@ -239,7 +247,9 @@ else
         UPDATE_AVAILABLE=true
     else
         # Check the pull output for signs of updates
-        if grep -qE "(Pulling|Downloaded|digest:)" /tmp/pull-output.log; then
+        # Look for "Downloaded newer image" or specific pull activity, but not "Image is up to date"
+        if grep -qE "(Downloaded newer image|Pulling fs layer)" /tmp/pull-output.log && \
+           ! grep -q "Image is up to date" /tmp/pull-output.log; then
             echo "✓ Updates available from registry"
             UPDATE_AVAILABLE=true
         else
