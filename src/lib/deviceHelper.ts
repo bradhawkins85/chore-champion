@@ -147,6 +147,7 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   }
 
   const data = await response.json();
+  console.log('[DEBUG] getLinkedDevices response:', data);
   const rawDevices = Array.isArray(data.devices)
     ? data.devices
     : Array.isArray(data.linkedDevices)

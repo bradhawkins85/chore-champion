@@ -347,6 +347,8 @@ router.get('/', async (req: Request, res: Response) => {
       [tenantId]
     );
 
+    console.log(`[DEBUG] GET /api/devices - tenantId: ${tenantId}, found ${devices.length} devices`);
+
     res.json({
       devices: devices.map(d => ({
         id: d.id,
