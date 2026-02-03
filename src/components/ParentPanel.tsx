@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -246,7 +246,7 @@ export function ParentPanel({
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [changePinDialogOpen, setChangePinDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('welcome')
-  const [activitiesSubTab, setActivitiesSubTab] = useState('summary')
+  const [activitiesSubTab, setActivitiesSubTab] = useState('approvals')
   const [managementSubTab, setManagementSubTab] = useState('children')
   const [settingsSubTab, setSettingsSubTab] = useState('account')
 
@@ -536,10 +536,6 @@ export function ParentPanel({
 
           <Tabs value={activitiesSubTab} onValueChange={setActivitiesSubTab} className="space-y-4">
             <TabsList className="h-auto flex-wrap">
-              <TabsTrigger value="summary">
-                <ChartBar className="h-4 w-4 mr-2" />
-                Weekly Summary
-              </TabsTrigger>
               <TabsTrigger value="approvals">
                 <Check className="h-4 w-4 mr-2" />
                 Pending Approvals
@@ -576,25 +572,6 @@ export function ParentPanel({
                 Reports
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="summary" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-fredoka font-bold">Weekly Summary</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Track each child's progress and achievements
-                  </p>
-                </div>
-              </div>
-
-              <WeeklySummary
-                childrenList={childrenList}
-                chores={chores}
-                completions={completions}
-                purchases={purchases}
-                childPoints={childPoints}
-              />
-            </TabsContent>
 
             <TabsContent value="approvals" className="space-y-4">
               <div className="flex justify-between items-center">
