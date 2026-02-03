@@ -174,6 +174,9 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
   const paidPlan = plans.find(p => p.tier === 'paid');
   const unlimitedPlan = plans.find(p => p.tier === 'unlimited');
 
+  // Check if Stripe is configured
+  const isStripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
   const handleCancelSubscription = async () => {
     if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of the current billing period.')) {
       return;
@@ -238,6 +241,24 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
 
   return (
     <div className="space-y-6">
+      {/* Stripe Configuration Alert */}
+      {!isStripeConfigured && currentPlan?.tier === 'free' && (
+        <Alert>
+          <Warning className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Stripe Payment Integration Not Configured</p>
+              <p className="text-sm">
+                To enable paid subscriptions, please configure Stripe by setting the <code className="px-1 py-0.5 bg-muted rounded">VITE_STRIPE_PUBLISHABLE_KEY</code> environment variable.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                See the <a href="https://github.com/bradhawkins85/chore-champion/blob/main/SUBSCRIPTION_MODEL.md" target="_blank" rel="noopener noreferrer" className="underline">Subscription Model documentation</a> for setup instructions.
+              </p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Limited Mode Alert */}
       {isLimitedMode && (
         <Alert variant="destructive">
@@ -352,10 +373,15 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
             {currentPlan?.tier === 'free' && paidPlan && (
               <Button
                 onClick={() => {
+                  if (!isStripeConfigured) {
+                    toast.error('Stripe is not configured. Please contact your administrator.');
+                    return;
+                  }
                   setSelectedPlan(paidPlan);
                   setShowUpgrade(true);
                 }}
                 className="font-fredoka"
+                disabled={!isStripeConfigured}
               >
                 <Sparkle className="h-4 w-4 mr-2" />
                 Upgrade to Paid
@@ -449,10 +475,15 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
                     ) : (
                       <Button
                         onClick={() => {
+                          if (!isStripeConfigured) {
+                            toast.error('Stripe is not configured. Please contact your administrator.');
+                            return;
+                          }
                           setSelectedPlan(paidPlan);
                           setShowUpgrade(true);
                         }}
                         className="w-full font-fredoka"
+                        disabled={!isStripeConfigured}
                       >
                         Upgrade Now
                         <ArrowRight className="h-4 w-4 ml-2" />
