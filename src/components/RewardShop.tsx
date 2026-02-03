@@ -6,7 +6,7 @@ import { Star, ShoppingCart, ArrowLeft, LockKey, Timer, ArrowsLeftRight } from '
 import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category, PointSwap } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory, isRewardActive } from '@/lib/helpers'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 
 interface RewardShopProps {
   child: Child
@@ -96,17 +96,17 @@ export function RewardShop({
   }, [rewards])
 
   // Get rewards for a specific category
-  const getRewardsForCategory = (categoryId: string | null) => {
+  const getRewardsForCategory = useCallback((categoryId: string | null) => {
     if (categoryId === null) {
       return activeRewards
     }
     return activeRewards.filter(reward => 
       reward.categoryIds.includes(categoryId)
     )
-  }
+  }, [activeRewards])
 
   // Render rewards grid
-  const renderRewardsGrid = (rewardsToDisplay: Reward[]) => {
+  const renderRewardsGrid = useCallback((rewardsToDisplay: Reward[]) => {
     if (rewardsToDisplay.length === 0) {
       return (
         <Card className="p-12 text-center">
@@ -341,7 +341,7 @@ export function RewardShop({
         })}
       </div>
     )
-  }
+  }, [activeRewards, categoriesMap, categoryPoints, child.id, choresMap, completions, onPurchase, onToggleGoalTracking, purchases, trackedGoal])
 
   return (
     <div className="h-full overflow-y-auto p-8">
