@@ -453,8 +453,8 @@ export function ParentPanel({
           shouldComplete = hasEmailAlerts || hasPushNotifications
           break
         case 'link-device':
-          // Check if block parent mode on linked devices is configured (indicates device awareness)
-          shouldComplete = blockParentModeOnLinkedDevices === true || blockParentModeOnLinkedDevices === false
+          // Check if device settings have been explicitly configured
+          shouldComplete = blockParentModeOnLinkedDevices !== undefined
           break
         case 'manage-chores-children':
           // Same as assign-chore - check if chores are assigned
