@@ -1,0 +1,7 @@
+{
+  "guid": "e7eb8b8e-6bf6-4f4a-ab2f-13e2e0552c43",
+  "occurred_at": "2026-02-03T09:18:16.126768Z",
+  "change_type": "Fix",
+  "summary": "Fix reward chore requirement toggling to avoid update loops",
+  "content_hash": "cb6d7945058a59a24e10911ec420ad5dbfdf3d1e7c205db5eb91fae3cb074eea"
+}

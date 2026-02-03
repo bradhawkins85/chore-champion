@@ -54,6 +54,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [swapFromAmount, setSwapFromAmount] = useState(reward?.swapConfig?.fromAmount?.toString() || '')
   const [swapToAmount, setSwapToAmount] = useState(reward?.swapConfig?.toAmount?.toString() || '')
 
+  const normalizeRequiredChoreIds = (ids?: string[]) => (Array.isArray(ids) ? ids : [])
+
   useEffect(() => {
     if (open) {
       if (reward) {
@@ -65,7 +67,12 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         const rewardCategoryIds = reward.categoryIds || []
         setCategoryIds(Array.isArray(rewardCategoryIds) ? [...rewardCategoryIds] : [])
         setCostOverrides(reward.costOverrides || [])
-        setRequirements(reward.requirements || [])
+        setRequirements(
+          (reward.requirements || []).map((requirement) => ({
+            childId: requirement.childId,
+            requiredChoreIds: normalizeRequiredChoreIds(requirement.requiredChoreIds),
+          }))
+        )
         setHasLimit(!!reward.purchaseLimit)
         setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
         setLimitInterval(reward.purchaseLimit?.interval || 'day')
@@ -174,28 +181,38 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
     setOpen(false)
   }
 
-  const toggleChoreRequirement = (childId: string, choreId: string) => {
+  const updateChoreRequirement = (childId: string, choreId: string, shouldRequire: boolean) => {
     setRequirements(current => {
       const childReq = current.find(r => r.childId === childId)
-      if (!childReq) {
+      const requiredChoreIds = normalizeRequiredChoreIds(childReq?.requiredChoreIds)
+
+      if (shouldRequire && !childReq) {
         return [...current, { childId, requiredChoreIds: [choreId] }]
       }
       
-      if (childReq.requiredChoreIds.includes(choreId)) {
-        const updated = childReq.requiredChoreIds.filter(id => id !== choreId)
+      if (!childReq) {
+        return current
+      }
+
+      if (!shouldRequire && requiredChoreIds.includes(choreId)) {
+        const updated = requiredChoreIds.filter(id => id !== choreId)
         if (updated.length === 0) {
           return current.filter(r => r.childId !== childId)
         }
         return current.map(r => 
           r.childId === childId ? { ...r, requiredChoreIds: updated } : r
         )
-      } else {
-        return current.map(r => 
-          r.childId === childId 
-            ? { ...r, requiredChoreIds: [...r.requiredChoreIds, choreId] } 
+      }
+
+      if (shouldRequire && !requiredChoreIds.includes(choreId)) {
+        return current.map(r =>
+          r.childId === childId
+            ? { ...r, requiredChoreIds: [...requiredChoreIds, choreId] }
             : r
         )
       }
+
+      return current
     })
   }
 
@@ -633,7 +650,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                       <div className="space-y-4">
                         {childrenList.map((child) => {
                           const childReq = requirements.find(r => r.childId === child.id)
-                          const hasRequirements = childReq && childReq.requiredChoreIds.length > 0
+                          const requiredChoreIds = normalizeRequiredChoreIds(childReq?.requiredChoreIds)
+                          const hasRequirements = requiredChoreIds.length > 0
 
                           return (
                             <Card key={child.id} className="p-3">
@@ -649,26 +667,34 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                                     <span className="font-medium">{child.name}</span>
                                     {hasRequirements && (
                                       <p className="text-xs text-muted-foreground">
-                                        {childReq.requiredChoreIds.length} chore(s) required
+                                        {requiredChoreIds.length} chore(s) required
                                       </p>
                                     )}
                                   </div>
                                 </div>
                                 {chores.length > 0 && (
                                   <div className="pl-11 space-y-1">
-                                    {chores.slice(0, 5).map((chore) => (
-                                      <div
-                                        key={chore.id}
-                                        className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded"
-                                        onClick={() => toggleChoreRequirement(child.id, chore.id)}
-                                      >
-                                        <Checkbox 
-                                          checked={childReq?.requiredChoreIds.includes(chore.id) || false}
-                                          onCheckedChange={() => toggleChoreRequirement(child.id, chore.id)}
-                                        />
-                                        <span className="text-sm">{chore.name}</span>
-                                      </div>
-                                    ))}
+                                    {chores.slice(0, 5).map((chore) => {
+                                      const checkboxId = `reward-req-${child.id}-${chore.id}`
+                                      const isChecked = requiredChoreIds.includes(chore.id)
+                                      return (
+                                        <div
+                                          key={chore.id}
+                                          className="flex items-center gap-2 hover:bg-accent p-1 rounded"
+                                        >
+                                          <Checkbox
+                                            id={checkboxId}
+                                            checked={isChecked}
+                                            onCheckedChange={(checked) => {
+                                              updateChoreRequirement(child.id, chore.id, checked === true)
+                                            }}
+                                          />
+                                          <label htmlFor={checkboxId} className="text-sm cursor-pointer">
+                                            {chore.name}
+                                          </label>
+                                        </div>
+                                      )
+                                    })}
                                     {chores.length > 5 && (
                                       <p className="text-xs text-muted-foreground pl-6">
                                         +{chores.length - 5} more chores available
