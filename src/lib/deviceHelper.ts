@@ -147,7 +147,7 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   }
 
   const data = await response.json();
-  return data.devices;
+  return Array.isArray(data.devices) ? data.devices : [];
 };
 
 /**
@@ -204,4 +204,3 @@ export const unlinkDevice = async (token: string, deviceId: string): Promise<voi
     throw new Error(error.error || 'Failed to unlink device');
   }
 };
-
