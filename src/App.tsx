@@ -541,13 +541,13 @@ function App() {
   const migratedPurchases = useMemo(() => {
     if (!safePurchases || safePurchases.length === 0) return safePurchases || []
     
-    const needsMigration = safePurchases.some(p => p.cost === undefined || p.cost === null)
+    const needsMigration = safePurchases.some(p => typeof p.cost !== 'number')
     if (!needsMigration) return safePurchases
     
     const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
     
     return safePurchases.map((purchase) => {
-      if (purchase.cost !== undefined && purchase.cost !== null) {
+      if (typeof purchase.cost === 'number') {
         return purchase
       }
       
