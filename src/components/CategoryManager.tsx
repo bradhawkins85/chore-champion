@@ -169,23 +169,27 @@ export function CategoryManager({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
                 {onReorderCategories && (
-                  <div className="flex flex-col gap-1 pt-1">
+                  <div className="flex flex-col gap-1 pt-1" role="group" aria-label="Reorder controls">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0"
                       onClick={() => handleMoveUp(index)}
                       disabled={index === 0}
+                      aria-label="Move category up"
                     >
                       <CaretUp className="h-4 w-4" />
                     </Button>
-                    <DotsSixVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                    <div className="drag-icon" aria-hidden="true">
+                      <DotsSixVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0"
                       onClick={() => handleMoveDown(index)}
                       disabled={index === sortedCategories.length - 1}
+                      aria-label="Move category down"
                     >
                       <CaretDown className="h-4 w-4" />
                     </Button>

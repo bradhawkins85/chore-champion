@@ -1161,12 +1161,14 @@ function App() {
   }
 
   const handleAddCategory = (categoryData: Omit<Category, 'id' | 'createdAt'>) => {
+    // Find the highest order value, defaulting to -1 if no categories exist
+    const maxOrder = (categories || []).reduce((max, c) => Math.max(max, c.order ?? -1), -1)
+    
     const newCategory: Category = {
       ...categoryData,
       id: `category_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
-      // Set order to the highest existing order + 1, or 0 if no categories exist
-      order: Math.max(0, ...((categories || []).map(c => c.order ?? c.createdAt))) + 1,
+      order: maxOrder + 1,
     }
     setCategories((current) => [...(current || []), newCategory])
     toast.success(`Category "${newCategory.name}" created!`)
