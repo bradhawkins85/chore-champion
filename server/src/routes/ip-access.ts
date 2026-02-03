@@ -7,6 +7,17 @@ import crypto from 'crypto';
 
 const router = Router();
 
+// Type definitions
+interface IPAccessRequest {
+  id: string;
+  ip: string;
+  token: string;
+  requestedAt: number;
+  expiresAt: number;
+  approved: boolean;
+  approvedAt?: number;
+}
+
 // Rate limiting for access requests - 5 requests per 15 minutes per IP
 const requestAccessLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -57,17 +68,17 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
       [tenantId, 'ip-access-requests']
     );
 
-    let requests: any[] = [];
+    let requests: IPAccessRequest[] = [];
     if (existingRequests.length > 0) {
       requests = JSON.parse(existingRequests[0].value);
     }
 
     // Clean up expired requests
     const now = Date.now();
-    requests = requests.filter((r: any) => r.expiresAt > now);
+    requests = requests.filter((r: IPAccessRequest) => r.expiresAt > now);
 
     // Check if there's already an active request from this IP
-    const existingRequest = requests.find((r: any) => r.ip === ip && !r.approved);
+    const existingRequest = requests.find((r: IPAccessRequest) => r.ip === ip && !r.approved);
     if (existingRequest) {
       return res.status(409).json({ 
         error: 'An access request from this IP is already pending',
@@ -119,7 +130,7 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
     if (smtpEnabled) {
       // Send approval email (we'll implement the email sending later)
       // For now, we'll just log it
-      const approvalUrl = `${process.env.APP_URL || 'http://localhost:5000'}/approve-access?token=${token}`;
+      const approvalUrl = `${process.env.APP_URL || 'http://localhost:5000'}?token=${token}`;
       console.log(`Approval email would be sent to: ${primaryParentEmail}`);
       console.log(`Approval URL: ${approvalUrl}`);
       console.log(`Request from IP: ${ip}`);
@@ -158,12 +169,12 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     );
 
     let foundTenantId: string | null = null;
-    let foundRequest: any = null;
-    let allTenantRequests: any[] = [];
+    let foundRequest: IPAccessRequest | null = null;
+    let allTenantRequests: IPAccessRequest[] = [];
 
     for (const row of allRequests) {
-      const requests = JSON.parse(row.value);
-      const request = requests.find((r: any) => r.token === token);
+      const requests: IPAccessRequest[] = JSON.parse(row.value);
+      const request = requests.find((r: IPAccessRequest) => r.token === token);
       if (request) {
         foundTenantId = row.tenant_id;
         foundRequest = request;
@@ -239,17 +250,17 @@ router.get('/pending-requests/:tenantId', async (req: Request, res: Response) =>
       return res.json({ success: true, requests: [] });
     }
 
-    const requests = JSON.parse(rows[0].value);
+    const requests: IPAccessRequest[] = JSON.parse(rows[0].value);
     const now = Date.now();
 
     // Filter to only active (not expired, not approved) requests
-    const pendingRequests = requests.filter((r: any) => 
+    const pendingRequests = requests.filter((r: IPAccessRequest) => 
       !r.approved && r.expiresAt > now
     );
 
     res.json({
       success: true,
-      requests: pendingRequests.map((r: any) => ({
+      requests: pendingRequests.map((r: IPAccessRequest) => ({
         id: r.id,
         ip: r.ip,
         requestedAt: r.requestedAt,

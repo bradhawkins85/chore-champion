@@ -1397,8 +1397,24 @@ function App() {
     setApprovalToken(null)
     // Remove token from URL
     window.history.replaceState({}, document.title, window.location.pathname)
-    // Reload the page to check IP access again
-    window.location.reload()
+    // Re-check IP access instead of full page reload
+    setIsCheckingIP(true)
+    getUserIPAddress().then((ip) => {
+      setCurrentIP(ip)
+      if (!ipRestrictions || !ipRestrictions.enabled) {
+        setIPAccessGranted(true)
+        setIsCheckingIP(false)
+        return
+      }
+      
+      const allowed = isIPAllowed(ip, ipRestrictions)
+      setIPAccessGranted(allowed)
+      setIsCheckingIP(false)
+      
+      if (allowed) {
+        toast.success('Access granted! You can now use the application.')
+      }
+    })
   }
 
   const handleUpdateWeeklyReportSettings = (settings: WeeklyReportSettings) => {
