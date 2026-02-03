@@ -1217,6 +1217,9 @@ export function ParentPanel({
                   onUpdateGettingStartedState({
                     ...gettingStartedState,
                     dismissed: false,
+                    tasks: gettingStartedState.tasks.map(task =>
+                      task.id === 'dismiss' ? { ...task, completed: false } : task
+                    ),
                   })
                 }}
               />
