@@ -9,7 +9,6 @@ import updateRoutes from './routes/update.js';
 import icsRoutes from './routes/ics.js';
 import authRoutes from './routes/auth.js';
 import deviceRoutes from './routes/devices.js';
-import migrationRoutes from './routes/migration.js';
 import configRoutes from './routes/config.js';
 import ipAccessRoutes from './routes/ip-access.js';
 
@@ -92,7 +91,6 @@ app.use('/api/update', requireDb, updateRoutes);
 app.use('/api/ics', requireDb, icsRoutes);
 app.use('/api/auth', requireDb, authRoutes);
 app.use('/api/devices', requireDb, deviceRoutes);
-app.use('/api', requireDb, migrationRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/ip-access', requireDb, ipAccessRoutes);
 

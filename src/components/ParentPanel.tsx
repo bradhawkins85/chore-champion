@@ -65,7 +65,6 @@ import { SchoolHolidaySettings } from './SchoolHolidaySettings'
 import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { AccountSettings } from './AccountSettings'
 import { DeviceManagement } from './DeviceManagement'
-import { LegacyDataMigration } from './LegacyDataMigration'
 import { GettingStartedMenu } from './GettingStartedMenu'
 import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
@@ -628,8 +627,6 @@ export function ParentPanel({
               </p>
             </div>
           </div>
-
-          <LegacyDataMigration />
 
           <WeeklySummary
             childrenList={childrenList}
