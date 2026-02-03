@@ -1,14 +1,31 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig, PluginOption } from "vite";
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 
 import sparkPlugin from "@github/spark/spark-vite-plugin";
 import createIconImportProxy from "@github/spark/vitePhosphorIconProxyPlugin";
 import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
-const appVersion = process.env.VITE_APP_VERSION || '1.0.0'
+
+// Get version from package.json as fallback if VITE_APP_VERSION is not set
+const getAppVersion = (): string => {
+  if (process.env.VITE_APP_VERSION) {
+    return process.env.VITE_APP_VERSION;
+  }
+  
+  try {
+    const packageJsonPath = resolve(projectRoot, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return packageJson.version || '1.0.0';
+  } catch (error) {
+    console.warn('Failed to read version from package.json, using default:', error);
+    return '1.0.0';
+  }
+};
+
+const appVersion = getAppVersion()
 
 // Plugin to generate version.json during build
 const generateVersionFile = (): PluginOption => {
