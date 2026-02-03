@@ -45,6 +45,7 @@ import {
   EmailAlertSettings,
   EmailAlertSettingsMap,
   WeeklyReportSettingsMap,
+  ParentEmailAlertSettings,
   ReportTemplate,
   WeatherSettings,
   SpeechSettings,
@@ -61,7 +62,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, token, loading: authLoading, logout, loginWithDevice } = useAuth()
+  const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -1395,12 +1396,35 @@ function App() {
     }
   }
 
+  // Helper function to get parent emails for a specific alert type
+  const getParentEmailsForAlert = async (alertType: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>): Promise<string[]> => {
+    try {
+      const users = await getTenantUsers()
+      const enabledEmails: string[] = []
+      
+      for (const user of users) {
+        const userSettings = emailAlertSettingsMap?.[user.id]
+        if (userSettings && userSettings[alertType]) {
+          enabledEmails.push(user.email)
+        }
+      }
+      
+      return enabledEmails
+    } catch (error) {
+      console.error('Failed to get tenant users for email alerts:', error)
+      return []
+    }
+  }
+
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
-    if (!smtpEnabled || !emailAlertSettings?.rewardPurchaseAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('rewardPurchaseAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1422,7 +1446,7 @@ Reward Details:
 Please fulfill this reward when you get a chance!
     `.trim()
 
-    console.log('Email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Email would be sent to:', recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
     console.log('SMTP is enabled via environment variables')
@@ -1441,11 +1465,14 @@ Please fulfill this reward when you get a chance!
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
-    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('pendingApprovalAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1454,7 +1481,17 @@ Please fulfill this reward when you get a chance!
 
     if (!child || !chore) return
 
-    if (emailAlertSettings.digestMode === 'immediate') {
+    // Check digest mode for each user (use 'immediate' if any user has immediate)
+    const hasImmediateMode = recipientEmails.some((email) => {
+      const users = Object.keys(emailAlertSettingsMap || {})
+      const user = users.find(userId => {
+        // We'd need to match userId to email, for now assume immediate if not set
+        return emailAlertSettingsMap?.[userId]?.digestMode === 'immediate'
+      })
+      return user !== undefined
+    })
+    
+    if (hasImmediateMode || !emailAlertSettings?.digestMode || emailAlertSettings.digestMode === 'immediate') {
       const emailSubject = `⏳ ${child.name} completed a chore - Approval needed`
       const emailBody = `
 ${child.name} has completed a chore that requires your approval:
@@ -1468,7 +1505,7 @@ Chore Details:
 Please log in to ChoreQuest to approve or reject this completion.
       `.trim()
 
-      console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
+      console.log('Pending approval email would be sent to:', recipientEmails)
       console.log('Subject:', emailSubject)
       console.log('Body:', emailBody)
       console.log('SMTP is enabled via environment variables')
@@ -1505,11 +1542,14 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled) {
       return
     }
 
-    if (emailAlertSettings.recipientEmails.length === 0) {
+    // Get parent emails that have this alert enabled
+    const recipientEmails = await getParentEmailsForAlert('pendingApprovalAlerts')
+    
+    if (recipientEmails.length === 0) {
       return
     }
 
@@ -1545,25 +1585,25 @@ Please log in to ChoreQuest to approve or reject this completion.
 
     const emailSubject = `⏳ ${items.length} Chore${items.length > 1 ? 's' : ''} Pending Approval`
 
-    console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
+    console.log('Digest email would be sent to:', recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
     console.log('SMTP is enabled via environment variables')
 
     setPendingDigestItems([])
     
-    setEmailAlertSettings((current) => ({
-      ...(current || {
-        rewardPurchaseAlerts: false,
-        choreCompletionAlerts: false,
-        weeklyReportAlerts: false,
-        pendingApprovalAlerts: false,
-        recipientEmails: [],
-        digestMode: 'immediate',
-        lastDigestSent: null,
-      }),
-      lastDigestSent: Date.now(),
-    }))
+    // Update lastDigestSent for all users who have this alert enabled
+    const updatedMap = { ...(emailAlertSettingsMap || {}) }
+    const users = await getTenantUsers()
+    for (const user of users) {
+      if (updatedMap[user.id]?.pendingApprovalAlerts) {
+        updatedMap[user.id] = {
+          ...updatedMap[user.id],
+          lastDigestSent: Date.now(),
+        }
+      }
+    }
+    setEmailAlertSettingsMap(updatedMap)
 
     toast.success('Digest email sent to parents', {
       description: `${items.length} pending approval${items.length > 1 ? 's' : ''} notified`,
