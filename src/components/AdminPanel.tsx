@@ -568,7 +568,7 @@ export function AdminPanel() {
                       const tierColors = {
                         free: 'secondary',
                         paid: 'default',
-                        unlimited: 'destructive'
+                        unlimited: 'default'
                       } as const
 
                       return (

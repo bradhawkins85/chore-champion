@@ -292,12 +292,8 @@ router.get('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: R
       return res.status(404).json({ error: 'No subscription found for this tenant' });
     }
 
-    // Get plan details
-    const plan = await getSubscriptionPlan(subscription.plan_id);
-
     res.json({
-      subscription,
-      plan
+      subscription
     });
   } catch (error) {
     console.error('Error fetching tenant subscription:', error);
