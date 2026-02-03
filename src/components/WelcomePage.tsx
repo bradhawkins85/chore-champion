@@ -23,6 +23,70 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+// Define feature cards with IDs outside component to prevent recreation on every render
+const featureDefinitions: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
+  'chore-tracking': {
+    icon: <Trophy className="h-8 w-8" />,
+    title: 'Chore Tracking',
+    description: 'Create and assign chores to each child with customizable points and schedules',
+  },
+  'points-system': {
+    icon: <Star className="h-8 w-8" />,
+    title: 'Points System',
+    description: 'Children earn points for completing chores and can track their progress',
+  },
+  'reward-shop': {
+    icon: <Gift className="h-8 w-8" />,
+    title: 'Reward Shop',
+    description: 'Set up rewards that children can purchase with their earned points',
+  },
+  'goal-tracking': {
+    icon: <TrendUp className="h-8 w-8" />,
+    title: 'Goal Tracking',
+    description: 'Kids can set goals and watch their progress towards special rewards',
+  },
+  'parent-approval': {
+    icon: <CheckCircle className="h-8 w-8" />,
+    title: 'Parent Approval',
+    description: 'Optional approval system for chores that need verification',
+  },
+  'multi-device': {
+    icon: <Shield className="h-8 w-8" />,
+    title: 'Multi-Device Support',
+    description: 'Configure different child profiles for each device in your home',
+  },
+  'weekly-completions': {
+    icon: <Users className="h-8 w-8" />,
+    title: 'Weekly Completions',
+    description: 'Total chores completed this week',
+  },
+  'points-earned': {
+    icon: <Sparkle className="h-8 w-8" />,
+    title: 'Points Earned',
+    description: 'Total points earned this week',
+  },
+  'top-performer': {
+    icon: <Medal className="h-8 w-8" />,
+    title: 'Top Performer',
+    description: 'This week\'s highest achiever',
+  },
+  'points-comparison': {
+    icon: <ChartLine className="h-8 w-8" />,
+    title: 'Points Comparison',
+    description: 'This week vs last week',
+  },
+  'daily-activity': {
+    icon: <ChartBar className="h-8 w-8" />,
+    title: 'Daily Activity',
+    description: 'Chores completed each day this week',
+  },
+  'weekly-report': {
+    icon: <Calendar className="h-8 w-8" />,
+    title: 'Child\'s Weekly Report',
+    description: 'Detailed weekly summary and statistics',
+  },
+}
+
 // Sortable card component for feature cards
 interface SortableFeatureCardProps {
   id: string
@@ -139,70 +203,6 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
     } finally {
       setIsRequestingAccess(false)
     }
-  }
-
-  // Define feature cards with IDs
-  const featureDefinitions: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
-    'chore-tracking': {
-      icon: <Trophy className="h-8 w-8" />,
-      title: 'Chore Tracking',
-      description: 'Create and assign chores to each child with customizable points and schedules',
-    },
-    'points-system': {
-      icon: <Star className="h-8 w-8" />,
-      title: 'Points System',
-      description: 'Children earn points for completing chores and can track their progress',
-    },
-    'reward-shop': {
-      icon: <Gift className="h-8 w-8" />,
-      title: 'Reward Shop',
-      description: 'Set up rewards that children can purchase with their earned points',
-    },
-    'goal-tracking': {
-      icon: <TrendUp className="h-8 w-8" />,
-      title: 'Goal Tracking',
-      description: 'Kids can set goals and watch their progress towards special rewards',
-    },
-    'parent-approval': {
-      icon: <CheckCircle className="h-8 w-8" />,
-      title: 'Parent Approval',
-      description: 'Optional approval system for chores that need verification',
-    },
-    'multi-device': {
-      icon: <Shield className="h-8 w-8" />,
-      title: 'Multi-Device Support',
-      description: 'Configure different child profiles for each device in your home',
-    },
-    'weekly-completions': {
-      icon: <Users className="h-8 w-8" />,
-      title: 'Weekly Completions',
-      description: 'Total chores completed this week',
-    },
-    'points-earned': {
-      icon: <Sparkle className="h-8 w-8" />,
-      title: 'Points Earned',
-      description: 'Total points earned this week',
-    },
-    'top-performer': {
-      icon: <Medal className="h-8 w-8" />,
-      title: 'Top Performer',
-      description: 'This week\'s highest achiever',
-    },
-    'points-comparison': {
-      icon: <ChartLine className="h-8 w-8" />,
-      title: 'Points Comparison',
-      description: 'This week vs last week',
-    },
-    'daily-activity': {
-      icon: <ChartBar className="h-8 w-8" />,
-      title: 'Daily Activity',
-      description: 'Chores completed each day this week',
-    },
-    'weekly-report': {
-      icon: <Calendar className="h-8 w-8" />,
-      title: 'Child\'s Weekly Report',
-      description: 'Detailed weekly summary and statistics',
-    },
   }
 
   // Return features in the saved order
