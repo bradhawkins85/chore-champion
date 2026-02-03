@@ -370,7 +370,7 @@ router.patch('/:deviceId', async (req: Request, res: Response) => {
     const { deviceId } = req.params;
     const { deviceName } = req.body;
 
-    if (deviceName === undefined) {
+    if (!('deviceName' in req.body)) {
       return res.status(400).json({ error: 'deviceName is required' });
     }
 
