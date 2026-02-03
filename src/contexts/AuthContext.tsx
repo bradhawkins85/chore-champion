@@ -74,8 +74,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
+      // Handle service unavailable error
+      if (response.status === 503) {
+        throw new Error('Service is starting up. Please wait a moment and try again.');
+      }
+      
+      // Handle other errors
+      try {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Login failed');
+      } catch (parseError) {
+        // If response is not JSON (e.g., HTML error page from nginx)
+        throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+      }
     }
 
     const data = await response.json();
@@ -94,8 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Signup failed');
+      // Handle service unavailable error
+      if (response.status === 503) {
+        throw new Error('Service is starting up. Please wait a moment and try again.');
+      }
+      
+      // Handle other errors
+      try {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Signup failed');
+      } catch (parseError) {
+        // If response is not JSON (e.g., HTML error page from nginx)
+        throw new Error(`Server error (${response.status}). Please check if the service is running.`);
+      }
     }
 
     const data = await response.json();
