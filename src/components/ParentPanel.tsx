@@ -684,15 +684,6 @@ export function ParentPanel({
 
         {/* Welcome Tab */}
         <TabsContent value="welcome" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Welcome to ChoreQuest</h2>
-              <p className="text-sm text-muted-foreground">
-                Your family's chore management dashboard
-              </p>
-            </div>
-          </div>
-
           <WeeklySummary
             childrenList={childrenList}
             chores={chores}
@@ -731,15 +722,6 @@ export function ParentPanel({
 
         {/* Activities Tab with Nested Tabs */}
         <TabsContent value="activities" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Activities</h2>
-              <p className="text-sm text-muted-foreground">
-                View and manage family chore activities
-              </p>
-            </div>
-          </div>
-
           <Tabs value={activitiesSubTab} onValueChange={setActivitiesSubTab} className="space-y-4">
             <TabsList className="h-auto flex-wrap">
               <TabsTrigger value="approvals">
@@ -780,20 +762,6 @@ export function ParentPanel({
             </TabsList>
 
             <TabsContent value="approvals" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-fredoka font-bold">Pending Approvals</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Review and approve chore completions that require verification
-                  </p>
-                </div>
-                {pendingApprovalsCount > 0 && (
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {pendingApprovalsCount} pending
-                  </Badge>
-                )}
-              </div>
-
               <PendingApprovalsManager
                 childrenList={childrenList}
                 chores={chores}
@@ -807,20 +775,6 @@ export function ParentPanel({
             </TabsContent>
 
             <TabsContent value="missed" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-fredoka font-bold">Missed Chores</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Override missed chores by awarding points or dismissing them
-                  </p>
-                </div>
-                {missedChoresCount > 0 && (
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {missedChoresCount} missed
-                  </Badge>
-                )}
-              </div>
-
               <MissedChoresManager
                 childrenList={childrenList}
                 chores={chores}
@@ -851,15 +805,6 @@ export function ParentPanel({
             </TabsContent>
 
             <TabsContent value="purchases" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-fredoka font-bold">Purchase History</h2>
-                {purchases.filter((p) => !p.fulfilled).length > 0 && (
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {purchases.filter((p) => !p.fulfilled).length} pending
-                  </Badge>
-                )}
-              </div>
-
               {purchases.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
@@ -928,15 +873,6 @@ export function ParentPanel({
 
         {/* Management Tab with Nested Tabs */}
         <TabsContent value="management" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Management</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage children, chores, categories, and rewards
-              </p>
-            </div>
-          </div>
-
           <Tabs value={managementSubTab} onValueChange={setManagementSubTab} className="space-y-4">
             <TabsList className="h-auto flex-wrap">
               <TabsTrigger value="children">
@@ -958,13 +894,7 @@ export function ParentPanel({
             </TabsList>
 
             <TabsContent value="children" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Children</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Click "Manage Chores" on any child to assign chores
-              </p>
-            </div>
+          <div className="flex justify-end">
             <Button onClick={() => setChildDialogOpen(true)}>
               <Plus className="h-5 w-5 mr-2" />
               Add Child
@@ -1016,8 +946,7 @@ export function ParentPanel({
             </TabsContent>
 
             <TabsContent value="chores" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-fredoka font-bold">Chores Library</h2>
+              <div className="flex justify-end">
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -1114,8 +1043,7 @@ export function ParentPanel({
             </TabsContent>
 
             <TabsContent value="rewards" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-fredoka font-bold">Rewards Shop</h2>
+              <div className="flex justify-end">
                 <RewardDialog onSave={onAddReward} childrenList={childrenList} chores={chores} categories={categories} />
               </div>
 
@@ -1156,15 +1084,6 @@ export function ParentPanel({
 
         {/* Settings Tab with Nested Tabs */}
         <TabsContent value="settings-tab" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Settings</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage security and app preferences
-              </p>
-            </div>
-          </div>
-
           <Tabs value={settingsSubTab} onValueChange={setSettingsSubTab} className="space-y-4">
             <TabsList className="h-auto flex-wrap">
               <TabsTrigger value="account">
@@ -1291,30 +1210,12 @@ export function ParentPanel({
 
         {/* Help Tab */}
         <TabsContent value="help" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-fredoka font-bold">Help & Feature Guide</h2>
-              <p className="text-sm text-muted-foreground">
-                Learn about all the features in ChoreQuest
-              </p>
-            </div>
-          </div>
-
           <HelpMenu />
         </TabsContent>
 
         {/* Getting Started Tab */}
         {!gettingStartedState.dismissed && (
           <TabsContent value="getting-started" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-fredoka font-bold">Getting Started</h2>
-                <p className="text-sm text-muted-foreground">
-                  Set up your ChoreQuest account
-                </p>
-              </div>
-            </div>
-
             <GettingStartedMenu
               state={gettingStartedState}
               onUpdateState={onUpdateGettingStartedState}
