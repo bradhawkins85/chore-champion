@@ -16,8 +16,9 @@ import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
+import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { initializePWA } from '@/lib/pwaHelper'
-import { getDeviceId } from '@/lib/deviceHelper'
+import { getDeviceId, registerDevice, getDeviceGuid } from '@/lib/deviceHelper'
 import {
   AppMode,
   Child,
@@ -59,13 +60,15 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, logout } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
   const [showPointsHistory, setShowPointsHistory] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
+  const [showDeviceLinking, setShowDeviceLinking] = useState(false)
+  const [deviceIsLinked, setDeviceIsLinked] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
   const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
@@ -213,6 +216,23 @@ function App() {
 
   useEffect(() => {
     initializePWA()
+  }, [])
+
+  // Register device on app mount
+  useEffect(() => {
+    const registerDeviceOnMount = async () => {
+      try {
+        const deviceInfo = await registerDevice()
+        setDeviceIsLinked(deviceInfo.isLinked)
+        
+        // If device is linked but user is not authenticated, we could auto-login
+        // For now, we just track the linking status
+      } catch (error) {
+        console.error('Error registering device:', error)
+      }
+    }
+    
+    registerDeviceOnMount()
   }, [])
 
   useEffect(() => {

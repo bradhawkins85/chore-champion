@@ -61,6 +61,40 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Create devices table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS devices (
+            id VARCHAR(36) PRIMARY KEY,
+            device_guid VARCHAR(36) NOT NULL UNIQUE,
+            device_info JSON,
+            tenant_id VARCHAR(36),
+            linked_at TIMESTAMP NULL,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL,
+            INDEX idx_device_guid (device_guid),
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_last_seen (last_seen)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Create linking_codes table for ephemeral device linking codes
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS linking_codes (
+            code VARCHAR(6) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            device_id VARCHAR(36),
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            used_at TIMESTAMP NULL,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            INDEX idx_tenant_id (tenant_id),
+            INDEX idx_expires_at (expires_at),
+            INDEX idx_device_id (device_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // Create kv_store table or modify it if it exists
         // First check if the table exists
         const [tables] = await connection.query<RowDataPacket[]>(

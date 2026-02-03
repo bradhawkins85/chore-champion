@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Sparkle } from '@phosphor-icons/react';
+import { Sparkle, LinkSimple } from '@phosphor-icons/react';
+import { DeviceLinkingScreen } from './DeviceLinkingScreen';
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [showDeviceLinking, setShowDeviceLinking] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,6 +46,20 @@ export function AuthPage() {
       setLoading(false);
     }
   };
+
+  const handleDeviceLinked = (tenantId: string) => {
+    // Device linked successfully, reload the page to authenticate
+    window.location.reload();
+  };
+
+  if (showDeviceLinking) {
+    return (
+      <DeviceLinkingScreen
+        onLinked={handleDeviceLinked}
+        onCancel={() => setShowDeviceLinking(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
@@ -139,6 +155,21 @@ export function AuthPage() {
             >
               {isLogin ? 'Sign Up' : 'Sign In'}
             </Button>
+          </div>
+          
+          <div className="w-full pt-3 border-t">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowDeviceLinking(true)}
+              disabled={loading}
+            >
+              <LinkSimple className="w-4 h-4 mr-2" />
+              Link This Device
+            </Button>
+            <p className="text-xs text-center text-muted-foreground mt-2">
+              Link this device to skip login in the future
+            </p>
           </div>
           
           {!isLogin && (
