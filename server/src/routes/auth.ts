@@ -719,4 +719,88 @@ router.post('/add-parent', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Revoke access from a parent user
+router.delete('/revoke-parent/:userId', async (req: AuthRequest, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
+
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Cannot revoke access from yourself
+    if (userId === decoded.userId) {
+      return res.status(400).json({ error: 'Cannot revoke access from yourself' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Verify the user exists and belongs to the same tenant
+      const [users] = await connection.query<RowDataPacket[]>(
+        'SELECT id, email, tenant_id, created_at FROM users WHERE id = ?',
+        [userId]
+      );
+
+      if (users.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const userToRevoke = users[0];
+
+      // Verify user belongs to same tenant
+      if (userToRevoke.tenant_id !== decoded.tenantId) {
+        await connection.rollback();
+        return res.status(403).json({ error: 'You do not have permission to revoke access from this user' });
+      }
+
+      // Check how many users are in the tenant
+      const [tenantUsers] = await connection.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM users WHERE tenant_id = ?',
+        [decoded.tenantId]
+      );
+
+      // Prevent revoking if it would leave no parents
+      if (tenantUsers[0].count <= 1) {
+        await connection.rollback();
+        return res.status(400).json({ error: 'Cannot revoke access - at least one parent must remain' });
+      }
+
+      // Delete the user - CASCADE will handle related records
+      await connection.query(
+        'DELETE FROM users WHERE id = ?',
+        [userId]
+      );
+
+      await connection.commit();
+
+      res.json({
+        success: true,
+        message: 'Parent access revoked successfully'
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    console.error('Error revoking parent access:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

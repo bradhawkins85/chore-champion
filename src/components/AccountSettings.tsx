@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SignOut, UserPlus, Users, Envelope, Bell, Clock, Calendar } from '@phosphor-icons/react'
+import { SignOut, UserPlus, Users, Envelope, Bell, Clock, Calendar, Trash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { EmailAlertSettingsMap, WeeklyReportSettingsMap, ParentEmailAlertSettings, ParentWeeklyReportSettings, DayOfWeek, DigestInterval } from '@/lib/types'
 
@@ -26,7 +26,7 @@ export function AccountSettings({
   onUpdateEmailAlertSettingsMap,
   onUpdateWeeklyReportSettingsMap,
 }: AccountSettingsProps = {}) {
-  const { user, logout, inviteParent, getPendingInvitations, getTenantUsers } = useAuth();
+  const { user, logout, inviteParent, getPendingInvitations, getTenantUsers, revokeParent } = useAuth();
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -36,6 +36,9 @@ export function AccountSettings({
   const [smtpConfigured, setSmtpConfigured] = useState(false)
   const [smtpEnabled, setSmtpEnabled] = useState(false)
   const [smtpLoading, setSmtpLoading] = useState(true)
+  const [userToRevoke, setUserToRevoke] = useState<any | null>(null)
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false)
+  const [revokeLoading, setRevokeLoading] = useState(false)
 
   const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -101,6 +104,26 @@ export function AccountSettings({
   const handleLogout = () => {
     logout()
     toast.success('Logged out successfully')
+  }
+
+  const handleRevokeAccess = async () => {
+    if (!userToRevoke) return
+
+    setRevokeLoading(true)
+    setError('')
+
+    try {
+      await revokeParent(userToRevoke.id)
+      toast.success(`Access revoked for ${userToRevoke.email}`)
+      setShowRevokeDialog(false)
+      setUserToRevoke(null)
+      loadTenantData()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to revoke access')
+      toast.error(err instanceof Error ? err.message : 'Failed to revoke access')
+    } finally {
+      setRevokeLoading(false)
+    }
   }
 
   const canInviteParent = tenantUsers.length < 2 && pendingInvitations.length === 0
@@ -223,11 +246,26 @@ export function AccountSettings({
                       {new Date(u.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  {u.email === user?.email && (
-                    <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                      You
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {u.email === user?.email && (
+                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                        You
+                      </span>
+                    )}
+                    {u.email !== user?.email && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setUserToRevoke(u)
+                          setShowRevokeDialog(true)
+                        }}
+                      >
+                        <Trash className="w-4 h-4 mr-1" />
+                        Remove Access
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -341,6 +379,53 @@ export function AccountSettings({
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Revoke Access Confirmation Dialog */}
+          <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Revoke Parent Access?</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to revoke access for {userToRevoke?.email}? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Alert>
+                  <AlertDescription>
+                    <strong>Note:</strong> The user will immediately lose access to this ChoreQuest account and all its data. They can be re-invited later if needed.
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowRevokeDialog(false)
+                    setUserToRevoke(null)
+                    setError('')
+                  }}
+                  disabled={revokeLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleRevokeAccess}
+                  disabled={revokeLoading}
+                >
+                  {revokeLoading ? 'Revoking...' : 'Revoke Access'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Separator className="my-6" />
 
