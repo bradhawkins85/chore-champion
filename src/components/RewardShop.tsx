@@ -143,9 +143,29 @@ export function RewardShop({
                   affordabilityMessage = `Need ${reward.swapConfig.fromAmount - availableFromPoints} more ${fromCategory?.name} points`
                 }
               } else {
-                canAfford = availablePoints >= customCost
+                // Check if child has enough points in at least one of the reward's categories
+                const affordableInCategory = reward.categoryIds.some(categoryId => {
+                  const categoryAvailable = categoryPoints.get(categoryId) || 0
+                  return categoryAvailable >= customCost
+                })
+                canAfford = affordableInCategory
+                
                 if (!canAfford) {
-                  affordabilityMessage = `Need ${customCost - availablePoints} more points`
+                  // Find the category where they're closest to affording it
+                  let minShortfall = Infinity
+                  let closestCategoryName = 'points'
+                  
+                  reward.categoryIds.forEach(categoryId => {
+                    const categoryAvailable = categoryPoints.get(categoryId) || 0
+                    const shortfall = customCost - categoryAvailable
+                    if (shortfall > 0 && shortfall < minShortfall) {
+                      minShortfall = shortfall
+                      const category = categoriesMap.get(categoryId)
+                      closestCategoryName = category?.name || 'points'
+                    }
+                  })
+                  
+                  affordabilityMessage = `Need ${minShortfall} more ${closestCategoryName} points`
                 }
               }
               
