@@ -39,7 +39,19 @@ export function RewardShop({
   assignments = [],
   swaps = [],
 }: RewardShopProps) {
-  const [selectedTab, setSelectedTab] = useState<string>('all')
+  // Sort categories by order field first to determine default tab
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const orderA = a.order ?? a.createdAt
+      const orderB = b.order ?? b.createdAt
+      return orderA - orderB
+    })
+  }, [categories])
+
+  // Default to first category, or 'all' if no categories
+  const [selectedTab, setSelectedTab] = useState<string>(
+    sortedCategories.length > 0 ? sortedCategories[0].id : 'all'
+  )
 
   const choresMap = useMemo(() => {
     return new Map(chores.map(c => [c.id, c]))
@@ -51,15 +63,6 @@ export function RewardShop({
 
   const categoriesMap = useMemo(() => {
     return new Map(categories.map(c => [c.id, c]))
-  }, [categories])
-
-  // Sort categories by order field
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => {
-      const orderA = a.order ?? a.createdAt
-      const orderB = b.order ?? b.createdAt
-      return orderA - orderB
-    })
   }, [categories])
 
   const categoryPoints = useMemo(() => {
@@ -389,9 +392,6 @@ export function RewardShop({
         ) : sortedCategories.length > 0 ? (
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
             <TabsList className="h-auto flex-wrap">
-              <TabsTrigger value="all" className="font-fredoka">
-                All Rewards
-              </TabsTrigger>
               {sortedCategories.map((category) => {
                 const categoryRewards = getRewardsForCategory(category.id)
                 if (categoryRewards.length === 0) return null
@@ -410,17 +410,20 @@ export function RewardShop({
                   </TabsTrigger>
                 )
               })}
+              <TabsTrigger value="all" className="font-fredoka">
+                All Rewards
+              </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="all">
-              {renderRewardsGrid(activeRewards)}
-            </TabsContent>
 
             {sortedCategories.map((category) => (
               <TabsContent key={category.id} value={category.id}>
                 {renderRewardsGrid(getRewardsForCategory(category.id))}
               </TabsContent>
             ))}
+
+            <TabsContent value="all">
+              {renderRewardsGrid(activeRewards)}
+            </TabsContent>
           </Tabs>
         ) : (
           renderRewardsGrid(activeRewards)
