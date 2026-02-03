@@ -277,18 +277,20 @@ export function ActivityView({
     })
     
     // Add all dismissed chores
-    dismissedMissedChores.forEach((dismissed) => {
+    dismissedMissedChores.forEach((dismissed, index) => {
       if (dismissed.dismissed) {
-        // Find the corresponding history event to get the timestamp
+        // Find the corresponding history event to get the timestamp and ID
         const historyEvent = history.find(
           (h) => h.type === 'override-dismiss' &&
             h.childId === dismissed.childId &&
             h.choreId === dismissed.choreId &&
-            h.timeOfDay === dismissed.timeOfDay
+            h.timeOfDay === dismissed.timeOfDay &&
+            // Match the closest timestamp to missedDate
+            Math.abs(h.timestamp - dismissed.missedDate) < 24 * 60 * 60 * 1000 // within 24 hours
         )
         
         items.push({
-          id: `dismissed_${dismissed.childId}_${dismissed.choreId}_${dismissed.timeOfDay || 'anytime'}_${dismissed.missedDate}`,
+          id: historyEvent?.id || `dismissed_${dismissed.childId}_${dismissed.choreId}_${dismissed.timeOfDay || 'anytime'}_${dismissed.missedDate}_${index}`,
           childId: dismissed.childId,
           choreId: dismissed.choreId,
           timestamp: historyEvent?.timestamp || dismissed.missedDate,
