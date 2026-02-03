@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -76,6 +76,9 @@ interface ParentPanelProps {
   currentIP: string | null
   accessHistory: IPAccessAttempt[]
   weeklyReportSettings: WeeklyReportSettings
+  emailAlertSettings: EmailAlertSettings
+  emailAlertSettingsMap: EmailAlertSettingsMap
+  weeklyReportSettingsMap: WeeklyReportSettingsMap
   reportTemplates: ReportTemplate[]
   weatherSettings: WeatherSettings
   currentWeather: WeatherData | null
@@ -131,6 +134,8 @@ interface ParentPanelProps {
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
+  onUpdateEmailAlertSettingsMap: (settings: EmailAlertSettingsMap) => void
+  onUpdateWeeklyReportSettingsMap: (settings: WeeklyReportSettingsMap) => void
   onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => void
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
@@ -203,9 +208,14 @@ export function ParentPanel({
   accessHistory,
   onUpdateIPRestrictions,
   weeklyReportSettings,
+  emailAlertSettings,
+  emailAlertSettingsMap,
+  weeklyReportSettingsMap,
   onUpdateWeeklyReportSettings,
   onUpdateWeatherSettings,
   onUpdateEmailAlertSettings,
+  onUpdateEmailAlertSettingsMap,
+  onUpdateWeeklyReportSettingsMap,
   pushNotificationSettings,
   currentDeviceId,
   onUpdatePushNotificationSettings,
@@ -1044,18 +1054,10 @@ export function ParentPanel({
               />
 
               <AccountSettings
-                emailAlertSettings={emailAlertSettings}
-                weeklyReportSettings={weeklyReportSettings}
-                childrenList={childrenList}
-                chores={chores}
-                completions={completions}
-                assignments={assignments}
-                purchases={purchases}
-                rewards={rewards}
-                categories={categories}
-                bonusCompletions={bonusCompletions}
-                onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
-                onUpdateWeeklyReportSettings={onUpdateWeeklyReportSettings}
+                emailAlertSettingsMap={emailAlertSettingsMap}
+                weeklyReportSettingsMap={weeklyReportSettingsMap}
+                onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
+                onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
               />
             </TabsContent>
 

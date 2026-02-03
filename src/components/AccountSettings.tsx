@@ -6,40 +6,25 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { SignOut, UserPlus, Users } from '@phosphor-icons/react'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SignOut, UserPlus, Users, Envelope, Bell, Clock, Calendar } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { EmailAlertSettings, WeeklyReportSettings, Child, Chore, ChoreCompletion, ChoreAssignment, RewardPurchase, Reward, Category, CategoryBonusCompletion } from '@/lib/types'
-import { EmailSettings } from './EmailSettings'
-import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
+import { EmailAlertSettingsMap, WeeklyReportSettingsMap, ParentEmailAlertSettings, ParentWeeklyReportSettings, DayOfWeek, DigestInterval } from '@/lib/types'
 
 interface AccountSettingsProps {
-  emailAlertSettings?: EmailAlertSettings
-  weeklyReportSettings?: WeeklyReportSettings
-  childrenList?: Child[]
-  chores?: Chore[]
-  completions?: ChoreCompletion[]
-  assignments?: ChoreAssignment[]
-  purchases?: RewardPurchase[]
-  rewards?: Reward[]
-  categories?: Category[]
-  bonusCompletions?: CategoryBonusCompletion[]
-  onUpdateEmailAlertSettings?: (settings: EmailAlertSettings) => void
-  onUpdateWeeklyReportSettings?: (settings: WeeklyReportSettings) => void
+  emailAlertSettingsMap?: EmailAlertSettingsMap
+  weeklyReportSettingsMap?: WeeklyReportSettingsMap
+  onUpdateEmailAlertSettingsMap?: (settings: EmailAlertSettingsMap) => void
+  onUpdateWeeklyReportSettingsMap?: (settings: WeeklyReportSettingsMap) => void
 }
 
 export function AccountSettings({
-  emailAlertSettings,
-  weeklyReportSettings,
-  childrenList,
-  chores,
-  completions,
-  assignments,
-  purchases,
-  rewards,
-  categories,
-  bonusCompletions,
-  onUpdateEmailAlertSettings,
-  onUpdateWeeklyReportSettings,
+  emailAlertSettingsMap,
+  weeklyReportSettingsMap,
+  onUpdateEmailAlertSettingsMap,
+  onUpdateWeeklyReportSettingsMap,
 }: AccountSettingsProps = {}) {
   const { user, logout, addParent, getTenantUsers } = useAuth()
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
@@ -49,6 +34,34 @@ export function AccountSettings({
   const [newParentPassword, setNewParentPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [smtpConfigured, setSmtpConfigured] = useState(false)
+  const [smtpEnabled, setSmtpEnabled] = useState(false)
+  const [smtpLoading, setSmtpLoading] = useState(true)
+
+  const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+  useEffect(() => {
+    loadTenantUsers()
+    // Fetch SMTP status from the server
+    fetch('/api/config/smtp-status')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch SMTP status')
+        }
+        return res.json()
+      })
+      .then((data) => {
+        setSmtpConfigured(data.configured)
+        setSmtpEnabled(data.enabled)
+        setSmtpLoading(false)
+      })
+      .catch((error) => {
+        console.error('Failed to fetch SMTP status:', error)
+        setSmtpEnabled(false)
+        setSmtpConfigured(false)
+        setSmtpLoading(false)
+      })
+  }, [])
 
   useEffect(() => {
     loadTenantUsers()
@@ -100,19 +113,79 @@ export function AccountSettings({
 
   const canAddParent = tenantUsers.length < 2
 
-  // Check if all required props for weekly report settings are available
-  const hasWeeklyReportProps = !!(
-    weeklyReportSettings &&
-    onUpdateWeeklyReportSettings &&
-    childrenList &&
-    chores &&
-    completions &&
-    assignments &&
-    purchases &&
-    rewards &&
-    categories &&
-    bonusCompletions
-  )
+  // Get or create settings for a specific user
+  const getUserEmailSettings = (userId: string): ParentEmailAlertSettings => {
+    return emailAlertSettingsMap?.[userId] || {
+      rewardPurchaseAlerts: false,
+      choreCompletionAlerts: false,
+      weeklyReportAlerts: false,
+      pendingApprovalAlerts: false,
+      digestMode: 'immediate',
+      lastDigestSent: null,
+    }
+  }
+
+  const getUserWeeklyReportSettings = (userId: string): ParentWeeklyReportSettings => {
+    return weeklyReportSettingsMap?.[userId] || {
+      enabled: false,
+      sendDay: 'sunday',
+      sendTime: '18:00',
+      lastSent: null,
+    }
+  }
+
+  // Update email alert settings for a specific user
+  const updateUserEmailSettings = (userId: string, updates: Partial<ParentEmailAlertSettings>) => {
+    if (!onUpdateEmailAlertSettingsMap) return
+
+    const currentSettings = getUserEmailSettings(userId)
+    const newSettings = { ...currentSettings, ...updates }
+    
+    const newMap = { ...(emailAlertSettingsMap || {}) }
+    newMap[userId] = newSettings
+    
+    onUpdateEmailAlertSettingsMap(newMap)
+  }
+
+  // Update weekly report settings for a specific user
+  const updateUserWeeklyReportSettings = (userId: string, updates: Partial<ParentWeeklyReportSettings>) => {
+    if (!onUpdateWeeklyReportSettingsMap) return
+
+    const currentSettings = getUserWeeklyReportSettings(userId)
+    const newSettings = { ...currentSettings, ...updates }
+    
+    const newMap = { ...(weeklyReportSettingsMap || {}) }
+    newMap[userId] = newSettings
+    
+    onUpdateWeeklyReportSettingsMap(newMap)
+  }
+
+  const handleToggleAlert = (
+    userId: string,
+    type: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>,
+    enabled: boolean
+  ) => {
+    if (enabled && !smtpEnabled) {
+      toast.error('SMTP is not configured. Please configure SMTP settings in your .env file')
+      return
+    }
+
+    updateUserEmailSettings(userId, { [type]: enabled })
+    toast.success(enabled ? 'Alert enabled' : 'Alert disabled')
+  }
+
+  const getDigestModeLabel = (mode: DigestInterval): string => {
+    switch (mode) {
+      case 'immediate': return 'Immediate'
+      case '15min': return 'Every 15 minutes'
+      case '30min': return 'Every 30 minutes'
+      case '1hour': return 'Every 1 hour'
+      case '2hours': return 'Every 2 hours'
+      case '4hours': return 'Every 4 hours'
+      case 'daily': return 'Once daily'
+      default: return 'Immediate'
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -260,30 +333,265 @@ export function AccountSettings({
               </AlertDescription>
             </Alert>
           )}
+
+          <Separator className="my-6" />
+
+          {/* Per-parent email alert settings */}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Email Alert Preferences
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Configure email notifications for each parent. Alerts will be sent to each parent's registered email address.
+              </p>
+            </div>
+
+            {!smtpLoading && !smtpEnabled && (
+              <Alert>
+                <AlertDescription>
+                  SMTP is not configured. Email alerts will not be sent. Configure SMTP settings in your .env file to enable notifications.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {tenantUsers.map((parentUser) => {
+              const emailSettings = getUserEmailSettings(parentUser.id)
+              return (
+                <Card key={parentUser.id} className="border-2">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Envelope className="w-4 h-4" />
+                        {parentUser.email}
+                      </span>
+                      {parentUser.email === user?.email && (
+                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                          You
+                        </span>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Email notifications will be sent to this address
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Reward Purchase Alerts</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Get notified when a child claims a reward
+                        </p>
+                      </div>
+                      <Switch
+                        checked={emailSettings.rewardPurchaseAlerts}
+                        onCheckedChange={(checked) =>
+                          handleToggleAlert(parentUser.id, 'rewardPurchaseAlerts', checked)
+                        }
+                        disabled={!smtpEnabled}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Chore Completion Alerts</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Get notified when chores need approval
+                        </p>
+                      </div>
+                      <Switch
+                        checked={emailSettings.choreCompletionAlerts}
+                        onCheckedChange={(checked) =>
+                          handleToggleAlert(parentUser.id, 'choreCompletionAlerts', checked)
+                        }
+                        disabled={!smtpEnabled}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Pending Approval Alerts</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Get notified when chores are completed and require approval
+                        </p>
+                      </div>
+                      <Switch
+                        checked={emailSettings.pendingApprovalAlerts}
+                        onCheckedChange={(checked) =>
+                          handleToggleAlert(parentUser.id, 'pendingApprovalAlerts', checked)
+                        }
+                        disabled={!smtpEnabled}
+                      />
+                    </div>
+
+                    {emailSettings.pendingApprovalAlerts && (
+                      <>
+                        <Separator />
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Label>Digest Mode</Label>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Combine multiple pending approvals into a single email
+                          </p>
+                          <Select
+                            value={emailSettings.digestMode}
+                            onValueChange={(value) =>
+                              updateUserEmailSettings(parentUser.id, { digestMode: value as DigestInterval })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="immediate">Immediate (Send right away)</SelectItem>
+                              <SelectItem value="15min">Every 15 minutes</SelectItem>
+                              <SelectItem value="30min">Every 30 minutes</SelectItem>
+                              <SelectItem value="1hour">Every 1 hour</SelectItem>
+                              <SelectItem value="2hours">Every 2 hours</SelectItem>
+                              <SelectItem value="4hours">Every 4 hours</SelectItem>
+                              <SelectItem value="daily">Once daily</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Weekly Report Alerts</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive weekly activity reports via email
+                        </p>
+                      </div>
+                      <Switch
+                        checked={emailSettings.weeklyReportAlerts}
+                        onCheckedChange={(checked) =>
+                          handleToggleAlert(parentUser.id, 'weeklyReportAlerts', checked)
+                        }
+                        disabled={!smtpEnabled}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          <Separator className="my-6" />
+
+          {/* Per-parent weekly report settings */}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Weekly Report Settings
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Configure when each parent receives their weekly activity reports
+              </p>
+            </div>
+
+            {tenantUsers.map((parentUser) => {
+              const weeklySettings = getUserWeeklyReportSettings(parentUser.id)
+              const emailSettings = getUserEmailSettings(parentUser.id)
+              return (
+                <Card key={parentUser.id} className="border-2">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Envelope className="w-4 h-4" />
+                        {parentUser.email}
+                      </span>
+                      {parentUser.email === user?.email && (
+                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                          You
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Enable Weekly Reports</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically send activity summaries each week
+                        </p>
+                      </div>
+                      <Switch
+                        checked={weeklySettings.enabled && emailSettings.weeklyReportAlerts}
+                        onCheckedChange={(checked) => {
+                          updateUserWeeklyReportSettings(parentUser.id, { enabled: checked })
+                          if (checked && !emailSettings.weeklyReportAlerts) {
+                            handleToggleAlert(parentUser.id, 'weeklyReportAlerts', true)
+                          }
+                        }}
+                        disabled={!smtpEnabled}
+                      />
+                    </div>
+
+                    {weeklySettings.enabled && emailSettings.weeklyReportAlerts && (
+                      <>
+                        <Separator />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>Send Day</Label>
+                            <Select
+                              value={weeklySettings.sendDay}
+                              onValueChange={(value) =>
+                                updateUserWeeklyReportSettings(parentUser.id, { sendDay: value as DayOfWeek })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {daysOfWeek.map((day) => (
+                                  <SelectItem key={day} value={day}>
+                                    {day.charAt(0).toUpperCase() + day.slice(1)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Send Time</Label>
+                            <Input
+                              type="time"
+                              value={weeklySettings.sendTime}
+                              onChange={(e) =>
+                                updateUserWeeklyReportSettings(parentUser.id, { sendTime: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {weeklySettings.lastSent && (
+                          <div className="rounded-lg bg-muted p-3">
+                            <p className="text-sm">
+                              <Clock className="inline h-4 w-4 mr-2" />
+                              Last sent: {new Date(weeklySettings.lastSent).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
-
-      {emailAlertSettings && onUpdateEmailAlertSettings && (
-        <EmailSettings
-          emailAlertSettings={emailAlertSettings}
-          onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
-        />
-      )}
-
-      {hasWeeklyReportProps && (
-        <WeeklyReportSettingsComponent
-          settings={weeklyReportSettings!}
-          childrenList={childrenList!}
-          chores={chores!}
-          completions={completions!}
-          assignments={assignments!}
-          purchases={purchases!}
-          rewards={rewards!}
-          categories={categories!}
-          bonusCompletions={bonusCompletions!}
-          onUpdateSettings={onUpdateWeeklyReportSettings!}
-        />
-      )}
 
       <Card>
         <CardHeader>

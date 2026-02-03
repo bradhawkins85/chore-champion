@@ -42,9 +42,11 @@ import {
   IPRestrictionSettings,
   IPAccessAttempt,
   WeeklyReportSettings,
+  EmailAlertSettings,
+  EmailAlertSettingsMap,
+  WeeklyReportSettingsMap,
   ReportTemplate,
   WeatherSettings,
-  EmailAlertSettings,
   SpeechSettings,
   PushNotificationSettings,
   SchoolHoliday,
@@ -141,6 +143,9 @@ function App() {
     digestMode: 'immediate',
     lastDigestSent: null,
   })
+  // New per-parent settings maps
+  const [emailAlertSettingsMap, setEmailAlertSettingsMap] = useKV<EmailAlertSettingsMap>('email-alert-settings-map', {})
+  const [weeklyReportSettingsMap, setWeeklyReportSettingsMap] = useKV<WeeklyReportSettingsMap>('weekly-report-settings-map', {})
   const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
@@ -1815,6 +1820,9 @@ Please log in to ChoreQuest to approve or reject this completion.
           currentIP={currentIP}
           accessHistory={safeAccessHistory}
           weeklyReportSettings={weeklyReportSettings || { enabled: false, parentEmail: null, sendDay: 'sunday', sendTime: '18:00', lastSent: null }}
+          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
+          emailAlertSettingsMap={emailAlertSettingsMap || {}}
+          weeklyReportSettingsMap={weeklyReportSettingsMap || {}}
           reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
@@ -1861,6 +1869,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
+          onUpdateEmailAlertSettingsMap={(settings) => setEmailAlertSettingsMap(settings)}
+          onUpdateWeeklyReportSettingsMap={(settings) => setWeeklyReportSettingsMap(settings)}
           onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}

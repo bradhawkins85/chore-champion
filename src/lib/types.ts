@@ -374,6 +374,19 @@ export interface WeeklyReportSettings {
   lastSent: number | null
 }
 
+// Per-parent weekly report settings
+export interface ParentWeeklyReportSettings {
+  enabled: boolean
+  sendDay: DayOfWeek
+  sendTime: string
+  lastSent: number | null
+}
+
+// Map of userId to their weekly report settings
+export interface WeeklyReportSettingsMap {
+  [userId: string]: ParentWeeklyReportSettings
+}
+
 export interface WeeklyReportData {
   weekStart: number
   weekEnd: number
@@ -542,6 +555,21 @@ export interface EmailAlertSettings {
   recipientEmails: string[]
   digestMode: DigestInterval
   lastDigestSent: number | null
+}
+
+// Per-parent email alert settings
+export interface ParentEmailAlertSettings {
+  rewardPurchaseAlerts: boolean
+  choreCompletionAlerts: boolean
+  weeklyReportAlerts: boolean
+  pendingApprovalAlerts: boolean
+  digestMode: DigestInterval
+  lastDigestSent: number | null
+}
+
+// Map of userId to their email alert settings
+export interface EmailAlertSettingsMap {
+  [userId: string]: ParentEmailAlertSettings
 }
 
 export interface PendingDigestItem {
