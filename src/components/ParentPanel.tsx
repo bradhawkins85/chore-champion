@@ -49,6 +49,7 @@ import { SchoolHolidaySettings } from './SchoolHolidaySettings'
 import { ChildAvailabilitySchedule } from './ChildAvailabilitySchedule'
 import { AccountSettings } from './AccountSettings'
 import { DeviceManagement } from './DeviceManagement'
+import { LegacyDataMigration } from './LegacyDataMigration'
 import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
@@ -435,6 +436,15 @@ export function ParentPanel({
             </div>
           </div>
 
+          <LegacyDataMigration />
+
+          <WeeklySummary
+            childrenList={childrenList}
+            chores={chores}
+            completions={completions}
+            purchases={purchases}
+            childPoints={childPoints}
+          />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardContent className="p-6">

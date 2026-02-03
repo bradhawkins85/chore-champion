@@ -9,6 +9,7 @@ import updateRoutes from './routes/update.js';
 import icsRoutes from './routes/ics.js';
 import authRoutes from './routes/auth.js';
 import deviceRoutes from './routes/devices.js';
+import migrationRoutes from './routes/migration.js';
 import configRoutes from './routes/config.js';
 
 dotenv.config();
@@ -72,6 +73,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API Routes
+app.use('/api', kvRoutes);
+app.use('/api', updateRoutes);
+app.use('/api', icsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/devices', deviceRoutes);
+app.use('/api', migrationRoutes);
 // Middleware to check database readiness for routes that need it
 const requireDb = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (!dbReady) {
