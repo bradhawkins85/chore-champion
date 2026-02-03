@@ -8,8 +8,39 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { SignOut, UserPlus, Users } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { EmailAlertSettings, WeeklyReportSettings, Child, Chore, ChoreCompletion, ChoreAssignment, RewardPurchase, Reward, Category, CategoryBonusCompletion } from '@/lib/types'
+import { EmailSettings } from './EmailSettings'
+import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 
-export function AccountSettings() {
+interface AccountSettingsProps {
+  emailAlertSettings?: EmailAlertSettings
+  weeklyReportSettings?: WeeklyReportSettings
+  childrenList?: Child[]
+  chores?: Chore[]
+  completions?: ChoreCompletion[]
+  assignments?: ChoreAssignment[]
+  purchases?: RewardPurchase[]
+  rewards?: Reward[]
+  categories?: Category[]
+  bonusCompletions?: CategoryBonusCompletion[]
+  onUpdateEmailAlertSettings?: (settings: EmailAlertSettings) => void
+  onUpdateWeeklyReportSettings?: (settings: WeeklyReportSettings) => void
+}
+
+export function AccountSettings({
+  emailAlertSettings,
+  weeklyReportSettings,
+  childrenList,
+  chores,
+  completions,
+  assignments,
+  purchases,
+  rewards,
+  categories,
+  bonusCompletions,
+  onUpdateEmailAlertSettings,
+  onUpdateWeeklyReportSettings,
+}: AccountSettingsProps = {}) {
   const { user, logout, addParent, getTenantUsers } = useAuth()
   const [tenantUsers, setTenantUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -95,7 +126,7 @@ export function AccountSettings() {
             Shared Access
           </CardTitle>
           <CardDescription>
-            You can share your ChoreQuest account with one other parent
+            Manage parent accounts and email notification preferences for registered parents
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -217,6 +248,28 @@ export function AccountSettings() {
           )}
         </CardContent>
       </Card>
+
+      {emailAlertSettings && onUpdateEmailAlertSettings && (
+        <EmailSettings
+          emailAlertSettings={emailAlertSettings}
+          onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
+        />
+      )}
+
+      {weeklyReportSettings && onUpdateWeeklyReportSettings && childrenList && chores && completions && assignments && purchases && rewards && categories && bonusCompletions && (
+        <WeeklyReportSettingsComponent
+          settings={weeklyReportSettings}
+          childrenList={childrenList}
+          chores={chores}
+          completions={completions}
+          assignments={assignments}
+          purchases={purchases}
+          rewards={rewards}
+          categories={categories}
+          bonusCompletions={bonusCompletions}
+          onUpdateSettings={onUpdateWeeklyReportSettings}
+        />
+      )}
 
       <Card>
         <CardHeader>
