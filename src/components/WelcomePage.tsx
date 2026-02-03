@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle, Star, Trophy, Gift, Shield, TrendUp, EnvelopeSimple, Sparkle, Calendar, ChartBar, ChartLine, Users } from '@phosphor-icons/react'
+import { CheckCircle, Star, Trophy, Gift, Shield, TrendUp, EnvelopeSimple, Sparkle, Calendar, ChartBar, ChartLine, Users, Medal } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
   DndContext,
@@ -174,7 +174,7 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
       description: 'Configure different child profiles for each device in your home',
     },
     'weekly-completions': {
-      icon: <CheckCircle className="h-8 w-8" />,
+      icon: <Users className="h-8 w-8" />,
       title: 'Weekly Completions',
       description: 'Total chores completed this week',
     },
@@ -184,7 +184,7 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
       description: 'Total points earned this week',
     },
     'top-performer': {
-      icon: <Trophy className="h-8 w-8" />,
+      icon: <Medal className="h-8 w-8" />,
       title: 'Top Performer',
       description: 'This week\'s highest achiever',
     },
