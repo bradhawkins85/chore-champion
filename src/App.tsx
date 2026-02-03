@@ -184,6 +184,12 @@ function App() {
       { id: 'assign-chore', label: 'Assign Chores to Children', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'children' },
       { id: 'add-reward', label: 'Add Your First Reward', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'rewards' },
       { id: 'set-pin', label: 'Set Your Parent PIN', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'security' },
+      { id: 'invite-parent', label: 'Invite Another Parent', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'account' },
+      { id: 'setup-weather', label: 'Setup Weather Display', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'settings' },
+      { id: 'add-school-holidays', label: 'Add School Holidays', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'settings' },
+      { id: 'configure-notifications', label: 'Configure Notifications', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'notifications' },
+      { id: 'link-device', label: 'Link a Device', completed: false, ignored: false, targetTab: 'settings-tab', targetSubTab: 'devices' },
+      { id: 'manage-chores-children', label: 'Manage Chores for Children', completed: false, ignored: false, targetTab: 'management', targetSubTab: 'children' },
     ],
   })
   const normalizedParentPin = (() => {
