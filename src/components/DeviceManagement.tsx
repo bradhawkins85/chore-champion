@@ -340,7 +340,7 @@ export function DeviceManagement() {
                           </p>
                         ) : (
                           <div className="flex flex-wrap gap-2 ml-6">
-                            {device.allowedChildrenIds?.map((childId) => {
+                            {(device.allowedChildrenIds ?? []).map((childId) => {
                               const child = children.find((c) => c.id === childId);
                               if (!child) return null;
                               return (
