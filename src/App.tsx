@@ -65,6 +65,8 @@ import { fetchWeatherData } from '@/lib/weatherHelper'
 import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
+const DEFAULT_PUSH_NOTIFICATION_SETTINGS: PushNotificationSettings = { enabled: false, devices: [] }
+
 function App() {
   const location = useLocation()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
@@ -2260,6 +2262,8 @@ Please log in to ChoreQuest to approve or reject this completion.
               deviceIsLinked={deviceIsLinked}
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               deviceRegistrationComplete={deviceRegistrationComplete}
+              pushNotificationSettings={pushNotificationSettings || DEFAULT_PUSH_NOTIFICATION_SETTINGS}
+              onOpenSettings={handleRequestParentMode}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}
             />
