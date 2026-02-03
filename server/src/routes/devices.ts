@@ -353,7 +353,17 @@ router.get('/', async (req: Request, res: Response) => {
         deviceGuid: d.device_guid,
         deviceName: d.device_name,
         deviceInfo: typeof d.device_info === 'string' ? JSON.parse(d.device_info) : d.device_info,
-        allowedChildrenIds: typeof d.allowed_children_ids === 'string' ? JSON.parse(d.allowed_children_ids) : (d.allowed_children_ids || []),
+        allowedChildrenIds: (() => {
+          if (typeof d.allowed_children_ids === 'string') {
+            try {
+              const parsed = JSON.parse(d.allowed_children_ids);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          }
+          return Array.isArray(d.allowed_children_ids) ? d.allowed_children_ids : [];
+        })(),
         linkedAt: d.linked_at,
         lastSeen: d.last_seen,
         createdAt: d.created_at,

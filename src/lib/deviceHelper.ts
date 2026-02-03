@@ -130,7 +130,7 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   deviceGuid: string;
   deviceName: string | null;
   deviceInfo: DeviceInfo;
-  allowedChildrenIds: string[];
+  allowedChildrenIds?: string[];
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;
