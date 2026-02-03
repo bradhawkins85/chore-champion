@@ -72,6 +72,17 @@ import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
 
+const welcomeCardIds = ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
+
+const normalizeCardOrder = (order: string[], allIds: string[]) => {
+  const unique = order.filter((id, index) => order.indexOf(id) === index && allIds.includes(id))
+  const missing = allIds.filter((id) => !unique.includes(id))
+  return [...unique, ...missing]
+}
+
+const areArraysEqual = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index])
+
 // Sortable card component
 interface SortableCardProps {
   id: string
@@ -313,8 +324,18 @@ export function ParentPanel({
   // State for welcome card order - save order immediately when changed
   const [welcomeCardOrder, setWelcomeCardOrder] = useApiKV<string[]>(
     'welcomeCardOrder',
-    ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
+    welcomeCardIds
   )
+  const normalizedWelcomeCardOrder = useMemo(
+    () => normalizeCardOrder(welcomeCardOrder, welcomeCardIds),
+    [welcomeCardOrder]
+  )
+
+  useEffect(() => {
+    if (!areArraysEqual(normalizedWelcomeCardOrder, welcomeCardOrder)) {
+      setWelcomeCardOrder(normalizedWelcomeCardOrder)
+    }
+  }, [normalizedWelcomeCardOrder, setWelcomeCardOrder, welcomeCardOrder])
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -329,10 +350,10 @@ export function ParentPanel({
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = welcomeCardOrder.indexOf(active.id as string)
-      const newIndex = welcomeCardOrder.indexOf(over.id as string)
+      const oldIndex = normalizedWelcomeCardOrder.indexOf(active.id as string)
+      const newIndex = normalizedWelcomeCardOrder.indexOf(over.id as string)
       
-      const newOrder = arrayMove(welcomeCardOrder, oldIndex, newIndex)
+      const newOrder = arrayMove(normalizedWelcomeCardOrder, oldIndex, newIndex)
       // Save order immediately using useApiKV
       setWelcomeCardOrder(newOrder)
     }
@@ -520,11 +541,19 @@ export function ParentPanel({
     }
 
     // Return cards in the saved order
-    return welcomeCardOrder.map((cardId) => ({
+    return normalizedWelcomeCardOrder.map((cardId) => ({
       id: cardId,
       ...cardDefinitions[cardId],
     }))
-  }, [childrenList, chores, pendingApprovalsCount, missedChoresCount, rewards, purchases, welcomeCardOrder])
+  }, [
+    childrenList,
+    chores,
+    pendingApprovalsCount,
+    missedChoresCount,
+    rewards,
+    purchases,
+    normalizedWelcomeCardOrder,
+  ])
 
   const handleQuickAddTemplate = (template: ChoreTemplate) => {
     const firstCategoryId = categories[0]?.id
@@ -677,7 +706,7 @@ export function ParentPanel({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={welcomeCardOrder}
+              items={normalizedWelcomeCardOrder}
               strategy={rectSortingStrategy}
             >
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
