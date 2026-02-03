@@ -1009,6 +1009,10 @@ export function ParentPanel({
                 <Gear className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
+              <TabsTrigger value="account">
+                <FolderUser className="h-4 w-4 mr-2" />
+                Account
+              </TabsTrigger>
               <TabsTrigger value="security">
                 <Shield className="h-4 w-4 mr-2" />
                 Security
@@ -1050,6 +1054,13 @@ export function ParentPanel({
                 onUpdate={onUpdateSpeechSettings}
               />
 
+              <DisplayPreferencesSettings
+                hideChildrenWithNoActivity={hideChildrenWithNoActivity}
+                onHideChildrenWithNoActivityChange={onUpdateHideChildrenWithNoActivity}
+              />
+            </TabsContent>
+
+            <TabsContent value="account" className="space-y-4">
               <AccountSettings
                 emailAlertSettingsMap={emailAlertSettingsMap}
                 weeklyReportSettingsMap={weeklyReportSettingsMap}
