@@ -72,7 +72,7 @@ Added proxy configuration for the loaded endpoint:
 
 ```nginx
 location /_spark/loaded {
-    proxy_pass http://api:3000/api/loaded;
+    proxy_pass http://api:3000/api/kv/loaded;
     # ... (standard proxy headers)
 }
 ```

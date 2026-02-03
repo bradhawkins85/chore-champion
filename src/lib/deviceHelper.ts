@@ -77,7 +77,7 @@ export const registerDevice = async (): Promise<{
 /**
  * Link this device to a tenant using a linking code.
  */
-export const linkDevice = async (linkingCode: string): Promise<{
+export const linkDevice = async (linkingCode: string, deviceName?: string): Promise<{
   success: boolean;
   tenantId: string;
   deviceId: string;
@@ -89,7 +89,7 @@ export const linkDevice = async (linkingCode: string): Promise<{
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ deviceGuid, linkingCode }),
+    body: JSON.stringify({ deviceGuid, linkingCode, deviceName }),
   });
 
   if (!response.ok) {
@@ -128,7 +128,9 @@ export const generateLinkingCode = async (token: string): Promise<{
 export const getLinkedDevices = async (token: string): Promise<Array<{
   id: string;
   deviceGuid: string;
+  deviceName: string | null;
   deviceInfo: DeviceInfo;
+  allowedChildrenIds: string[];
   linkedAt: Date;
   lastSeen: Date;
   createdAt: Date;
@@ -146,6 +148,44 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
 
   const data = await response.json();
   return data.devices;
+};
+
+/**
+ * Update device name.
+ */
+export const updateDeviceName = async (token: string, deviceId: string, deviceName: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/devices/${deviceId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ deviceName }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update device name');
+  }
+};
+
+/**
+ * Update device allowed children.
+ */
+export const updateDeviceAllowedChildren = async (token: string, deviceId: string, allowedChildrenIds: string[]): Promise<void> => {
+  const response = await fetch(`${API_URL}/devices/${deviceId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ allowedChildrenIds }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update device allowed children');
+  }
 };
 
 /**

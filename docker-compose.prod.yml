@@ -53,6 +53,7 @@ services:
       - MYSQL_USER=${MYSQL_USER:-chorequest}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - TZ=${TIMEZONE:-UTC}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -64,11 +65,11 @@ services:
     networks:
       - chorequest-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 -O- http://127.0.0.1:3000/api/health 2>&1 | grep -q 'status'"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 40s
     labels:
       - "com.chorequest.service=api"
       - "com.chorequest.environment=production"

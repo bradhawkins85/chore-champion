@@ -38,7 +38,7 @@ function sendNullResponse(req: Request, res: Response): void {
 }
 
 // Get a value by key
-router.get('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
@@ -92,7 +92,7 @@ router.get('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => 
 });
 
 // Set a value by key
-router.post('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
@@ -147,7 +147,7 @@ router.post('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) =>
 });
 
 // Delete a value by key
-router.delete('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.delete('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
@@ -160,7 +160,7 @@ router.delete('/kv/:key', optionalAuth, async (req: AuthRequest, res: Response) 
 });
 
 // Get all keys (for debugging/migration)
-router.get('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.tenantId || 'legacy';
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -197,7 +197,7 @@ router.get('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Bulk set (for migration)
-router.post('/kv', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
     const tenantId = req.tenantId || 'legacy';

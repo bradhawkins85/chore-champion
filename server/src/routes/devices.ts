@@ -10,7 +10,9 @@ const router = Router();
 interface Device {
   id: string;
   device_guid: string;
+  device_name: string | null;
   device_info: DeviceInfo;
+  allowed_children_ids: string[] | null;
   tenant_id: string | null;
   linked_at: Date | null;
   last_seen: Date;
@@ -54,11 +56,30 @@ function generateLinkingCode(): string {
 // Helper function to get device info from user agent and other headers
 function getDeviceInfo(req: Request): DeviceInfo {
   const platform = req.headers['sec-ch-ua-platform'];
+  
+  // Get real client IP from X-Forwarded-For header
+  // nginx sets X-Forwarded-For: $proxy_add_x_forwarded_for (nginx.conf line 36)
+  // When behind nginx, this header contains: "real-client-ip, proxy-ips..."
+  // We want the leftmost IP which is the original client
+  let clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+  
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // Extract the first IP from X-Forwarded-For header (the real client)
+    const firstIp = (typeof forwardedFor === 'string' ? forwardedFor : forwardedFor[0])
+      ?.split(',')[0]
+      ?.trim();
+    
+    if (firstIp) {
+      clientIp = firstIp;
+    }
+  }
+  
   return {
     userAgent: req.headers['user-agent'] || 'Unknown',
     platform: typeof platform === 'string' ? platform : 'Unknown',
     mobile: req.headers['sec-ch-ua-mobile'] === '?1',
-    ip: req.ip || req.socket.remoteAddress,
+    ip: clientIp,
     timestamp: new Date().toISOString(),
   };
 }
@@ -225,11 +246,11 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
 
 // Link a device to a tenant using a linking code
 // POST /api/devices/link
-// Body: { deviceGuid: string, linkingCode: string }
+// Body: { deviceGuid: string, linkingCode: string, deviceName?: string }
 // Returns: { success: true, tenantId, deviceId }
 router.post('/link', async (req: Request, res: Response) => {
   try {
-    const { deviceGuid, linkingCode } = req.body;
+    const { deviceGuid, linkingCode, deviceName } = req.body;
 
     if (!deviceGuid || !linkingCode) {
       return res.status(400).json({ error: 'deviceGuid and linkingCode are required' });
@@ -267,10 +288,10 @@ router.post('/link', async (req: Request, res: Response) => {
 
       const linkingCodeData = codes[0] as LinkingCode;
 
-      // Link the device to the tenant
+      // Link the device to the tenant and optionally set the device name
       await connection.query(
-        'UPDATE devices SET tenant_id = ?, linked_at = NOW() WHERE id = ?',
-        [linkingCodeData.tenant_id, device.id]
+        'UPDATE devices SET tenant_id = ?, linked_at = NOW(), device_name = ? WHERE id = ?',
+        [linkingCodeData.tenant_id, deviceName || null, device.id]
       );
 
       // Mark the code as used
@@ -322,7 +343,7 @@ router.get('/', async (req: Request, res: Response) => {
     const tenantId = decoded.tenantId;
 
     const [devices] = await pool.query<RowDataPacket[]>(
-      'SELECT id, device_guid, device_info, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
+      'SELECT id, device_guid, device_name, device_info, allowed_children_ids, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
       [tenantId]
     );
 
@@ -330,7 +351,9 @@ router.get('/', async (req: Request, res: Response) => {
       devices: devices.map(d => ({
         id: d.id,
         deviceGuid: d.device_guid,
+        deviceName: d.device_name,
         deviceInfo: typeof d.device_info === 'string' ? JSON.parse(d.device_info) : d.device_info,
+        allowedChildrenIds: typeof d.allowed_children_ids === 'string' ? JSON.parse(d.allowed_children_ids) : (d.allowed_children_ids || []),
         linkedAt: d.linked_at,
         lastSeen: d.last_seen,
         createdAt: d.created_at,
@@ -338,6 +361,80 @@ router.get('/', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error getting devices:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update device name
+// PATCH /api/devices/:deviceId
+// Headers: Authorization: Bearer <token>
+// Body: { deviceName?: string, allowedChildrenIds?: string[] }
+// Returns: { success: true }
+router.patch('/:deviceId', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.substring(7);
+    const SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+    
+    let decoded: JWTPayload;
+    try {
+      decoded = jwt.verify(token, SECRET) as JWTPayload;
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const tenantId = decoded.tenantId;
+    const { deviceId } = req.params;
+    const { deviceName, allowedChildrenIds } = req.body;
+
+    if (!('deviceName' in req.body) && !('allowedChildrenIds' in req.body)) {
+      return res.status(400).json({ error: 'deviceName or allowedChildrenIds is required' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      // Verify the device belongs to this tenant
+      const [devices] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM devices WHERE id = ? AND tenant_id = ?',
+        [deviceId, tenantId]
+      );
+
+      if (devices.length === 0) {
+        return res.status(404).json({ error: 'Device not found or not authorized' });
+      }
+
+      // Build update query dynamically based on provided fields
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      if ('deviceName' in req.body) {
+        updates.push('device_name = ?');
+        values.push(deviceName || null);
+      }
+
+      if ('allowedChildrenIds' in req.body) {
+        updates.push('allowed_children_ids = ?');
+        values.push(allowedChildrenIds ? JSON.stringify(allowedChildrenIds) : null);
+      }
+
+      if (updates.length > 0) {
+        values.push(deviceId);
+        await connection.query(
+          `UPDATE devices SET ${updates.join(', ')} WHERE id = ?`,
+          values
+        );
+      }
+
+      res.json({ success: true });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error updating device:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

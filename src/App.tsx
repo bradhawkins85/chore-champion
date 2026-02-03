@@ -18,7 +18,7 @@ import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { initializePWA } from '@/lib/pwaHelper'
-import { getDeviceId, registerDevice, getDeviceGuid } from '@/lib/deviceHelper'
+import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
 import {
   AppMode,
   Child,
@@ -44,7 +44,6 @@ import {
   WeeklyReportSettings,
   ReportTemplate,
   WeatherSettings,
-  SMTPSettings,
   EmailAlertSettings,
   SpeechSettings,
   PushNotificationSettings,
@@ -60,7 +59,7 @@ import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
 
 function App() {
-  const { user, loading: authLoading, logout } = useAuth()
+  const { user, token, loading: authLoading, logout, loginWithDevice } = useAuth()
   const [mode, setMode] = useState<AppMode>('child')
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showRewardShop, setShowRewardShop] = useState(false)
@@ -69,6 +68,8 @@ function App() {
   const [showPinDialog, setShowPinDialog] = useState(false)
   const [showDeviceLinking, setShowDeviceLinking] = useState(false)
   const [deviceIsLinked, setDeviceIsLinked] = useState(false)
+  const [deviceAllowedChildrenIds, setDeviceAllowedChildrenIds] = useState<string[]>([])
+  const [deviceRegistrationComplete, setDeviceRegistrationComplete] = useState(false)
   
   const [parentPin, setParentPin] = useKV<string | null>('parent-pin', '0000')
   const [pinSecurity, setPinSecurity] = useKV<PinSecurity>('pin-security', {
@@ -130,16 +131,7 @@ function App() {
     temperatureUnit: 'auto',
     seasonalThemesEnabled: false,
   })
-  const [smtpSettings, setSMTPSettings] = useKV<SMTPSettings>('smtp-settings', {
-    enabled: false,
-    host: '',
-    port: 587,
-    secure: true,
-    username: '',
-    password: '',
-    fromEmail: '',
-    fromName: 'ChoreQuest',
-  })
+  const [smtpEnabled, setSmtpEnabled] = useState(false)
   const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
     rewardPurchaseAlerts: false,
     choreCompletionAlerts: false,
@@ -165,6 +157,7 @@ function App() {
     showRemainingDays: true,
   })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
+  const [blockParentModeOnLinkedDevices, setBlockParentModeOnLinkedDevices] = useKV<boolean>('block-parent-mode-on-linked-devices', false)
   const normalizedParentPin = (() => {
     if (typeof parentPin !== 'string') {
       return parentPin ?? null
@@ -205,9 +198,20 @@ function App() {
   const safePendingDigestItems = coerceArray<any>(pendingDigestItems)
   const safeChildAvailability = coerceArray<ChildAvailabilityEntry>(childAvailability)
   
+  // Filter children based on device restrictions
+  // If deviceAllowedChildrenIds is empty array, all children are allowed (default behavior)
+  // If it has specific IDs, only those children are allowed
+  const filteredChildrenList = useMemo(() => {
+    if (deviceIsLinked && deviceAllowedChildrenIds.length > 0) {
+      return safeChildrenList.filter(child => deviceAllowedChildrenIds.includes(child.id))
+    }
+    return safeChildrenList
+  }, [safeChildrenList, deviceIsLinked, deviceAllowedChildrenIds])
+  
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
   const hasMigratedPinSecurity = useRef(false)
+  const hasRegisteredDevice = useRef(false)
 
   // Helper function to ensure pendingDigestItems is always an array
   const getValidatedDigestItems = (): any[] => {
@@ -218,22 +222,86 @@ function App() {
     initializePWA()
   }, [])
 
-  // Register device on app mount
+  // Register device on app mount and handle auto-login
   useEffect(() => {
+    // Only run device registration once, after initial auth check is complete
+    if (authLoading || hasRegisteredDevice.current) {
+      return
+    }
+
+    hasRegisteredDevice.current = true
+
     const registerDeviceOnMount = async () => {
       try {
         const deviceInfo = await registerDevice()
         setDeviceIsLinked(deviceInfo.isLinked)
         
-        // Note: Auto-login from linked devices is not implemented yet.
-        // Future enhancement: If device is linked, automatically authenticate using device-based auth.
-        // For now, we just track the linking status.
+        // If device is linked and user is not authenticated, auto-login with device
+        if (deviceInfo.isLinked && !user) {
+          try {
+            await loginWithDevice(deviceInfo.deviceGuid)
+          } catch (error) {
+            console.error('Error auto-logging in with device:', error)
+            // If device login fails, user will see the normal auth page
+          }
+        }
       } catch (error) {
         console.error('Error registering device:', error)
+      } finally {
+        // Mark device registration as complete
+        setDeviceRegistrationComplete(true)
       }
     }
     
     registerDeviceOnMount()
+  }, [authLoading, user, loginWithDevice])
+
+  // Fetch device configuration to get allowed children IDs
+  useEffect(() => {
+    const fetchDeviceConfig = async () => {
+      if (!token || !deviceIsLinked) {
+        setDeviceAllowedChildrenIds([])
+        return
+      }
+      
+      try {
+        const devices = await getLinkedDevices(token)
+        const currentDeviceGuid = getDeviceGuid()
+        const currentDevice = devices.find(d => d.deviceGuid === currentDeviceGuid)
+        
+        if (currentDevice && currentDevice.allowedChildrenIds) {
+          setDeviceAllowedChildrenIds(currentDevice.allowedChildrenIds)
+        } else {
+          // Empty array means all children are allowed
+          setDeviceAllowedChildrenIds([])
+        }
+      } catch (error) {
+        console.error('Error fetching device configuration:', error)
+        // On error, allow all children
+        setDeviceAllowedChildrenIds([])
+      }
+    }
+    
+    fetchDeviceConfig()
+  }, [token, deviceIsLinked])
+
+  // Fetch SMTP configuration status from server
+  useEffect(() => {
+    const fetchSmtpStatus = async () => {
+      try {
+        const response = await fetch('/api/config/smtp-status')
+        if (!response.ok) {
+          throw new Error('Failed to fetch SMTP status')
+        }
+        const data = await response.json()
+        setSmtpEnabled(data.enabled)
+      } catch (error) {
+        console.error('Error fetching SMTP status:', error)
+        setSmtpEnabled(false)
+      }
+    }
+    
+    fetchSmtpStatus()
   }, [])
 
   useEffect(() => {
@@ -932,6 +1000,15 @@ function App() {
     setMode('parent')
   }
 
+  const handleRequestParentMode = () => {
+    // Check if parent mode should be blocked on this linked device
+    if (deviceIsLinked && blockParentModeOnLinkedDevices) {
+      toast.error('Parent Mode is blocked on linked devices. Please use the primary device to access Parent Mode.')
+      return
+    }
+    setShowPinDialog(true)
+  }
+
   const handleSetPin = (pin: string) => {
     setParentPin(pin)
     toast.success('Parent PIN set successfully!')
@@ -1254,10 +1331,6 @@ function App() {
     setWeatherSettings(settings)
   }
 
-  const handleUpdateSMTPSettings = (settings: SMTPSettings) => {
-    setSMTPSettings(settings)
-  }
-
   const handleUpdateEmailAlertSettings = (settings: EmailAlertSettings) => {
     setEmailAlertSettings(settings)
   }
@@ -1318,7 +1391,7 @@ function App() {
   }
 
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
-    if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.rewardPurchaseAlerts) {
       return
     }
 
@@ -1347,7 +1420,7 @@ Please fulfill this reward when you get a chance!
     console.log('Email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
-    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+    console.log('SMTP is enabled via environment variables')
 
     toast.info('Email notification sent to parents', {
       description: `${child.name}'s reward claim notification sent`,
@@ -1363,7 +1436,7 @@ Please fulfill this reward when you get a chance!
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
-    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
       return
     }
 
@@ -1393,7 +1466,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
       console.log('Subject:', emailSubject)
       console.log('Body:', emailBody)
-      console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+      console.log('SMTP is enabled via environment variables')
 
       toast.info('Approval notification sent to parents', {
         description: `${child.name}'s chore pending approval`,
@@ -1427,7 +1500,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
       return
     }
 
@@ -1470,7 +1543,7 @@ Please log in to ChoreQuest to approve or reject this completion.
     console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
-    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+    console.log('SMTP is enabled via environment variables')
 
     setPendingDigestItems([])
     
@@ -1745,7 +1818,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
-          smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
@@ -1788,11 +1860,12 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
-          onUpdateSMTPSettings={handleUpdateSMTPSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
           onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
+          onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
+          blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -1911,7 +1984,7 @@ Please log in to ChoreQuest to approve or reject this completion.
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => setShowPinDialog(true)}
+                  onClick={handleRequestParentMode}
                   className="font-fredoka text-lg"
                 >
                   <Gear className="h-5 w-5 mr-2" />
@@ -1921,7 +1994,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             </div>
           ) : (
             <ChildSelector
-              childrenList={safeChildrenList}
+              childrenList={filteredChildrenList}
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={safeTrackedGoals}
@@ -1938,8 +2011,11 @@ Please log in to ChoreQuest to approve or reject this completion.
               hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
               schoolHolidays={schoolHolidays || []}
               schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
+              deviceIsLinked={deviceIsLinked}
+              blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+              deviceRegistrationComplete={deviceRegistrationComplete}
               onSelect={setSelectedChild}
-              onParentMode={() => setShowPinDialog(true)}
+              onParentMode={handleRequestParentMode}
             />
           )}
         </>

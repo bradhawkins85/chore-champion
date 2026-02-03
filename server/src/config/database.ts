@@ -66,6 +66,7 @@ export async function initDatabase() {
           CREATE TABLE IF NOT EXISTS devices (
             id VARCHAR(36) PRIMARY KEY,
             device_guid VARCHAR(36) NOT NULL UNIQUE,
+            device_name VARCHAR(255),
             device_info JSON,
             tenant_id VARCHAR(36),
             linked_at TIMESTAMP NULL,
@@ -94,6 +95,32 @@ export async function initDatabase() {
             INDEX idx_device_id (device_id)
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
+
+        // Check if device_name column exists in devices table
+        const [deviceColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM devices LIKE 'device_name'"
+        );
+        
+        if (deviceColumns.length === 0) {
+          // device_name column doesn't exist, add it
+          await connection.query(
+            'ALTER TABLE devices ADD COLUMN device_name VARCHAR(255) AFTER device_guid'
+          );
+          console.log('Added device_name column to devices table');
+        }
+
+        // Check if allowed_children_ids column exists in devices table
+        const [allowedChildrenColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM devices LIKE 'allowed_children_ids'"
+        );
+        
+        if (allowedChildrenColumns.length === 0) {
+          // allowed_children_ids column doesn't exist, add it
+          await connection.query(
+            'ALTER TABLE devices ADD COLUMN allowed_children_ids JSON AFTER device_info'
+          );
+          console.log('Added allowed_children_ids column to devices table');
+        }
 
         // Create kv_store table or modify it if it exists
         // First check if the table exists
