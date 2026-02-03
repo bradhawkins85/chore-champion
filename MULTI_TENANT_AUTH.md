@@ -168,7 +168,7 @@ The database schema is automatically updated when the server starts:
 2. The `kv_store` table is updated to include `tenant_id` as a required field
 3. Existing data in `kv_store` will be assigned to the "legacy" tenant automatically
 
-⚠️ **Note**: Existing data is assigned to a special "legacy" tenant to maintain backward compatibility. You can access this data by logging in without authentication (it uses tenant_id = "legacy").
+⚠️ **Note**: Existing data is assigned to a special "legacy" tenant to maintain backward compatibility. You can access this data by using the app without authentication (requests without an auth token use tenant_id = "legacy").
 
 ### Recommended Migration Path
 

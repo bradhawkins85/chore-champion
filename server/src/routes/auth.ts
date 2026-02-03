@@ -7,8 +7,15 @@ import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 const router = Router();
 
-// JWT secret - should be in environment variable in production
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT secret - must be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable must be set in production');
+}
+
+// Fallback for development only
+const SECRET = JWT_SECRET || 'dev-secret-change-in-production';
 const SALT_ROUNDS = 10;
 
 // Type definitions
@@ -82,7 +89,7 @@ router.post('/signup', async (req: Request, res: Response) => {
       // Generate JWT token
       const token = jwt.sign(
         { userId, tenantId, email: email.toLowerCase() },
-        JWT_SECRET,
+        SECRET,
         { expiresIn: '30d' }
       );
 
@@ -138,7 +145,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, tenantId: user.tenant_id, email: user.email },
-      JWT_SECRET,
+      SECRET,
       { expiresIn: '30d' }
     );
 
@@ -167,7 +174,7 @@ router.get('/me', async (req: AuthRequest, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; tenantId: string; email: string };
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
 
     // Get user info
     const [users] = await pool.query<RowDataPacket[]>(
@@ -207,7 +214,7 @@ router.get('/tenant-users', async (req: AuthRequest, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; tenantId: string; email: string };
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
 
     // Get all users in the tenant
     const [users] = await pool.query<RowDataPacket[]>(
@@ -242,7 +249,7 @@ router.post('/add-parent', async (req: AuthRequest, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; tenantId: string; email: string };
+    const decoded = jwt.verify(token, SECRET) as { userId: string; tenantId: string; email: string };
 
     const { email, password } = req.body;
 

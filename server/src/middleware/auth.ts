@@ -1,7 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT secret - must be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable must be set in production');
+}
+
+// Fallback for development only
+const SECRET = JWT_SECRET || 'dev-secret-change-in-production';
 
 // Extend Express Request type to include auth properties
 export interface AuthRequest extends Request {
@@ -23,7 +31,7 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const decoded = jwt.verify(token, SECRET) as {
       userId: string;
       tenantId: string;
       email: string;
@@ -42,7 +50,7 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({ error: 'Invalid token' });
     }
-    console.error('Error verifying token:', error);
+    console.error('Error verifying token');
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -62,7 +70,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const decoded = jwt.verify(token, SECRET) as {
       userId: string;
       tenantId: string;
       email: string;
@@ -76,7 +84,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
   } catch (error) {
     // Token invalid, but we allow the request to continue
     // The endpoint can check if tenantId is set to determine if user is authenticated
-    console.warn('Invalid token provided but continuing with optional auth:', error);
+    console.warn('Invalid token provided in optional auth');
     next();
   }
 }
