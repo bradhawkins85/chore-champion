@@ -74,13 +74,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api', kvRoutes);
-app.use('/api', updateRoutes);
-app.use('/api', icsRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/devices', deviceRoutes);
-app.use('/api', migrationRoutes);
 // Middleware to check database readiness for routes that need it
 const requireDb = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (!dbReady) {
@@ -99,6 +92,7 @@ app.use('/api/update', requireDb, updateRoutes);
 app.use('/api/ics', requireDb, icsRoutes);
 app.use('/api/auth', requireDb, authRoutes);
 app.use('/api/devices', requireDb, deviceRoutes);
+app.use('/api', requireDb, migrationRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/ip-access', requireDb, ipAccessRoutes);
 

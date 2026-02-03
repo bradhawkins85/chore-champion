@@ -169,6 +169,11 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const connection = await pool.getConnection();
 
     try {
@@ -289,10 +294,18 @@ router.post('/link', async (req: Request, res: Response) => {
       const linkingCodeData = codes[0] as LinkingCode;
 
       // Link the device to the tenant and optionally set the device name
+      console.log(`[DEBUG] Linking device ${device.id} to tenant ${linkingCodeData.tenant_id}`);
       await connection.query(
         'UPDATE devices SET tenant_id = ?, linked_at = NOW(), device_name = ? WHERE id = ?',
         [linkingCodeData.tenant_id, deviceName || null, device.id]
       );
+
+      // Verify the update worked
+      const [verificationResult] = await connection.query<RowDataPacket[]>(
+        'SELECT tenant_id FROM devices WHERE id = ?',
+        [device.id]
+      );
+      console.log(`[DEBUG] Device ${device.id} after linking - tenant_id: ${verificationResult[0]?.tenant_id}`);
 
       // Mark the code as used
       await connection.query(
@@ -342,17 +355,34 @@ router.get('/', async (req: Request, res: Response) => {
 
     const tenantId = decoded.tenantId;
 
+    if (!tenantId) {
+      console.error('[ERROR] GET /api/devices - tenantId is null/undefined in JWT');
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const [devices] = await pool.query<RowDataPacket[]>(
       'SELECT id, device_guid, device_name, device_info, allowed_children_ids, linked_at, last_seen, created_at FROM devices WHERE tenant_id = ? ORDER BY last_seen DESC',
       [tenantId]
     );
+
+    console.log(`[DEBUG] GET /api/devices - tenantId: ${tenantId}, found ${devices.length} devices`);
 
     res.json({
       devices: devices.map(d => ({
         id: d.id,
         deviceGuid: d.device_guid,
         deviceName: d.device_name,
-        deviceInfo: typeof d.device_info === 'string' ? JSON.parse(d.device_info) : d.device_info,
+        deviceInfo: (() => {
+          if (typeof d.device_info === 'string') {
+            try {
+              return JSON.parse(d.device_info);
+            } catch (e) {
+              console.error(`[ERROR] Failed to parse device_info for device ${d.id}:`, e);
+              return {};
+            }
+          }
+          return d.device_info || {};
+        })(),
         allowedChildrenIds: (() => {
           if (typeof d.allowed_children_ids === 'string') {
             try {
@@ -398,6 +428,11 @@ router.patch('/:deviceId', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const { deviceId } = req.params;
     const { deviceName, allowedChildrenIds } = req.body;
 
@@ -471,6 +506,11 @@ router.delete('/:deviceId', async (req: Request, res: Response) => {
     }
 
     const tenantId = decoded.tenantId;
+
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Invalid token: missing tenantId' });
+    }
+
     const { deviceId } = req.params;
 
     const connection = await pool.getConnection();
