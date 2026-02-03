@@ -985,6 +985,22 @@ function App() {
       return
     }
 
+    // Validate that child has enough points in at least one category
+    const childCategoryPoints = childAvailableCategoryPoints.get(childId)
+    if (childCategoryPoints && reward.categoryIds.length > 0) {
+      const hasEnoughInOneCategory = reward.categoryIds.some(categoryId => {
+        const availableInCategory = childCategoryPoints.get(categoryId) || 0
+        return availableInCategory >= cost
+      })
+      
+      if (!hasEnoughInOneCategory) {
+        toast.error('Not enough points', {
+          description: 'You need enough points in a single category to purchase this reward.',
+        })
+        return
+      }
+    }
+
     const newPurchase: RewardPurchase = {
       id: `purchase_${Date.now()}_${Math.random()}`,
       childId,
