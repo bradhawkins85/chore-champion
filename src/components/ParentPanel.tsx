@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, ChartBar, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, SMTPSettings, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
@@ -78,7 +78,6 @@ interface ParentPanelProps {
   reportTemplates: ReportTemplate[]
   weatherSettings: WeatherSettings
   currentWeather: WeatherData | null
-  smtpSettings: SMTPSettings
   emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
@@ -130,7 +129,6 @@ interface ParentPanelProps {
   onUpdateIPRestrictions: (settings: IPRestrictionSettings) => void
   onUpdateWeeklyReportSettings: (settings: WeeklyReportSettings) => void
   onUpdateWeatherSettings: (settings: WeatherSettings) => void
-  onUpdateSMTPSettings: (settings: SMTPSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
   onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => void
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
@@ -167,7 +165,6 @@ export function ParentPanel({
   reportTemplates,
   weatherSettings,
   currentWeather,
-  smtpSettings,
   emailAlertSettings,
   pendingDigestItems,
   onAddChore,
@@ -207,7 +204,6 @@ export function ParentPanel({
   weeklyReportSettings,
   onUpdateWeeklyReportSettings,
   onUpdateWeatherSettings,
-  onUpdateSMTPSettings,
   onUpdateEmailAlertSettings,
   pushNotificationSettings,
   currentDeviceId,
@@ -1030,9 +1026,7 @@ export function ParentPanel({
               />
 
               <EmailSettings
-                smtpSettings={smtpSettings}
                 emailAlertSettings={emailAlertSettings}
-                onUpdateSMTPSettings={onUpdateSMTPSettings}
                 onUpdateEmailAlertSettings={onUpdateEmailAlertSettings}
               />
 

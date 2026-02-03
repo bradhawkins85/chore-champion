@@ -9,6 +9,7 @@ import updateRoutes from './routes/update.js';
 import icsRoutes from './routes/ics.js';
 import authRoutes from './routes/auth.js';
 import deviceRoutes from './routes/devices.js';
+import configRoutes from './routes/config.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use('/api/update', requireDb, updateRoutes);
 app.use('/api/ics', requireDb, icsRoutes);
 app.use('/api/auth', requireDb, authRoutes);
 app.use('/api/devices', requireDb, deviceRoutes);
+app.use('/api/config', configRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
