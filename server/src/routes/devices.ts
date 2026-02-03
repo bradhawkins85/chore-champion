@@ -56,11 +56,30 @@ function generateLinkingCode(): string {
 // Helper function to get device info from user agent and other headers
 function getDeviceInfo(req: Request): DeviceInfo {
   const platform = req.headers['sec-ch-ua-platform'];
+  
+  // Get real client IP from X-Forwarded-For header
+  // nginx sets X-Forwarded-For: $proxy_add_x_forwarded_for (nginx.conf line 36)
+  // When behind nginx, this header contains: "real-client-ip, proxy-ips..."
+  // We want the leftmost IP which is the original client
+  let clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+  
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // Extract the first IP from X-Forwarded-For header (the real client)
+    const firstIp = (typeof forwardedFor === 'string' ? forwardedFor : forwardedFor[0])
+      ?.split(',')[0]
+      ?.trim();
+    
+    if (firstIp) {
+      clientIp = firstIp;
+    }
+  }
+  
   return {
     userAgent: req.headers['user-agent'] || 'Unknown',
     platform: typeof platform === 'string' ? platform : 'Unknown',
     mobile: req.headers['sec-ch-ua-mobile'] === '?1',
-    ip: req.ip || req.socket.remoteAddress,
+    ip: clientIp,
     timestamp: new Date().toISOString(),
   };
 }
