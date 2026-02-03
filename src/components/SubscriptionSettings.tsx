@@ -199,6 +199,15 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
     fetchInvoices();
   };
 
+  const handleUpgradeAttempt = (plan: SubscriptionPlan) => {
+    if (!isStripeConfigured) {
+      toast.error('Stripe is not configured. Please contact your administrator.');
+      return;
+    }
+    setSelectedPlan(plan);
+    setShowUpgrade(true);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -372,14 +381,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
           <div className="flex gap-2">
             {currentPlan?.tier === 'free' && paidPlan && (
               <Button
-                onClick={() => {
-                  if (!isStripeConfigured) {
-                    toast.error('Stripe is not configured. Please contact your administrator.');
-                    return;
-                  }
-                  setSelectedPlan(paidPlan);
-                  setShowUpgrade(true);
-                }}
+                onClick={() => handleUpgradeAttempt(paidPlan)}
                 className="font-fredoka"
                 disabled={!isStripeConfigured}
               >
@@ -474,14 +476,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
                       <Badge variant="outline">Current Plan</Badge>
                     ) : (
                       <Button
-                        onClick={() => {
-                          if (!isStripeConfigured) {
-                            toast.error('Stripe is not configured. Please contact your administrator.');
-                            return;
-                          }
-                          setSelectedPlan(paidPlan);
-                          setShowUpgrade(true);
-                        }}
+                        onClick={() => handleUpgradeAttempt(paidPlan)}
                         className="w-full font-fredoka"
                         disabled={!isStripeConfigured}
                       >
