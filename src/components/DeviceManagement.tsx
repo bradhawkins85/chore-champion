@@ -331,7 +331,7 @@ export function DeviceManagement() {
                         <div className="flex items-center gap-2 mb-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
-                            Allowed Children {device.allowedChildrenIds?.length > 0 ? `(${device.allowedChildrenIds.length})` : '(All)'}
+                            Allowed Children {device.allowedChildrenIds?.length > 0 ? `(${device.allowedChildrenIds?.length})` : '(All)'}
                           </span>
                         </div>
                         {(device.allowedChildrenIds?.length ?? 0) === 0 ? (
