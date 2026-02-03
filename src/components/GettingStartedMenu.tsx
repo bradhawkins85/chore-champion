@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,7 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RocketLaunch, CheckCircle, X, ArrowRight } from '@phosphor-icons/react'
 import { GettingStartedState, GettingStartedTask } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
-import { useEffect } from 'react'
 
 interface GettingStartedMenuProps {
   state: GettingStartedState
@@ -19,10 +19,12 @@ export function GettingStartedMenu({ state, onUpdateState, onNavigate }: Getting
   const completedCount = state.tasks.filter(t => t.completed || t.ignored).length
   const totalCount = state.tasks.length
   const allComplete = completedCount === totalCount
+  const hasNavigatedRef = useRef(false)
 
   // Redirect to Welcome page when all tasks are completed
   useEffect(() => {
-    if (allComplete) {
+    if (allComplete && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true
       onNavigate('welcome')
     }
   }, [allComplete, onNavigate])
