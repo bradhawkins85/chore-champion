@@ -19,6 +19,24 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices } from '@phosphor-icons/react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useApiKV } from '@/hooks/use-api-kv'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap } from '@/lib/types'
 import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
@@ -52,6 +70,43 @@ import { DeviceSettings } from './DeviceSettings'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
+
+// Sortable card component
+interface SortableCardProps {
+  id: string
+  children: React.ReactNode
+}
+
+function SortableCard({ id, children }: SortableCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+  }
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      role="button"
+      aria-label={`Draggable card: ${id}`}
+    >
+      {children}
+    </div>
+  )
+}
 
 interface ParentPanelProps {
   chores: Chore[]
@@ -250,6 +305,34 @@ export function ParentPanel({
   const [managementSubTab, setManagementSubTab] = useState('children')
   const [settingsSubTab, setSettingsSubTab] = useState('account')
 
+  // State for welcome card order - save order immediately when changed
+  const [welcomeCardOrder, setWelcomeCardOrder] = useApiKV<string[]>(
+    'welcomeCardOrder',
+    ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
+  )
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = welcomeCardOrder.indexOf(active.id as string)
+      const newIndex = welcomeCardOrder.indexOf(over.id as string)
+      
+      const newOrder = arrayMove(welcomeCardOrder, oldIndex, newIndex)
+      // Save order immediately using useApiKV
+      setWelcomeCardOrder(newOrder)
+    }
+  }
+
   const popularTemplates = choreTemplates.slice(0, 6)
 
   const pendingApprovalsCount = useMemo(() => {
@@ -316,6 +399,54 @@ export function ParentPanel({
 
     return count
   }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
+
+  // Define welcome cards with their content
+  const welcomeCards = useMemo(() => {
+    const cardDefinitions: Record<string, { icon: React.ReactNode; title: string; value: number; description: string }> = {
+      children: {
+        icon: <Users className="h-6 w-6 text-primary" />,
+        title: 'Children',
+        value: childrenList.length,
+        description: 'Active children',
+      },
+      chores: {
+        icon: <ListChecks className="h-6 w-6 text-primary" />,
+        title: 'Chores',
+        value: chores.length,
+        description: 'Total chores',
+      },
+      approvals: {
+        icon: <Check className="h-6 w-6 text-primary" />,
+        title: 'Pending Approvals',
+        value: pendingApprovalsCount,
+        description: 'Need attention',
+      },
+      missed: {
+        icon: <Warning className="h-6 w-6 text-primary" />,
+        title: 'Missed Chores',
+        value: missedChoresCount,
+        description: 'Outstanding',
+      },
+      rewards: {
+        icon: <Gift className="h-6 w-6 text-primary" />,
+        title: 'Rewards',
+        value: rewards.length,
+        description: 'Available',
+      },
+      purchases: {
+        icon: <Package className="h-6 w-6 text-primary" />,
+        title: 'Unfulfilled Purchases',
+        value: purchases.filter((p) => !p.fulfilled).length,
+        description: 'To fulfill',
+      },
+    }
+
+    // Return cards in the saved order
+    return welcomeCardOrder.map((cardId) => ({
+      id: cardId,
+      ...cardDefinitions[cardId],
+    }))
+  }, [childrenList, chores, pendingApprovalsCount, missedChoresCount, rewards, purchases, welcomeCardOrder])
 
   const handleQuickAddTemplate = (template: ChoreTemplate) => {
     const firstCategoryId = categories[0]?.id
@@ -454,73 +585,33 @@ export function ParentPanel({
             purchases={purchases}
             childPoints={childPoints}
           />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Children</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{childrenList.length}</p>
-                <p className="text-sm text-muted-foreground">Active children</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <ListChecks className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Chores</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{chores.length}</p>
-                <p className="text-sm text-muted-foreground">Total chores</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Check className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Pending Approvals</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{pendingApprovalsCount}</p>
-                <p className="text-sm text-muted-foreground">Need attention</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Warning className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Missed Chores</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{missedChoresCount}</p>
-                <p className="text-sm text-muted-foreground">Outstanding</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Gift className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Rewards</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{rewards.length}</p>
-                <p className="text-sm text-muted-foreground">Available</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Package className="h-6 w-6 text-primary" />
-                  <h3 className="font-fredoka font-semibold text-lg">Unfulfilled Purchases</h3>
-                </div>
-                <p className="text-3xl font-bold mb-1">{purchases.filter((p) => !p.fulfilled).length}</p>
-                <p className="text-sm text-muted-foreground">To fulfill</p>
-              </CardContent>
-            </Card>
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={welcomeCardOrder}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {welcomeCards.map((card) => (
+                  <SortableCard key={card.id} id={card.id}>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          {card.icon}
+                          <h3 className="font-fredoka font-semibold text-lg">{card.title}</h3>
+                        </div>
+                        <p className="text-3xl font-bold mb-1">{card.value}</p>
+                        <p className="text-sm text-muted-foreground">{card.description}</p>
+                      </CardContent>
+                    </Card>
+                  </SortableCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </TabsContent>
 
         {/* Activities Tab with Nested Tabs */}
