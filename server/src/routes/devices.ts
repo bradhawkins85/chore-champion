@@ -67,7 +67,9 @@ function getDeviceInfo(req: Request): DeviceInfo {
   if (forwardedFor) {
     const forwardedIps = typeof forwardedFor === 'string' 
       ? forwardedFor.split(',').map(ip => ip.trim())
-      : forwardedFor[0].split(',').map(ip => ip.trim());
+      : (Array.isArray(forwardedFor) && forwardedFor.length > 0)
+        ? forwardedFor[0].split(',').map(ip => ip.trim())
+        : [];
     
     // Use the first IP in the chain (the real client)
     if (forwardedIps.length > 0 && forwardedIps[0]) {
