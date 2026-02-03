@@ -88,3 +88,8 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
     next();
   }
 }
+
+/**
+ * Alias for authenticateToken to match naming convention used in routes
+ */
+export const requireAuth = authenticateToken;
