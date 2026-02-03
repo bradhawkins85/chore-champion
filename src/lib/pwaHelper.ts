@@ -19,12 +19,14 @@ const checkForVersionUpdate = async () => {
       console.log(`Version update detected: ${storedVersion} -> ${currentVersion}`);
       
       if (confirm(`A new version of ChoreQuest (${currentVersion}) is available. Reload to update?`)) {
+        // Store the new version before clearing caches to avoid race condition
+        localStorage.setItem('app-version', currentVersion);
+        
         // Clear all caches before reload
         if ('caches' in window) {
           const cacheNames = await caches.keys();
           await Promise.all(cacheNames.map(name => caches.delete(name)));
         }
-        localStorage.setItem('app-version', currentVersion);
         window.location.reload();
       }
     } else if (!storedVersion) {

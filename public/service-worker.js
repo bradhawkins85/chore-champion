@@ -11,9 +11,13 @@ const PRECACHE_URLS = [
 ];
 
 // Fetch version from version.json to set cache names
+// Note: Version dots are replaced with dashes for valid cache names (e.g., 1.2.3 -> 1-2-3)
 async function initializeCacheVersion() {
   try {
     const response = await fetch('/version.json');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch version.json: HTTP ${response.status}`);
+    }
     const data = await response.json();
     CACHE_VERSION = data.version.replace(/\./g, '-'); // Replace dots with dashes for cache name
     CACHE_NAME = `chorequest-${CACHE_VERSION}`;
