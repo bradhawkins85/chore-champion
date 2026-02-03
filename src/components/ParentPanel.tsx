@@ -511,7 +511,7 @@ export function ParentPanel({
             <CardContent className="p-6">
               <h3 className="font-fredoka font-semibold text-lg mb-4">Quick Actions</h3>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setActiveTab('activities')}>
+                <Button variant="outline" onClick={() => { setActiveTab('activities'); setActivitiesSubTab('summary'); }}>
                   <ChartBar className="h-4 w-4 mr-2" />
                   View Weekly Summary
                 </Button>
@@ -774,7 +774,7 @@ export function ParentPanel({
                 Chores
               </TabsTrigger>
               <TabsTrigger value="categories">
-                <FolderUser className="h-4 w-4 mr-2" />
+                <Sparkle className="h-4 w-4 mr-2" />
                 Categories
               </TabsTrigger>
               <TabsTrigger value="rewards">
