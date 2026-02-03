@@ -230,7 +230,8 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
     );
     
     const [userCount] = await pool.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM users WHERE role = "parent"'
+      'SELECT COUNT(*) as count FROM users WHERE role = ?',
+      ['parent']
     );
     
     const [deviceCount] = await pool.query<RowDataPacket[]>(
@@ -245,7 +246,7 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
     `);
 
     // Get active tenants (with recent activity - linked devices)
-    const [activetenants] = await pool.query<RowDataPacket[]>(`
+    const [activeTenants] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(DISTINCT tenant_id) as count 
       FROM devices 
       WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 7 DAY)
@@ -256,7 +257,7 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
       totalParents: userCount[0].count,
       totalDevices: deviceCount[0].count,
       recentSignups: recentSignups[0].count,
-      activeTenants: activetenants[0].count
+      activeTenants: activeTenants[0].count
     });
   } catch (error) {
     console.error('Error fetching stats:', error);

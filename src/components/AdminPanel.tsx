@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -55,6 +65,8 @@ export function AdminPanel() {
   const [parents, setParents] = useState<Parent[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [parentToDelete, setParentToDelete] = useState<{ id: string; email: string } | null>(null)
 
   // Redirect if not admin
   useEffect(() => {
@@ -64,7 +76,7 @@ export function AdminPanel() {
     }
   }, [user, navigate])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/stats', {
         headers: {
@@ -80,7 +92,7 @@ export function AdminPanel() {
       console.error('Error fetching stats:', error)
       toast.error('Failed to load statistics')
     }
-  }
+  }, [token])
 
   const fetchTenants = async () => {
     setLoading(true)
@@ -146,12 +158,15 @@ export function AdminPanel() {
   }
 
   const deleteParent = async (parentId: string, email: string) => {
-    if (!confirm(`Are you sure you want to delete parent user ${email}? This action cannot be undone.`)) {
-      return
-    }
+    setParentToDelete({ id: parentId, email })
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!parentToDelete) return
 
     try {
-      const response = await fetch(`/api/admin/parents/${parentId}`, {
+      const response = await fetch(`/api/admin/parents/${parentToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -170,6 +185,9 @@ export function AdminPanel() {
     } catch (error) {
       console.error('Error deleting parent:', error)
       toast.error('Failed to delete parent user')
+    } finally {
+      setDeleteDialogOpen(false)
+      setParentToDelete(null)
     }
   }
 
@@ -177,7 +195,7 @@ export function AdminPanel() {
     if (user?.role === 'admin') {
       fetchStats()
     }
-  }, [user])
+  }, [user, fetchStats])
 
   if (!user || user.role !== 'admin') {
     return null
@@ -453,6 +471,25 @@ export function AdminPanel() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Parent User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete parent user <strong>{parentToDelete?.email}</strong>? 
+              This action cannot be undone. All data associated with this user will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setParentToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
