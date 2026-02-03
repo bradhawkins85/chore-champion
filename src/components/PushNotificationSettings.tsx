@@ -13,7 +13,7 @@ import { getDeviceId } from '@/lib/deviceHelper'
 interface PushNotificationSettingsProps {
   pushSettings: PushNotificationSettings
   deviceId: string
-  onUpdatePushSettings: (settings: PushNotificationSettings) => void
+  onUpdatePushSettings: (settings: PushNotificationSettings) => Promise<void>
 }
 
 export function PushNotificationSettingsComponent({
@@ -130,7 +130,7 @@ export function PushNotificationSettingsComponent({
               },
             ]
 
-        onUpdatePushSettings({
+        await onUpdatePushSettings({
           ...pushSettings,
           enabled: true,
           devices: updatedDevices,
@@ -162,7 +162,7 @@ export function PushNotificationSettingsComponent({
           : d
       )
 
-      onUpdatePushSettings({
+      await onUpdatePushSettings({
         ...pushSettings,
         devices: updatedDevices,
       })
@@ -174,7 +174,7 @@ export function PushNotificationSettingsComponent({
     }
   }
 
-  const handleToggleAlert = (
+  const handleToggleAlert = async (
     type: 'rewardPurchaseAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts',
     enabled: boolean
   ) => {
@@ -189,7 +189,7 @@ export function PushNotificationSettingsComponent({
         : d
     )
 
-    onUpdatePushSettings({
+    await onUpdatePushSettings({
       ...pushSettings,
       devices: updatedDevices,
     })
@@ -197,7 +197,7 @@ export function PushNotificationSettingsComponent({
     toast.success(enabled ? 'Alert enabled' : 'Alert disabled')
   }
 
-  const handleDigestModeChange = (mode: DigestInterval) => {
+  const handleDigestModeChange = async (mode: DigestInterval) => {
     if (!currentDeviceSettings) {
       toast.error('Please enable push notifications first')
       return
@@ -209,7 +209,7 @@ export function PushNotificationSettingsComponent({
         : d
     )
 
-    onUpdatePushSettings({
+    await onUpdatePushSettings({
       ...pushSettings,
       devices: updatedDevices,
     })

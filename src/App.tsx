@@ -1527,8 +1527,8 @@ function App() {
     setEmailAlertSettings(settings)
   }
 
-  const handleUpdatePushNotificationSettings = (settings: PushNotificationSettings) => {
-    setPushNotificationSettings(settings)
+  const handleUpdatePushNotificationSettings = async (settings: PushNotificationSettings) => {
+    await setPushNotificationSettings(settings)
   }
 
   const sendPushNotification = async (

@@ -202,7 +202,7 @@ interface ParentPanelProps {
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
   onUpdateEmailAlertSettingsMap: (settings: EmailAlertSettingsMap) => void
   onUpdateWeeklyReportSettingsMap: (settings: WeeklyReportSettingsMap) => void
-  onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => void
+  onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => Promise<void>
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onUpdateBlockParentModeOnLinkedDevices: (value: boolean) => void
