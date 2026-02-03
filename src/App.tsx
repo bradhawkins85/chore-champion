@@ -1826,7 +1826,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
-          emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
           pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}

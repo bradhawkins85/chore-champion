@@ -38,10 +38,8 @@ import { CategoryManager } from './CategoryManager'
 import { PendingApprovalsManager } from './PendingApprovalsManager'
 import { BiometricSettings as BiometricSettingsComponent } from './BiometricSettings'
 import { IPRestrictions } from './IPRestrictions'
-import { WeeklyReportSettingsComponent } from './WeeklyReportSettings'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
-import { EmailSettings } from './EmailSettings'
 import { PushNotificationSettingsComponent } from './PushNotificationSettings'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
@@ -82,7 +80,6 @@ interface ParentPanelProps {
   reportTemplates: ReportTemplate[]
   weatherSettings: WeatherSettings
   currentWeather: WeatherData | null
-  emailAlertSettings: EmailAlertSettings
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
   pushNotificationSettings: PushNotificationSettings
@@ -171,7 +168,6 @@ export function ParentPanel({
   reportTemplates,
   weatherSettings,
   currentWeather,
-  emailAlertSettings,
   pendingDigestItems,
   onAddChore,
   onEditChore,
