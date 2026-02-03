@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -7,85 +7,37 @@ import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Envelope, Check, Warning, Clock } from '@phosphor-icons/react'
-import { SMTPSettings, EmailAlertSettings, DigestInterval } from '@/lib/types'
+import { Envelope, Warning, Clock, Info } from '@phosphor-icons/react'
+import { EmailAlertSettings, DigestInterval } from '@/lib/types'
 
 interface EmailSettingsProps {
-  smtpSettings: SMTPSettings
   emailAlertSettings: EmailAlertSettings
-  onUpdateSMTPSettings: (settings: SMTPSettings) => void
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
 }
 
 export function EmailSettings({
-  smtpSettings,
   emailAlertSettings,
-  onUpdateSMTPSettings,
   onUpdateEmailAlertSettings,
 }: EmailSettingsProps) {
-  const [host, setHost] = useState(smtpSettings.host)
-  const [port, setPort] = useState(smtpSettings.port.toString())
-  const [secure, setSecure] = useState(smtpSettings.secure)
-  const [username, setUsername] = useState(smtpSettings.username)
-  const [password, setPassword] = useState(smtpSettings.password)
-  const [fromEmail, setFromEmail] = useState(smtpSettings.fromEmail)
-  const [fromName, setFromName] = useState(smtpSettings.fromName)
   const [recipientEmail, setRecipientEmail] = useState('')
-  const [isTesting, setIsTesting] = useState(false)
+  const [smtpConfigured, setSmtpConfigured] = useState(false)
+  const [smtpEnabled, setSmtpEnabled] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const handleSaveSMTP = () => {
-    const portNum = parseInt(port)
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      toast.error('Invalid port number')
-      return
-    }
-
-    const newSettings: SMTPSettings = {
-      enabled: smtpSettings.enabled,
-      host,
-      port: portNum,
-      secure,
-      username,
-      password,
-      fromEmail,
-      fromName,
-    }
-    onUpdateSMTPSettings(newSettings)
-    toast.success('SMTP settings saved!')
-  }
-
-  const handleToggleSMTP = (enabled: boolean) => {
-    if (enabled && (!host || !port || !username || !fromEmail)) {
-      toast.error('Please configure SMTP settings before enabling')
-      return
-    }
-    onUpdateSMTPSettings({ ...smtpSettings, enabled })
-    toast.success(enabled ? 'Email alerts enabled' : 'Email alerts disabled')
-  }
-
-  const handleTestConnection = async () => {
-    if (!host || !port || !username || !fromEmail) {
-      toast.error('Please fill in all SMTP settings')
-      return
-    }
-
-    setIsTesting(true)
-    
-    setTimeout(() => {
-      setIsTesting(false)
-      const isValid = host.includes('.') && parseInt(port) > 0 && username && fromEmail.includes('@')
-      
-      if (isValid) {
-        toast.success('SMTP connection test successful!', {
-          description: 'Email configuration is valid',
-        })
-      } else {
-        toast.error('SMTP connection test failed', {
-          description: 'Please check your settings and try again',
-        })
-      }
-    }, 1500)
-  }
+  useEffect(() => {
+    // Fetch SMTP status from the server
+    fetch('/api/config/smtp-status')
+      .then((res) => res.json())
+      .then((data) => {
+        setSmtpConfigured(data.configured)
+        setSmtpEnabled(data.enabled)
+        setLoading(false)
+      })
+      .catch((error) => {
+        console.error('Failed to fetch SMTP status:', error)
+        setLoading(false)
+      })
+  }, [])
 
   const handleAddRecipient = () => {
     if (!recipientEmail) return
@@ -121,8 +73,8 @@ export function EmailSettings({
     type: 'rewardPurchaseAlerts' | 'choreCompletionAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts',
     enabled: boolean
   ) => {
-    if (enabled && !smtpSettings.enabled) {
-      toast.error('Please enable and configure SMTP settings first')
+    if (enabled && !smtpEnabled) {
+      toast.error('SMTP is not configured. Please configure SMTP settings in your .env file')
       return
     }
 
@@ -165,130 +117,64 @@ export function EmailSettings({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Envelope className="h-5 w-5" />
-            SMTP Server Settings
+            Email Configuration Status
           </CardTitle>
           <CardDescription>
-            Configure your SMTP server to enable email alerts
+            SMTP settings are configured via environment variables
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Enable Email Alerts</Label>
-              <p className="text-sm text-muted-foreground">
-                Turn on email notifications for important events
-              </p>
-            </div>
-            <Switch
-              checked={smtpSettings.enabled}
-              onCheckedChange={handleToggleSMTP}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="smtp-host">SMTP Host</Label>
-              <Input
-                id="smtp-host"
-                placeholder="smtp.gmail.com"
-                value={host}
-                onChange={(e) => setHost(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="smtp-port">Port</Label>
-              <Input
-                id="smtp-port"
-                type="number"
-                placeholder="587"
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="smtp-username">Username</Label>
-              <Input
-                id="smtp-username"
-                placeholder="your-email@gmail.com"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="smtp-password">Password</Label>
-              <Input
-                id="smtp-password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="smtp-from-email">From Email</Label>
-              <Input
-                id="smtp-from-email"
-                type="email"
-                placeholder="chorequest@example.com"
-                value={fromEmail}
-                onChange={(e) => setFromEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="smtp-from-name">From Name</Label>
-              <Input
-                id="smtp-from-name"
-                placeholder="ChoreQuest"
-                value={fromName}
-                onChange={(e) => setFromName(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="space-y-0.5 flex-1">
-              <Label>Use TLS/SSL</Label>
-              <p className="text-sm text-muted-foreground">
-                Secure connection (recommended for ports 465, 587)
-              </p>
-            </div>
-            <Switch
-              checked={secure}
-              onCheckedChange={setSecure}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button onClick={handleSaveSMTP} className="flex-1">
-              <Check className="h-4 w-4 mr-2" />
-              Save SMTP Settings
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleTestConnection}
-              disabled={isTesting}
-            >
-              {isTesting ? 'Testing...' : 'Test Connection'}
-            </Button>
-          </div>
-
-          {!smtpSettings.enabled && (
-            <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
-              <Warning className="h-5 w-5 text-amber-500 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium">Email alerts are disabled</p>
-                <p className="text-muted-foreground">
-                  Configure and enable SMTP to receive email notifications
+        <CardContent className="space-y-4">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading SMTP status...</p>
+          ) : (
+            <>
+              {smtpEnabled && smtpConfigured ? (
+                <div className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                  <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-green-900 dark:text-green-100">SMTP is configured and enabled</p>
+                    <p className="text-green-700 dark:text-green-300">
+                      Email notifications are ready to be sent
+                    </p>
+                  </div>
+                </div>
+              ) : !smtpConfigured ? (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <Warning className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-900 dark:text-amber-100">SMTP is not configured</p>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Configure SMTP settings in your .env file to enable email notifications
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
+                  <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium">SMTP is configured but disabled</p>
+                    <p className="text-muted-foreground">
+                      Set SMTP_ENABLED=true in your .env file to enable email notifications
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="pt-2">
+                <p className="text-xs text-muted-foreground">
+                  To configure SMTP settings, edit your .env file and set the following variables:
                 </p>
+                <ul className="text-xs text-muted-foreground mt-1 ml-4 list-disc space-y-1">
+                  <li>SMTP_ENABLED</li>
+                  <li>SMTP_HOST</li>
+                  <li>SMTP_PORT</li>
+                  <li>SMTP_USERNAME</li>
+                  <li>SMTP_PASSWORD</li>
+                  <li>SMTP_FROM_EMAIL</li>
+                  <li>SMTP_FROM_NAME</li>
+                </ul>
               </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -44,7 +44,6 @@ import {
   WeeklyReportSettings,
   ReportTemplate,
   WeatherSettings,
-  SMTPSettings,
   EmailAlertSettings,
   SpeechSettings,
   PushNotificationSettings,
@@ -132,16 +131,7 @@ function App() {
     temperatureUnit: 'auto',
     seasonalThemesEnabled: false,
   })
-  const [smtpSettings, setSMTPSettings] = useKV<SMTPSettings>('smtp-settings', {
-    enabled: false,
-    host: '',
-    port: 587,
-    secure: true,
-    username: '',
-    password: '',
-    fromEmail: '',
-    fromName: 'ChoreQuest',
-  })
+  const [smtpEnabled, setSmtpEnabled] = useState(false)
   const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
     rewardPurchaseAlerts: false,
     choreCompletionAlerts: false,
@@ -294,6 +284,22 @@ function App() {
     
     fetchDeviceConfig()
   }, [token, deviceIsLinked])
+
+  // Fetch SMTP configuration status from server
+  useEffect(() => {
+    const fetchSmtpStatus = async () => {
+      try {
+        const response = await fetch('/api/config/smtp-status')
+        const data = await response.json()
+        setSmtpEnabled(data.enabled)
+      } catch (error) {
+        console.error('Error fetching SMTP status:', error)
+        setSmtpEnabled(false)
+      }
+    }
+    
+    fetchSmtpStatus()
+  }, [])
 
   useEffect(() => {
     if (parentPin !== normalizedParentPin) {
@@ -1322,10 +1328,6 @@ function App() {
     setWeatherSettings(settings)
   }
 
-  const handleUpdateSMTPSettings = (settings: SMTPSettings) => {
-    setSMTPSettings(settings)
-  }
-
   const handleUpdateEmailAlertSettings = (settings: EmailAlertSettings) => {
     setEmailAlertSettings(settings)
   }
@@ -1386,7 +1388,7 @@ function App() {
   }
 
   const sendRewardPurchaseEmail = async (childId: string, rewardId: string) => {
-    if (!smtpSettings?.enabled || !emailAlertSettings?.rewardPurchaseAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.rewardPurchaseAlerts) {
       return
     }
 
@@ -1415,7 +1417,7 @@ Please fulfill this reward when you get a chance!
     console.log('Email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
-    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+    console.log('SMTP is enabled via environment variables')
 
     toast.info('Email notification sent to parents', {
       description: `${child.name}'s reward claim notification sent`,
@@ -1431,7 +1433,7 @@ Please fulfill this reward when you get a chance!
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
-    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
       return
     }
 
@@ -1461,7 +1463,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       console.log('Pending approval email would be sent to:', emailAlertSettings.recipientEmails)
       console.log('Subject:', emailSubject)
       console.log('Body:', emailBody)
-      console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+      console.log('SMTP is enabled via environment variables')
 
       toast.info('Approval notification sent to parents', {
         description: `${child.name}'s chore pending approval`,
@@ -1495,7 +1497,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       return
     }
 
-    if (!smtpSettings?.enabled || !emailAlertSettings?.pendingApprovalAlerts) {
+    if (!smtpEnabled || !emailAlertSettings?.pendingApprovalAlerts) {
       return
     }
 
@@ -1538,7 +1540,7 @@ Please log in to ChoreQuest to approve or reject this completion.
     console.log('Digest email would be sent to:', emailAlertSettings.recipientEmails)
     console.log('Subject:', emailSubject)
     console.log('Body:', emailBody)
-    console.log('SMTP Settings:', { host: smtpSettings.host, port: smtpSettings.port, from: smtpSettings.fromEmail })
+    console.log('SMTP is enabled via environment variables')
 
     setPendingDigestItems([])
     
@@ -1813,7 +1815,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           reportTemplates={safeReportTemplates}
           weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
           currentWeather={currentWeather}
-          smtpSettings={smtpSettings || { enabled: false, host: '', port: 587, secure: true, username: '', password: '', fromEmail: '', fromName: 'ChoreQuest' }}
           emailAlertSettings={emailAlertSettings || { rewardPurchaseAlerts: false, choreCompletionAlerts: false, weeklyReportAlerts: false, pendingApprovalAlerts: false, recipientEmails: [], digestMode: 'immediate', lastDigestSent: null }}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
@@ -1856,7 +1857,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateIPRestrictions={handleUpdateIPRestrictions}
           onUpdateWeeklyReportSettings={handleUpdateWeeklyReportSettings}
           onUpdateWeatherSettings={handleUpdateWeatherSettings}
-          onUpdateSMTPSettings={handleUpdateSMTPSettings}
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
           onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
