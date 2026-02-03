@@ -256,26 +256,32 @@ router.post('/webhook', async (req: Request, res: Response) => {
     // Handle the event
     switch (event.type) {
       case 'customer.subscription.updated':
-      case 'customer.subscription.deleted':
+      case 'customer.subscription.deleted': {
+        // Type assertion for webhook event data
         const subscription = event.data.object as any;
         // Update subscription status in database
         // TODO: Implement subscription status update
         console.log('Subscription event:', event.type, subscription.id);
         break;
+      }
       
-      case 'invoice.paid':
+      case 'invoice.paid': {
+        // Type assertion for webhook event data
         const invoice = event.data.object as any;
         // Record successful payment
         // TODO: Implement invoice recording
         console.log('Invoice paid:', invoice.id);
         break;
+      }
       
-      case 'invoice.payment_failed':
+      case 'invoice.payment_failed': {
+        // Type assertion for webhook event data
         const failedInvoice = event.data.object as any;
         // Handle failed payment - move to limited mode
         // TODO: Implement payment failure handling
         console.log('Invoice payment failed:', failedInvoice.id);
         break;
+      }
       
       default:
         console.log(`Unhandled event type: ${event.type}`);

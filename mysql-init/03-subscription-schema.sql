@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE RESTRICT,
-  UNIQUE KEY unique_tenant_active_subscription (tenant_id, status),
   INDEX idx_tenant_id (tenant_id),
   INDEX idx_plan_id (plan_id),
   INDEX idx_status (status),

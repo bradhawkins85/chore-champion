@@ -199,8 +199,8 @@ export async function createPaidSubscription(
     },
   });
   
-  // Create Stripe subscription
-  const stripeSubscription: any = await stripe.subscriptions.create({
+  // Create Stripe subscription - use any to work around type issues with expanded fields
+  const stripeSubscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [{
       price: price.id,
@@ -215,7 +215,7 @@ export async function createPaidSubscription(
       tenant_id: tenantId,
       children_count: childrenCount.toString(),
     },
-  });
+  }) as any; // Type assertion needed due to expanded fields not in type definition
   
   // Create or update subscription in database
   const subscriptionId = uuidv4();
@@ -257,7 +257,8 @@ export async function createPaidSubscription(
   // Get client secret for payment confirmation
   let clientSecret: string | undefined;
   if (stripeSubscription.latest_invoice?.payment_intent) {
-    const paymentIntent: any = stripeSubscription.latest_invoice.payment_intent;
+    // Type assertion needed due to Stripe's complex expanded type system
+    const paymentIntent = stripeSubscription.latest_invoice.payment_intent as any;
     clientSecret = paymentIntent.client_secret;
   }
   
