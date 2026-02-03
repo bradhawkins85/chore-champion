@@ -108,6 +108,16 @@ export function ChildChoreView({
     const missed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
     const unavailable: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
+    // Helper function to check if a chore has a pending approval completion
+    const hasPendingApproval = (choreId: string, timeOfDay?: 'am' | 'pm'): boolean => {
+      return completions.some((c) =>
+        c.childId === child.id &&
+        c.choreId === choreId &&
+        c.approvalStatus === 'pending' &&
+        (!timeOfDay || c.timeOfDay === timeOfDay)
+      )
+    }
+
     childChores.forEach((chore) => {
       const assignment = childAssignments.find(a => a.choreId === chore.id)
       if (!assignment) return
@@ -129,7 +139,7 @@ export function ChildChoreView({
             } else {
               if (!windowStatus.isWithinWindow) {
                 unavailable.push({ chore, assignment, timeOfDay: 'am', windowStatus })
-              } else {
+              } else if (!hasPendingApproval(chore.id, 'am')) {
                 pending.push({ chore, assignment, timeOfDay: 'am' })
               }
             }
@@ -149,7 +159,7 @@ export function ChildChoreView({
             } else {
               if (!windowStatus.isWithinWindow) {
                 unavailable.push({ chore, assignment, timeOfDay: 'pm', windowStatus })
-              } else {
+              } else if (!hasPendingApproval(chore.id, 'pm')) {
                 pending.push({ chore, assignment, timeOfDay: 'pm' })
               }
             }
@@ -174,7 +184,7 @@ export function ChildChoreView({
           } else if (isAvailable) {
             if (!windowStatus.isWithinWindow) {
               unavailable.push({ chore, assignment, timeOfDay, windowStatus })
-            } else {
+            } else if (!hasPendingApproval(chore.id, timeOfDay)) {
               pending.push({ chore, assignment, timeOfDay })
             }
           }
@@ -190,7 +200,7 @@ export function ChildChoreView({
           } else {
             if (!windowStatus.isWithinWindow) {
               unavailable.push({ chore, assignment, windowStatus })
-            } else {
+            } else if (!hasPendingApproval(chore.id)) {
               pending.push({ chore, assignment })
             }
           }
@@ -234,7 +244,7 @@ export function ChildChoreView({
           if (!amCompleted) {
             if (!windowStatus.isWithinWindow) {
               unavailable.push({ chore, assignment, timeOfDay: 'am', windowStatus })
-            } else {
+            } else if (!hasPendingApproval(chore.id, 'am')) {
               pending.push({ chore, assignment, timeOfDay: 'am' })
             }
           } else {
@@ -250,7 +260,7 @@ export function ChildChoreView({
           if (!pmCompleted) {
             if (!windowStatus.isWithinWindow) {
               unavailable.push({ chore, assignment, timeOfDay: 'pm', windowStatus })
-            } else {
+            } else if (!hasPendingApproval(chore.id, 'pm')) {
               pending.push({ chore, assignment, timeOfDay: 'pm' })
             }
           } else {
@@ -267,7 +277,7 @@ export function ChildChoreView({
         } else if (!isCompleted && isAvailable) {
           if (!windowStatus.isWithinWindow) {
             unavailable.push({ chore, assignment, timeOfDay: chore.timeOfDay, windowStatus })
-          } else {
+          } else if (!hasPendingApproval(chore.id, chore.timeOfDay)) {
             pending.push({ chore, assignment, timeOfDay: chore.timeOfDay })
           }
         } else if (isCompleted) {
@@ -280,7 +290,7 @@ export function ChildChoreView({
         } else {
           if (!windowStatus.isWithinWindow) {
             unavailable.push({ chore, assignment, windowStatus })
-          } else {
+          } else if (!hasPendingApproval(chore.id)) {
             pending.push({ chore, assignment })
           }
         }
