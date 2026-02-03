@@ -131,9 +131,9 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   deviceName: string | null;
   deviceInfo: DeviceInfo;
   allowedChildrenIds: string[];
-  linkedAt: Date;
-  lastSeen: Date;
-  createdAt: Date;
+  linkedAt: Date | string | null;
+  lastSeen: Date | string | null;
+  createdAt: Date | string | null;
 }>> => {
   const response = await fetch(`${API_URL}/devices`, {
     headers: {
@@ -147,7 +147,52 @@ export const getLinkedDevices = async (token: string): Promise<Array<{
   }
 
   const data = await response.json();
-  return Array.isArray(data.devices) ? data.devices : [];
+  const rawDevices = Array.isArray(data.devices)
+    ? data.devices
+    : Array.isArray(data.linkedDevices)
+      ? data.linkedDevices
+      : Array.isArray(data)
+        ? data
+        : [];
+
+  return rawDevices.map((device: any) => {
+    const deviceInfo = device.deviceInfo ?? device.device_info ?? {};
+    const allowedChildrenIds = device.allowedChildrenIds ?? device.allowed_children_ids ?? [];
+
+    const parsedDeviceInfo = (() => {
+      if (typeof deviceInfo === 'string') {
+        try {
+          return JSON.parse(deviceInfo);
+        } catch {
+          return {};
+        }
+      }
+      return deviceInfo;
+    })();
+    const parsedAllowedChildrenIds = typeof allowedChildrenIds === 'string'
+      ? (() => {
+          try {
+            const parsed = JSON.parse(allowedChildrenIds);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        })()
+      : Array.isArray(allowedChildrenIds)
+        ? allowedChildrenIds
+        : [];
+
+    return {
+      id: device.id ?? device.deviceId ?? device.device_id ?? device.deviceGuid ?? device.device_guid,
+      deviceGuid: device.deviceGuid ?? device.device_guid ?? device.deviceId ?? device.device_id ?? '',
+      deviceName: device.deviceName ?? device.device_name ?? null,
+      deviceInfo: parsedDeviceInfo,
+      allowedChildrenIds: parsedAllowedChildrenIds,
+      linkedAt: device.linkedAt ?? device.linked_at ?? null,
+      lastSeen: device.lastSeen ?? device.last_seen ?? null,
+      createdAt: device.createdAt ?? device.created_at ?? null,
+    };
+  });
 };
 
 /**
