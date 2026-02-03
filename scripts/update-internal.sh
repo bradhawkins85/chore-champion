@@ -203,8 +203,11 @@ else
     echo "(Note: Registry-based deployments must pull images to check for updates)"
     
     # Create a secure temporary file for pull output
-    PULL_LOG=$(mktemp)
-    trap "rm -f '$PULL_LOG'" EXIT
+    PULL_LOG=$(mktemp) || {
+        echo "ERROR: Failed to create temporary file"
+        exit 1
+    }
+    trap 'rm -f "$PULL_LOG"' EXIT
     
     # Store the current image IDs before pulling
     echo "Getting current image IDs..."
