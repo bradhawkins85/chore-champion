@@ -3,6 +3,13 @@ import { pool } from '../config/database.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { getTenantSubscription, getSubscriptionPlan } from '../services/subscription.js';
+import {
+  clearGlobalPricePerChild,
+  clearTenantPricePerChild,
+  getPricingOverview,
+  upsertGlobalPricePerChild,
+  upsertTenantPricePerChild,
+} from '../services/subscription-pricing.js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -531,6 +538,84 @@ router.post('/tenants/:tenantId/view-token', requireAdmin, async (req: Request, 
   } catch (error) {
     console.error('Error generating view token:', error);
     res.status(500).json({ error: 'Failed to generate view token' });
+  }
+});
+
+/**
+ * Get subscription pricing settings
+ * GET /api/admin/subscription-pricing
+ */
+router.get('/subscription-pricing', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const pricing = await getPricingOverview();
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error fetching subscription pricing:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription pricing' });
+  }
+});
+
+/**
+ * Update global subscription price per child
+ * PUT /api/admin/subscription-pricing/global
+ * Body: { pricePerChildAUD: number | null }
+ */
+router.put('/subscription-pricing/global', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { pricePerChildAUD } = req.body;
+
+    if (pricePerChildAUD === null || pricePerChildAUD === undefined || pricePerChildAUD === '') {
+      await clearGlobalPricePerChild();
+      return res.json({ success: true, message: 'Global pricing cleared' });
+    }
+
+    const parsedPrice = Number(pricePerChildAUD);
+    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ error: 'Invalid price per child value' });
+    }
+
+    await upsertGlobalPricePerChild(parsedPrice);
+    res.json({ success: true, message: 'Global pricing updated' });
+  } catch (error) {
+    console.error('Error updating global pricing:', error);
+    res.status(500).json({ error: 'Failed to update global pricing' });
+  }
+});
+
+/**
+ * Update tenant subscription price per child
+ * PUT /api/admin/subscription-pricing/tenant/:tenantId
+ * Body: { pricePerChildAUD: number | null }
+ */
+router.put('/subscription-pricing/tenant/:tenantId', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = req.params;
+    const { pricePerChildAUD } = req.body;
+
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    if (pricePerChildAUD === null || pricePerChildAUD === undefined || pricePerChildAUD === '') {
+      await clearTenantPricePerChild(tenantId);
+      return res.json({ success: true, message: 'Tenant pricing cleared' });
+    }
+
+    const parsedPrice = Number(pricePerChildAUD);
+    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ error: 'Invalid price per child value' });
+    }
+
+    await upsertTenantPricePerChild(tenantId, parsedPrice);
+    res.json({ success: true, message: 'Tenant pricing updated' });
+  } catch (error) {
+    console.error('Error updating tenant pricing:', error);
+    res.status(500).json({ error: 'Failed to update tenant pricing' });
   }
 });
 

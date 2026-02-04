@@ -32,6 +32,62 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const mapPlan = useCallback((plan: any): SubscriptionPlan => ({
+    id: plan.id,
+    name: plan.name,
+    tier: plan.tier,
+    description: plan.description,
+    limits: {
+      maxChildren: plan.max_children ?? plan.limits?.maxChildren ?? null,
+      maxDevices: plan.max_devices ?? plan.limits?.maxDevices ?? null,
+      maxChores: plan.max_chores ?? plan.limits?.maxChores ?? null,
+      maxRewards: plan.max_rewards ?? plan.limits?.maxRewards ?? null,
+    },
+    pricePerChildAUD: Number(plan.price_per_child_aud ?? plan.pricePerChildAUD ?? 0),
+    basePrice: Number(plan.base_price ?? plan.basePrice ?? 0),
+    billingInterval: plan.billing_interval ?? plan.billingInterval ?? 'monthly',
+    features: plan.features ?? [],
+    isActive: Boolean(plan.is_active ?? plan.isActive ?? true),
+    createdAt: plan.created_at ? new Date(plan.created_at).getTime() : plan.createdAt ?? Date.now(),
+    updatedAt: plan.updated_at ? new Date(plan.updated_at).getTime() : plan.updatedAt ?? Date.now(),
+  }), []);
+
+  const mapSubscription = useCallback((subscription: any): Subscription | null => {
+    if (!subscription) return null;
+
+    return {
+      id: subscription.id,
+      tenantId: subscription.tenant_id ?? subscription.tenantId,
+      planId: subscription.plan_id ?? subscription.planId,
+      plan: subscription.plan ? mapPlan(subscription.plan) : undefined,
+      status: subscription.status,
+      currentPeriodStart: subscription.current_period_start ?? subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.current_period_end ?? subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd,
+      canceledAt: subscription.canceled_at ?? subscription.canceledAt ?? null,
+      stripeCustomerId: subscription.stripe_customer_id ?? subscription.stripeCustomerId ?? null,
+      stripeSubscriptionId: subscription.stripe_subscription_id ?? subscription.stripeSubscriptionId ?? null,
+      createdAt: subscription.created_at ? new Date(subscription.created_at).getTime() : subscription.createdAt ?? Date.now(),
+      updatedAt: subscription.updated_at ? new Date(subscription.updated_at).getTime() : subscription.updatedAt ?? Date.now(),
+    };
+  }, [mapPlan]);
+
+  const mapInvoice = useCallback((invoice: any): Invoice => ({
+    id: invoice.id,
+    tenantId: invoice.tenant_id ?? invoice.tenantId,
+    subscriptionId: invoice.subscription_id ?? invoice.subscriptionId,
+    amountDue: invoice.amount_due ?? invoice.amountDue,
+    amountPaid: invoice.amount_paid ?? invoice.amountPaid,
+    status: invoice.status,
+    dueDate: invoice.due_date ?? invoice.dueDate,
+    paidAt: invoice.paid_at ?? invoice.paidAt ?? null,
+    hostedInvoiceUrl: invoice.hosted_invoice_url ?? invoice.hostedInvoiceUrl ?? null,
+    invoicePdf: invoice.invoice_pdf ?? invoice.invoicePdf ?? null,
+    stripeInvoiceId: invoice.stripe_invoice_id ?? invoice.stripeInvoiceId ?? null,
+    description: invoice.description ?? null,
+    createdAt: invoice.created_at ? new Date(invoice.created_at).getTime() : invoice.createdAt ?? Date.now(),
+  }), []);
+
   // Fetch subscription plans
   const fetchPlans = useCallback(async () => {
     if (!token) return;
@@ -48,12 +104,12 @@ export function useSubscription() {
       }
 
       const data = await response.json();
-      setPlans(data);
+      setPlans(Array.isArray(data) ? data.map(mapPlan) : []);
     } catch (err: any) {
       console.error('Error fetching plans:', err);
       setError(err.message);
     }
-  }, [token]);
+  }, [mapPlan, token]);
 
   // Fetch current subscription
   const fetchSubscription = useCallback(async () => {
@@ -72,14 +128,14 @@ export function useSubscription() {
       }
 
       const data = await response.json();
-      setSubscription(data);
+      setSubscription(mapSubscription(data));
     } catch (err: any) {
       console.error('Error fetching subscription:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [mapSubscription, token]);
 
   // Fetch plan limits
   const fetchLimits = useCallback(async () => {
@@ -120,12 +176,12 @@ export function useSubscription() {
       }
 
       const data = await response.json();
-      setInvoices(data);
+      setInvoices(Array.isArray(data) ? data.map(mapInvoice) : []);
     } catch (err: any) {
       console.error('Error fetching invoices:', err);
       setError(err.message);
     }
-  }, [token]);
+  }, [mapInvoice, token]);
 
   // Create setup intent for payment method
   const createSetupIntent = useCallback(async (): Promise<{ clientSecret: string; customerId: string } | null> => {

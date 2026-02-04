@@ -216,6 +216,20 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Create subscription_pricing_settings table
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS subscription_pricing_settings (
+            id VARCHAR(36) PRIMARY KEY,
+            scope ENUM('global', 'tenant') NOT NULL,
+            tenant_id VARCHAR(36) NOT NULL,
+            price_per_child_aud DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY idx_scope_tenant (scope, tenant_id),
+            INDEX idx_scope (scope)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // Create subscriptions table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscriptions (
@@ -294,6 +308,11 @@ export async function initDatabase() {
             ('plan_free', 'Free', 'free', 'Perfect for trying out ChoreQuest with basic features', 1, 1, 3, 3, 0.00, 0.00, 'monthly', JSON_ARRAY('1 Child', '1 Linked Device', 'Up to 3 Chores', 'Up to 3 Rewards', 'Basic Notifications'), TRUE),
             ('plan_paid', 'Paid', 'paid', 'Full access to ChoreQuest for growing families', NULL, NULL, NULL, NULL, 1.00, 0.00, 'monthly', JSON_ARRAY('Unlimited Children', 'Unlimited Devices', 'Unlimited Chores', 'Unlimited Rewards', 'Priority Support', 'Advanced Analytics'), TRUE),
             ('plan_unlimited', 'Unlimited', 'unlimited', 'Unlimited plan for special accounts (admin configurable only)', NULL, NULL, NULL, NULL, 0.00, 0.00, 'monthly', JSON_ARRAY('Unlimited Children', 'Unlimited Devices', 'Unlimited Chores', 'Unlimited Rewards', 'VIP Support', 'Advanced Analytics'), TRUE)
+        `);
+
+        await connection.query(`
+          INSERT IGNORE INTO subscription_pricing_settings (id, scope, tenant_id, price_per_child_aud)
+          VALUES ('pricing_global', 'global', 'global', 1.00)
         `);
         
         console.log('Database initialized successfully');
