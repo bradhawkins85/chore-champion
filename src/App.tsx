@@ -24,6 +24,7 @@ import { AdminPanel } from '@/components/AdminPanel'
 import { ViewOnlyBanner } from '@/components/ViewOnlyBanner'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
+import { useSubscription } from '@/hooks/use-subscription'
 import {
   AppMode,
   Child,
@@ -73,6 +74,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers, viewOnlyMode, viewingTenantId, exitViewMode } = useAuth()
+  const { updateQuantity } = useSubscription()
   
   // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
@@ -702,6 +704,7 @@ function App() {
       createdAt: Date.now(),
     }
     setChildrenList((current) => [...(current || []), newChild])
+    void updateQuantity((childrenList || []).length + 1)
     toast.success(`${newChild.name} added!`)
   })
 
@@ -723,6 +726,8 @@ function App() {
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
     setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
     
+    const nextCount = Math.max((childrenList || []).length - 1, 0)
+    void updateQuantity(nextCount)
     toast.success('Child removed')
   })
 

@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useSubscription } from '@/hooks/use-subscription'
 import { Child, CalendarRefreshInterval } from '@/lib/types'
 import { AVATAR_COLORS } from '@/lib/helpers'
 
@@ -29,6 +30,7 @@ interface ChildDialogProps {
 }
 
 export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDialogProps) {
+  const { subscription } = useSubscription()
   const [name, setName] = useState(editChild?.name || '')
   const [avatarColor, setAvatarColor] = useState(
     editChild?.avatarColor || AVATAR_COLORS[0]
@@ -43,6 +45,8 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
   const [calendarShowTimes, setCalendarShowTimes] = useState(
     editChild?.calendarShowTimes ?? true
   )
+  const pricePerChildAUD = subscription?.plan?.pricePerChildAUD ?? 0
+  const showBillingWarning = !editChild && subscription?.plan?.tier === 'paid'
 
   useEffect(() => {
     if (open) {
@@ -86,6 +90,14 @@ export function ChildDialog({ open, onOpenChange, onSave, editChild }: ChildDial
           <DialogDescription>Add a child to your family chore tracker</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {showBillingWarning && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              Adding a child will increase your subscription by {pricePerChildAUD > 0
+                ? `$${pricePerChildAUD.toFixed(2)} AUD per child`
+                : 'the per-child rate'}.
+              {' '}The additional charge will be prorated on your next billing cycle.
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="child-name">Child's Name</Label>
             <Input
