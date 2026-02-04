@@ -900,24 +900,29 @@ export function ParentPanel({
 
             <TabsContent value="children" className="space-y-4">
           <div className="flex justify-end">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button 
-                    onClick={() => setChildDialogOpen(true)}
-                    disabled={!limits?.canAddChild}
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Child
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!limits?.canAddChild && (
+            {!limits?.canAddChild ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button 
+                      onClick={() => setChildDialogOpen(true)}
+                      disabled={true}
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add Child
+                    </Button>
+                  </span>
+                </TooltipTrigger>
                 <TooltipContent>
                   <p>Upgrade to paid plan to add more children</p>
                 </TooltipContent>
-              )}
-            </Tooltip>
+              </Tooltip>
+            ) : (
+              <Button onClick={() => setChildDialogOpen(true)}>
+                <Plus className="h-5 w-5 mr-2" />
+                Add Child
+              </Button>
+            )}
           </div>
 
           {childrenList.length === 0 ? (
@@ -926,24 +931,29 @@ export function ParentPanel({
                 <p className="text-lg text-muted-foreground mb-4">
                   No children added yet. Add your first child to get started!
                 </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button 
-                        onClick={() => setChildDialogOpen(true)}
-                        disabled={!limits?.canAddChild}
-                      >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Add Your First Child
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!limits?.canAddChild && (
+                {!limits?.canAddChild ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button 
+                          onClick={() => setChildDialogOpen(true)}
+                          disabled={true}
+                        >
+                          <Plus className="h-5 w-5 mr-2" />
+                          Add Your First Child
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
                     <TooltipContent>
                       <p>Upgrade to paid plan to add more children</p>
                     </TooltipContent>
-                  )}
-                </Tooltip>
+                  </Tooltip>
+                ) : (
+                  <Button onClick={() => setChildDialogOpen(true)}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add Your First Child
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -1031,24 +1041,29 @@ export function ParentPanel({
                       </div>
                     </PopoverContent>
                   </Popover>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button 
-                          onClick={() => setChoreDialogOpen(true)}
-                          disabled={!limits?.canAddChore}
-                        >
-                          <Plus className="h-5 w-5 mr-2" />
-                          Add Chore
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    {!limits?.canAddChore && (
+                  {!limits?.canAddChore ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button 
+                            onClick={() => setChoreDialogOpen(true)}
+                            disabled={true}
+                          >
+                            <Plus className="h-5 w-5 mr-2" />
+                            Add Chore
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
                       <TooltipContent>
                         <p>Upgrade to paid plan to add more chores</p>
                       </TooltipContent>
-                    )}
-                  </Tooltip>
+                    </Tooltip>
+                  ) : (
+                    <Button onClick={() => setChoreDialogOpen(true)}>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add Chore
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -1058,24 +1073,29 @@ export function ParentPanel({
                     <p className="text-lg text-muted-foreground mb-4">
                       No chores created yet. Create your first chore to assign to children!
                     </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <Button 
-                            onClick={() => setChoreDialogOpen(true)}
-                            disabled={!limits?.canAddChore}
-                          >
-                            <Plus className="h-5 w-5 mr-2" />
-                            Create Your First Chore
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {!limits?.canAddChore && (
+                    {!limits?.canAddChore ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button 
+                              onClick={() => setChoreDialogOpen(true)}
+                              disabled={true}
+                            >
+                              <Plus className="h-5 w-5 mr-2" />
+                              Create Your First Chore
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
                         <TooltipContent>
                           <p>Upgrade to paid plan to add more chores</p>
                         </TooltipContent>
-                      )}
-                    </Tooltip>
+                      </Tooltip>
+                    ) : (
+                      <Button onClick={() => setChoreDialogOpen(true)}>
+                        <Plus className="h-5 w-5 mr-2" />
+                        Create Your First Chore
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (

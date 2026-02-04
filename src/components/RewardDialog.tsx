@@ -182,7 +182,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
-              <DialogTrigger asChild disabled={disabled}>
+              <DialogTrigger asChild>
                 {trigger || (
                   <Button className="font-fredoka" disabled={disabled}>
                     <Plus className="mr-2" />
