@@ -69,6 +69,13 @@ interface QueuedRequest {
   reject: (error: Error) => void;
 }
 
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
 const requestQueue: QueuedRequest[] = [];
 let activeRequests = 0;
 const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests to avoid overwhelming the server
@@ -303,6 +310,9 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
           });
           
           if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new AuthError('Your session has expired or you are not signed in. Please sign in again to save changes.');
+            }
             throw new Error('Failed to save to API');
           }
         });
@@ -311,11 +321,17 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         // Fallback to localStorage to ensure data is not lost
         try {
           localStorage.setItem(key, JSON.stringify(computedValue));
-          // Display user-friendly error message after successful localStorage save
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          toast.error('Failed to save data to server', {
-            description: `Unable to save to server: ${errorMessage}. Data saved locally as backup.`
-          });
+          if (error instanceof AuthError) {
+            toast.error('Please sign in again', {
+              description: error.message
+            });
+          } else {
+            // Display user-friendly error message after successful localStorage save
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            toast.error('Failed to save data to server', {
+              description: `Unable to save to server: ${errorMessage}. Data saved locally as backup.`
+            });
+          }
         } catch (localStorageError) {
           console.error('Error saving to localStorage fallback:', localStorageError);
           // Both API and localStorage failed - show more severe error
