@@ -157,7 +157,7 @@ router.post('/update-quantity', authenticateToken, async (req: AuthRequest, res:
     
     const { childrenCount } = req.body;
     
-    if (!childrenCount || childrenCount < 1) {
+    if (childrenCount === undefined || childrenCount === null || childrenCount < 0) {
       return res.status(400).json({ error: 'Invalid children count' });
     }
     

@@ -1303,8 +1303,9 @@ export function ParentPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Child</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this child? This will remove all their assignments
-              and completion history.
+              Are you sure you want to delete this child? This will remove the child immediately,
+              including all history. Your subscription fee will be reduced at the end of the
+              current billing cycle.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

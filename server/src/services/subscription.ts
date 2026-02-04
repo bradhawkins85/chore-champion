@@ -448,8 +448,13 @@ export async function updateSubscriptionQuantity(tenantId: string, childrenCount
   
   // Update the quantity of the first item
   if (stripeSubscription.items.data.length > 0) {
+    const currentQuantity = stripeSubscription.items.data[0].quantity ?? 0;
+    if (currentQuantity === childrenCount) {
+      return;
+    }
     await stripe.subscriptionItems.update(stripeSubscription.items.data[0].id, {
       quantity: childrenCount,
+      proration_behavior: 'create_prorations',
     });
   }
 }
