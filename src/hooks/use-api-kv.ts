@@ -104,7 +104,7 @@ function queueRequest(execute: () => Promise<void>): Promise<void> {
   });
 }
 
-// Check if API is available
+// Check if API is available and authentication is valid
 async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
   const now = Date.now();
   const token = getAuthToken();
@@ -135,10 +135,23 @@ async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
 
   if (apiAvailable === null) {
     try {
-      const response = await fetch(`${API_URL}/health`, {
+      // Check the /auth/me endpoint which requires valid authentication
+      // This verifies both API availability and that our auth token is valid
+      const response = await fetch(`${API_URL}/auth/me`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
+      
+      // API is available if we get 200 OK
+      // Auth failures (401/403) mean token is invalid/expired or view-only
+      // In those cases, fall back to localStorage
+      if (isAuthFailure(response.status)) {
+        console.warn('API authentication failed, falling back to localStorage');
+        apiAvailable = false;
+        apiCheckTimestamp = now;
+        return false;
+      }
+      
       apiAvailable = response.ok;
       apiCheckTimestamp = now;
       return apiAvailable;
