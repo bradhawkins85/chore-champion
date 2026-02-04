@@ -293,13 +293,13 @@ export async function createPaidSubscription(
     throw new Error(`Failed to retrieve payment method: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
   
-  // Helper function to get customer ID from payment method (handles both string and expanded object)
-  const getCustomerId = (pm: typeof paymentMethod): string | null => {
+  // Helper function to extract customer ID from payment method (handles both string and expanded object)
+  const extractPaymentMethodCustomerId = (pm: typeof paymentMethod): string | null => {
     if (!pm.customer) return null;
     return typeof pm.customer === 'string' ? pm.customer : pm.customer.id;
   };
   
-  const currentCustomerId = getCustomerId(paymentMethod);
+  const currentCustomerId = extractPaymentMethodCustomerId(paymentMethod);
   
   // Check attachment status and attach if needed
   if (!currentCustomerId) {
@@ -310,10 +310,15 @@ export async function createPaidSubscription(
       });
     } catch (error: unknown) {
       // Handle the race condition where the payment method was attached between retrieve and attach
-      if (error instanceof Error && error.message?.includes('already been attached')) {
+      // Stripe error type check: resource_already_exists code or "already been attached" message
+      const isAttachmentError = error instanceof Error && 
+        (error.message?.includes('already been attached') || 
+         ('code' in error && (error as { code?: string }).code === 'resource_already_exists'));
+      
+      if (isAttachmentError) {
         // Verify it's attached to the correct customer
         const updatedPaymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-        const updatedCustomerId = getCustomerId(updatedPaymentMethod);
+        const updatedCustomerId = extractPaymentMethodCustomerId(updatedPaymentMethod);
         if (updatedCustomerId !== customerId) {
           throw new Error('Payment method is attached to a different customer');
         }
