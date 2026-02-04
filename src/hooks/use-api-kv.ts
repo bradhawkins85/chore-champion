@@ -107,6 +107,11 @@ function queueRequest(execute: () => Promise<void>): Promise<void> {
 // Check if API is available
 async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
   const now = Date.now();
+  const token = getAuthToken();
+
+  if (!token) {
+    return false;
+  }
   
   // If API was previously determined to be available, trust that result
   if (apiAvailable === true) {
@@ -183,6 +188,10 @@ function validateLoadedValue<T>(loadedValue: any, defaultValue: T): T {
   return defaultValue;
 }
 
+function isAuthFailure(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
@@ -231,6 +240,23 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
               if (mounted) {
                 // validateLoadedValue handles null values by returning defaultValue
                 setValue(validateLoadedValue(data.value, defaultValueRef.current));
+              }
+            } else if (isAuthFailure(response.status)) {
+              apiAvailable = false;
+              apiCheckTimestamp = Date.now();
+              if (mounted) {
+                setUseApi(false);
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                  try {
+                    const parsedValue = JSON.parse(stored);
+                    setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
+                  } catch {
+                    setValue(defaultValueRef.current);
+                  }
+                } else {
+                  setValue(defaultValueRef.current);
+                }
               }
             } else if (response.status === 404) {
               // Legacy: Key not found (older API versions returned 404)
@@ -303,6 +329,13 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
           });
           
           if (!response.ok) {
+            if (isAuthFailure(response.status)) {
+              apiAvailable = false;
+              apiCheckTimestamp = Date.now();
+              setUseApi(false);
+              localStorage.setItem(key, JSON.stringify(computedValue));
+              return;
+            }
             throw new Error('Failed to save to API');
           }
         });
