@@ -406,8 +406,9 @@ export async function cancelSubscription(tenantId: string): Promise<void> {
       cancel_at_period_end: true,
     });
     // Get current_period_end from the first subscription item
-    if (updatedSubscription.items?.data?.[0]?.current_period_end) {
-      updatedPeriodEnd = updatedSubscription.items.data[0].current_period_end * 1000;
+    const periodEnd = updatedSubscription.items?.data?.[0]?.current_period_end;
+    if (periodEnd) {
+      updatedPeriodEnd = periodEnd * 1000;
     }
   }
   
