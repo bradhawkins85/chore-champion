@@ -74,7 +74,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers, viewOnlyMode, viewingTenantId, exitViewMode } = useAuth()
-  const { updateQuantity } = useSubscription()
+  const { updateQuantity, fetchLimits } = useSubscription()
   
   // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
@@ -670,6 +670,8 @@ function App() {
     }
     setChores((current) => [...(current || []), newChore])
     toast.success(`Chore "${newChore.name}" created!`)
+    // Re-fetch limits to update canAddChore flag
+    void fetchLimits()
   })
 
   const handleEditChore = wrapMutation((
@@ -692,6 +694,8 @@ function App() {
     setChores((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
+    // Re-fetch limits to update canAddChore flag
+    void fetchLimits()
   })
 
   const handleAddChild = wrapMutation((
