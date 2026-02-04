@@ -433,7 +433,7 @@ export async function downgradeToFreePlan(tenantId: string): Promise<void> {
     });
   }
   
-  // Update database to mark for downgrade
+  // Update database only after Stripe succeeds
   await pool.query<ResultSetHeader>(
     'UPDATE subscriptions SET cancel_at_period_end = TRUE WHERE tenant_id = ?',
     [tenantId]

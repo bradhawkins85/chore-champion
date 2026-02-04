@@ -215,7 +215,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
   };
 
   const handleChangeQuantity = async () => {
-    if (newQuantity < 1) {
+    if (newQuantity < 1 || isNaN(newQuantity)) {
       toast.error('Must have at least 1 child');
       return;
     }
@@ -596,7 +596,14 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
                 type="number"
                 min="1"
                 value={newQuantity}
-                onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (!isNaN(val) && val >= 1) {
+                    setNewQuantity(val);
+                  } else if (e.target.value === '') {
+                    setNewQuantity(1);
+                  }
+                }}
                 className="w-full border rounded-lg p-2"
               />
               <p className="text-xs text-muted-foreground">
@@ -625,7 +632,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
               <AlertDescription className="text-sm">
                 {newQuantity > childrenCount 
                   ? 'Your next invoice will be prorated for the additional children.'
-                  : 'Your next invoice will reflect the reduced amount.'}
+                  : 'You will receive a prorated credit for the reduced number of children on your current billing period.'}
               </AlertDescription>
             </Alert>
 
