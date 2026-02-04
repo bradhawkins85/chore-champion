@@ -13,11 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSubscription } from '@/hooks/use-subscription'
@@ -40,7 +35,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useApiKV } from '@/hooks/use-api-kv'
-import { choreTemplates, ChoreTemplate } from '@/lib/choreTemplates'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
 import { ChoreDialog } from './ChoreDialog'
@@ -363,8 +357,6 @@ export function ParentPanel({
     }
   }
 
-  const popularTemplates = choreTemplates.slice(0, 6)
-
   const pendingApprovalsCount = useMemo(() => {
     return completions.filter((c) => c.approvalStatus === 'pending').length
   }, [completions])
@@ -558,20 +550,6 @@ export function ParentPanel({
     purchases,
     normalizedWelcomeCardOrder,
   ])
-
-  const handleQuickAddTemplate = (template: ChoreTemplate) => {
-    const firstCategoryId = categories[0]?.id
-    const choreData: Omit<Chore, 'id' | 'createdAt'> = {
-      name: template.name,
-      description: template.description,
-      points: template.points,
-      frequency: template.frequency,
-      timeOfDay: template.timeOfDay,
-      completionType: 'individual',
-      categoryIds: firstCategoryId ? [firstCategoryId] : [],
-    }
-    onAddChore(choreData)
-  }
 
   const handleEditChore = (chore: Chore) => {
     setEditingChore(chore)
@@ -991,56 +969,6 @@ export function ParentPanel({
             <TabsContent value="chores" className="space-y-4">
               <div className="flex justify-end">
                 <div className="flex gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline">
-                        <Sparkle className="h-5 w-5 mr-2" />
-                        Quick Add
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="font-fredoka font-semibold mb-1">Popular Templates</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Click to instantly add a chore
-                          </p>
-                        </div>
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                          {popularTemplates.map((template, index) => (
-                            <Card
-                              key={index}
-                              className="cursor-pointer hover:bg-accent transition-colors"
-                              onClick={() => handleQuickAddTemplate(template)}
-                            >
-                              <CardContent className="p-3">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">{template.icon}</span>
-                                  <span className="font-medium text-sm">{template.name}</span>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Badge variant="secondary" className="text-xs h-5">
-                                    {template.points} pts
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs h-5">
-                                    {template.frequency}
-                                  </Badge>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => setChoreDialogOpen(true)}
-                        >
-                          Browse All Templates
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
                   {!limits?.canAddChore ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
