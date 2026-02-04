@@ -263,6 +263,33 @@ export function useSubscription() {
     }
   }, [token, fetchSubscription]);
 
+  // Downgrade to free plan
+  const downgradePlan = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+
+    try {
+      const response = await fetch(`${API_URL}/api/subscriptions/downgrade`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to downgrade subscription');
+      }
+
+      await fetchSubscription();
+      return true;
+    } catch (err: any) {
+      console.error('Error downgrading subscription:', err);
+      setError(err.message);
+      return false;
+    }
+  }, [token, fetchSubscription]);
+
   // Initial load
   useEffect(() => {
     if (token && user) {
@@ -295,5 +322,6 @@ export function useSubscription() {
     cancelSubscription,
     reactivateSubscription,
     updateQuantity,
+    downgradePlan,
   };
 }

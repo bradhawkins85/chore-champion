@@ -418,6 +418,29 @@ export async function updateSubscriptionQuantity(tenantId: string, childrenCount
 }
 
 /**
+ * Downgrade subscription to free plan
+ */
+export async function downgradeToFreePlan(tenantId: string): Promise<void> {
+  const subscription = await getTenantSubscription(tenantId);
+  if (!subscription) {
+    throw new Error('No subscription found');
+  }
+  
+  // Cancel Stripe subscription if exists (at period end)
+  if (stripe && subscription.stripe_subscription_id) {
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
+  }
+  
+  // Update database to mark for downgrade
+  await pool.query<ResultSetHeader>(
+    'UPDATE subscriptions SET cancel_at_period_end = TRUE WHERE tenant_id = ?',
+    [tenantId]
+  );
+}
+
+/**
  * Get invoices for a tenant
  */
 export async function getTenantInvoices(tenantId: string): Promise<any[]> {

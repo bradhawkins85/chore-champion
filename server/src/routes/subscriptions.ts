@@ -7,6 +7,7 @@ import {
   cancelSubscription,
   reactivateSubscription,
   updateSubscriptionQuantity,
+  downgradeToFreePlan,
   getTenantInvoices,
   checkPlanLimits,
   stripe,
@@ -159,6 +160,25 @@ router.post('/update-quantity', authenticateToken, async (req: Request, res: Res
   } catch (error: any) {
     console.error('Error updating quantity:', error);
     res.status(500).json({ error: error.message || 'Failed to update subscription quantity' });
+  }
+});
+
+/**
+ * POST /api/subscriptions/downgrade
+ * Downgrade to free plan at period end
+ */
+router.post('/downgrade', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Tenant not found' });
+    }
+    
+    await downgradeToFreePlan(tenantId);
+    res.json({ success: true, message: 'Subscription will be downgraded to Free plan at period end' });
+  } catch (error: any) {
+    console.error('Error downgrading subscription:', error);
+    res.status(500).json({ error: error.message || 'Failed to downgrade subscription' });
   }
 });
 
