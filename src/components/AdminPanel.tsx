@@ -368,6 +368,10 @@ export function AdminPanel() {
       
       const data = await response.json()
       
+      // Store the current admin token so we can restore it on exit
+      if (token) {
+        localStorage.setItem('admin_auth_token', token)
+      }
       // Store the view token and redirect to the main app
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('view_only_mode', 'true')

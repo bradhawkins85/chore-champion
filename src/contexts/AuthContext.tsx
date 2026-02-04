@@ -190,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setViewOnlyMode(false);
     setViewingTenantId(null);
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_auth_token');
     localStorage.removeItem('view_only_mode');
     localStorage.removeItem('viewing_tenant_id');
   };
@@ -198,9 +199,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear view-only mode and navigate back to admin panel
     setViewOnlyMode(false);
     setViewingTenantId(null);
+    const adminToken = localStorage.getItem('admin_auth_token');
+    if (adminToken) {
+      setToken(adminToken);
+      localStorage.setItem('auth_token', adminToken);
+      fetchUserInfo(adminToken);
+      localStorage.removeItem('admin_auth_token');
+    } else {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('auth_token');
+    }
     localStorage.removeItem('view_only_mode');
     localStorage.removeItem('viewing_tenant_id');
-    // Note: Token remains for admin user, just exit view mode
+    // Note: Admin token is restored when exiting view mode
   };
 
   const inviteParent = async (email: string) => {
