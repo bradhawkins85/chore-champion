@@ -284,10 +284,29 @@ export async function createPaidSubscription(
   // Get or create Stripe customer
   const customerId = await getOrCreateStripeCustomer(tenantId, email);
   
-  // Attach payment method to customer
-  await stripe.paymentMethods.attach(paymentMethodId, {
-    customer: customerId,
-  });
+  // Attach payment method to customer (only if not already attached)
+  try {
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    
+    // Check if payment method is already attached to this customer
+    if (paymentMethod.customer !== customerId) {
+      // Only attach if not already attached to this customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId,
+      });
+    }
+  } catch (error: any) {
+    // If the payment method is already attached to a customer, check if it's the right customer
+    if (error.code === 'resource_already_exists' || error.message?.includes('already been attached')) {
+      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+      if (paymentMethod.customer !== customerId) {
+        throw new Error('Payment method is attached to a different customer');
+      }
+      // If it's attached to the correct customer, continue
+    } else {
+      throw error;
+    }
+  }
   
   // Set as default payment method
   await stripe.customers.update(customerId, {
