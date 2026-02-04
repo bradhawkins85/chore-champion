@@ -1138,12 +1138,12 @@ function App() {
     const chore = (migratedChores || []).find((c) => c.id === choreId)
     if (!chore) return
     
-    const child = safeChildrenList.find((c) => c.id === childId)
-    
     // Check if all category prerequisites are met
     if (!validateCategoryPrerequisites(childId, chore, 'Cannot override complete this chore')) {
       return
     }
+    
+    const child = safeChildrenList.find((c) => c.id === childId)
     
     const completionId = `completion_${Date.now()}_${Math.random()}`
     const newCompletion: ChoreCompletion = {
