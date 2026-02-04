@@ -293,8 +293,16 @@ export async function createPaidSubscription(
     throw new Error(`Failed to retrieve payment method: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
   
+  // Helper function to get customer ID from payment method (handles both string and expanded object)
+  const getCustomerId = (pm: typeof paymentMethod): string | null => {
+    if (!pm.customer) return null;
+    return typeof pm.customer === 'string' ? pm.customer : pm.customer.id;
+  };
+  
+  const currentCustomerId = getCustomerId(paymentMethod);
+  
   // Check attachment status and attach if needed
-  if (!paymentMethod.customer) {
+  if (!currentCustomerId) {
     // Payment method not attached to any customer yet - attach it
     try {
       await stripe.paymentMethods.attach(paymentMethodId, {
@@ -305,7 +313,8 @@ export async function createPaidSubscription(
       if (error instanceof Error && error.message?.includes('already been attached')) {
         // Verify it's attached to the correct customer
         const updatedPaymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-        if (updatedPaymentMethod.customer !== customerId) {
+        const updatedCustomerId = getCustomerId(updatedPaymentMethod);
+        if (updatedCustomerId !== customerId) {
           throw new Error('Payment method is attached to a different customer');
         }
         // If it's attached to the correct customer, continue
@@ -313,11 +322,11 @@ export async function createPaidSubscription(
         throw error;
       }
     }
-  } else if (paymentMethod.customer !== customerId) {
+  } else if (currentCustomerId !== customerId) {
     // Payment method is attached to a different customer
     throw new Error('Payment method is attached to a different customer');
   }
-  // If paymentMethod.customer === customerId, it's already attached to the correct customer - continue
+  // If currentCustomerId === customerId, it's already attached to the correct customer - continue
   
   // Set as default payment method
   await stripe.customers.update(customerId, {
