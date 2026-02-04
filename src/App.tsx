@@ -1141,6 +1141,13 @@ function App() {
       toast.error('Parent Mode is blocked on linked devices. Please use the primary device to access Parent Mode.')
       return
     }
+    
+    // Bypass PIN requirement for admins viewing tenants in view-only mode
+    if (user?.role === 'admin' && viewOnlyMode) {
+      setMode('parent')
+      return
+    }
+    
     setShowPinDialog(true)
   }
 
