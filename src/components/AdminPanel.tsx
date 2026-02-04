@@ -405,8 +405,9 @@ export function AdminPanel() {
     }
   }
 
-  const SortButton = ({ field, currentField, currentDirection, onClick }: {
-    field: string
+  const SortButton = ({ label, field, currentField, currentDirection, onClick }: {
+    label: string
+    field: SortField
     currentField: SortField
     currentDirection: SortDirection
     onClick: () => void
@@ -417,8 +418,8 @@ export function AdminPanel() {
       className="h-8 px-2 hover:bg-muted"
       onClick={onClick}
     >
-      <span className="mr-1">{field}</span>
-      {currentField === field.toLowerCase().replace(' ', '_') ? (
+      <span className="mr-1">{label}</span>
+      {currentField === field ? (
         currentDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
       ) : (
         <ArrowUpDown className="h-3 w-3 opacity-50" />
@@ -595,7 +596,8 @@ export function AdminPanel() {
                           <TableRow>
                             <TableHead>
                               <SortButton
-                                field="Tenant ID"
+                                label="Tenant ID"
+                                field="id"
                                 currentField={tenantsSortField}
                                 currentDirection={tenantsSortDirection}
                                 onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'id', setTenantsSortField, setTenantsSortDirection)}
@@ -603,7 +605,8 @@ export function AdminPanel() {
                             </TableHead>
                             <TableHead>
                               <SortButton
-                                field="Created"
+                                label="Created"
+                                field="created_at"
                                 currentField={tenantsSortField}
                                 currentDirection={tenantsSortDirection}
                                 onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'created_at', setTenantsSortField, setTenantsSortDirection)}
@@ -612,7 +615,8 @@ export function AdminPanel() {
                             <TableHead>Parent Emails</TableHead>
                             <TableHead className="text-center">
                               <SortButton
-                                field="Users"
+                                label="Users"
+                                field="user_count"
                                 currentField={tenantsSortField}
                                 currentDirection={tenantsSortDirection}
                                 onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'user_count', setTenantsSortField, setTenantsSortDirection)}
@@ -620,7 +624,8 @@ export function AdminPanel() {
                             </TableHead>
                             <TableHead className="text-center">
                               <SortButton
-                                field="Devices"
+                                label="Devices"
+                                field="device_count"
                                 currentField={tenantsSortField}
                                 currentDirection={tenantsSortDirection}
                                 onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'device_count', setTenantsSortField, setTenantsSortDirection)}
@@ -691,7 +696,8 @@ export function AdminPanel() {
                           <TableRow>
                             <TableHead>
                               <SortButton
-                                field="Email"
+                                label="Email"
+                                field="email"
                                 currentField={parentsSortField}
                                 currentDirection={parentsSortDirection}
                                 onClick={() => toggleSort(parentsSortField, parentsSortDirection, 'email', setParentsSortField, setParentsSortDirection)}
@@ -700,7 +706,8 @@ export function AdminPanel() {
                             <TableHead>Tenant ID</TableHead>
                             <TableHead>
                               <SortButton
-                                field="Created"
+                                label="Created"
+                                field="created_at"
                                 currentField={parentsSortField}
                                 currentDirection={parentsSortDirection}
                                 onClick={() => toggleSort(parentsSortField, parentsSortDirection, 'created_at', setParentsSortField, setParentsSortDirection)}
@@ -878,7 +885,7 @@ export function AdminPanel() {
                       Refresh
                     </Button>
                   </div>
-                  <div className="mb-3 p-3 bg-muted rounded-lg">
+                  <div className="mt-3 mb-3 p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">
                       ℹ️ This is a placeholder for future payment integration. Currently showing mock data.
                     </p>
@@ -904,7 +911,8 @@ export function AdminPanel() {
                             <TableHead>Tenant ID</TableHead>
                             <TableHead>
                               <SortButton
-                                field="Status"
+                                label="Status"
+                                field="status"
                                 currentField={paymentsSortField}
                                 currentDirection={paymentsSortDirection}
                                 onClick={() => toggleSort(paymentsSortField, paymentsSortDirection, 'status', setPaymentsSortField, setPaymentsSortDirection)}
