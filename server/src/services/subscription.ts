@@ -288,34 +288,36 @@ export async function createPaidSubscription(
   let paymentMethod;
   try {
     paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-    
-    // Only attach if not already attached to a customer, or attached to a different customer
-    if (!paymentMethod.customer) {
-      // Payment method not attached to any customer yet
+  } catch (error: unknown) {
+    // Handle retrieve errors
+    throw new Error(`Failed to retrieve payment method: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+  
+  // Check attachment status and attach if needed
+  if (!paymentMethod.customer) {
+    // Payment method not attached to any customer yet - attach it
+    try {
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: customerId,
       });
-    } else if (paymentMethod.customer !== customerId) {
-      // Payment method is attached to a different customer
-      throw new Error('Payment method is attached to a different customer');
-    }
-    // If paymentMethod.customer === customerId, it's already attached to the correct customer - continue
-  } catch (error: unknown) {
-    // If the payment method is already attached to a customer, check if it's the right customer
-    if (error instanceof Error && (error.message?.includes('already been attached') || 
-        (error as any).code === 'resource_already_exists')) {
-      // Retrieve again only if we don't have it yet (from the initial retrieve failing)
-      if (!paymentMethod) {
-        paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    } catch (error: unknown) {
+      // Handle the race condition where the payment method was attached between retrieve and attach
+      if (error instanceof Error && error.message?.includes('already been attached')) {
+        // Verify it's attached to the correct customer
+        const updatedPaymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        if (updatedPaymentMethod.customer !== customerId) {
+          throw new Error('Payment method is attached to a different customer');
+        }
+        // If it's attached to the correct customer, continue
+      } else {
+        throw error;
       }
-      if (paymentMethod.customer !== customerId) {
-        throw new Error('Payment method is attached to a different customer');
-      }
-      // If it's attached to the correct customer, continue
-    } else {
-      throw error;
     }
+  } else if (paymentMethod.customer !== customerId) {
+    // Payment method is attached to a different customer
+    throw new Error('Payment method is attached to a different customer');
   }
+  // If paymentMethod.customer === customerId, it's already attached to the correct customer - continue
   
   // Set as default payment method
   await stripe.customers.update(customerId, {
