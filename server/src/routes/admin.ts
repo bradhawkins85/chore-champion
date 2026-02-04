@@ -4,6 +4,7 @@ import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { getTenantSubscription, getSubscriptionPlan } from '../services/subscription.js';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 
@@ -386,6 +387,150 @@ router.put('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: R
     res.status(500).json({ error: 'Failed to update tenant subscription' });
   } finally {
     connection.release();
+  }
+});
+
+/**
+ * Get KV store data for a specific tenant (read-only, admin access)
+ * GET /api/admin/tenants/:tenantId/kv/:key
+ */
+router.get('/tenants/:tenantId/kv/:key', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId, key } = req.params;
+
+    // Verify tenant exists
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Get the KV value for this tenant
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      [key, tenantId]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ value: null });
+    }
+
+    const valueData = rows[0].value_data;
+    if (valueData === null || valueData === undefined) {
+      return res.json({ value: null });
+    }
+
+    let parsedValue;
+    try {
+      parsedValue = JSON.parse(valueData);
+    } catch (parseError) {
+      console.error(`Error parsing value for key "${key}":`, parseError);
+      return res.status(500).json({ error: 'Invalid data format' });
+    }
+
+    res.json({ value: parsedValue });
+  } catch (error) {
+    console.error('Error fetching tenant KV data:', error);
+    res.status(500).json({ error: 'Failed to fetch tenant data' });
+  }
+});
+
+/**
+ * Get all KV store data for a specific tenant (read-only, admin access)
+ * GET /api/admin/tenants/:tenantId/kv
+ */
+router.get('/tenants/:tenantId/kv', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = req.params;
+
+    // Verify tenant exists
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Get all KV data for this tenant
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
+      [tenantId]
+    );
+
+    const data: Record<string, any> = {};
+    rows.forEach(row => {
+      if (row.value_data !== null && row.value_data !== undefined) {
+        try {
+          data[row.key_name] = JSON.parse(row.value_data);
+        } catch (parseError) {
+          console.error(`Error parsing value for key "${row.key_name}":`, parseError);
+          // Skip corrupted entries
+        }
+      }
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching all tenant KV data:', error);
+    res.status(500).json({ error: 'Failed to fetch tenant data' });
+  }
+});
+
+/**
+ * Generate a view-only token for a specific tenant (admin only)
+ * POST /api/admin/tenants/:tenantId/view-token
+ * Returns a temporary token that allows viewing tenant data in read-only mode
+ */
+router.post('/tenants/:tenantId/view-token', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = req.params;
+
+    // Verify tenant exists
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Get admin user info from request (set by requireAdmin middleware)
+    const adminUserId = req.userId;
+    const adminEmail = req.userEmail;
+
+    if (!adminUserId || !adminEmail) {
+      return res.status(500).json({ error: 'Admin user info not found' });
+    }
+
+    // Generate a short-lived view-only token (1 hour expiry)
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const viewToken = jwt.sign(
+      {
+        userId: adminUserId,
+        tenantId: tenantId,
+        email: adminEmail,
+        role: 'admin',
+        viewOnly: true,
+        viewingTenantId: tenantId
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ 
+      token: viewToken,
+      expiresIn: 3600,
+      tenantId: tenantId
+    });
+  } catch (error) {
+    console.error('Error generating view token:', error);
+    res.status(500).json({ error: 'Failed to generate view token' });
   }
 });
 

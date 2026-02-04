@@ -94,6 +94,11 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
 // Set a value by key
 router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    // Block write operations for view-only tokens
+    if (req.viewOnly) {
+      return res.status(403).json({ error: 'Write operations not allowed in view-only mode' });
+    }
+
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
     let value;
@@ -149,6 +154,11 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
 // Delete a value by key
 router.delete('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    // Block delete operations for view-only tokens
+    if (req.viewOnly) {
+      return res.status(403).json({ error: 'Delete operations not allowed in view-only mode' });
+    }
+
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
     await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
@@ -199,6 +209,11 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
 // Bulk set (for migration)
 router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    // Block write operations for view-only tokens
+    if (req.viewOnly) {
+      return res.status(403).json({ error: 'Write operations not allowed in view-only mode' });
+    }
+
     const data = req.body;
     const tenantId = req.tenantId || 'legacy';
     

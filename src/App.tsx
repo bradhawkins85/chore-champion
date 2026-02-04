@@ -21,6 +21,7 @@ import { AcceptInvitationPage } from '@/components/AcceptInvitationPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { ApproveAccessPage } from '@/components/ApproveAccessPage'
 import { AdminPanel } from '@/components/AdminPanel'
+import { ViewOnlyBanner } from '@/components/ViewOnlyBanner'
 import { initializePWA } from '@/lib/pwaHelper'
 import { getDeviceId, registerDevice, getDeviceGuid, getLinkedDevices } from '@/lib/deviceHelper'
 import {
@@ -71,7 +72,7 @@ const DEFAULT_PUSH_NOTIFICATION_SETTINGS: PushNotificationSettings = { enabled: 
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers } = useAuth()
+  const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers, viewOnlyMode, viewingTenantId, exitViewMode } = useAuth()
   
   // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
@@ -634,7 +635,22 @@ function App() {
     return availableCategoryPointsMap
   }, [safeChildrenList, safeCategories, childCategoryPoints, migratedPurchases, migratedRewards, safePointSwaps])
 
-  const handleAddChore = (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
+  // Helper function to wrap mutation handlers and block them in view-only mode
+  const wrapMutation = <T extends (...args: any[]) => any>(fn: T): T => {
+    return ((...args: any[]) => {
+      if (viewOnlyMode) {
+        toast.error('Cannot make changes in view-only mode')
+        return
+      }
+      return fn(...args)
+    }) as T
+  }
+
+  const handleAddChore = wrapMutation((choreData: Omit<Chore, 'id' | 'createdAt'>) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     const newChore: Chore = {
       ...choreData,
       id: `chore_${Date.now()}_${Math.random()}`,
@@ -642,27 +658,31 @@ function App() {
     }
     setChores((current) => [...(current || []), newChore])
     toast.success(`Chore "${newChore.name}" created!`)
-  }
+  })
 
-  const handleEditChore = (
+  const handleEditChore = wrapMutation((
     id: string,
     choreData: Omit<Chore, 'id' | 'createdAt'>
   ) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     setChores((current) =>
       (current || []).map((c) =>
         c.id === id ? { ...c, ...choreData } : c
       )
     )
     toast.success('Chore updated!')
-  }
+  })
 
-  const handleDeleteChore = (id: string) => {
+  const handleDeleteChore = wrapMutation((id: string) => {
     setChores((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
-  }
+  })
 
-  const handleAddChild = (
+  const handleAddChild = wrapMutation((
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
     const newChild: Child = {
@@ -673,9 +693,9 @@ function App() {
     }
     setChildrenList((current) => [...(current || []), newChild])
     toast.success(`${newChild.name} added!`)
-  }
+  })
 
-  const handleEditChild = (
+  const handleEditChild = wrapMutation((
     id: string,
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
@@ -685,16 +705,16 @@ function App() {
       )
     )
     toast.success('Child updated!')
-  }
+  })
 
-  const handleDeleteChild = (id: string) => {
+  const handleDeleteChild = wrapMutation((id: string) => {
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
     setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
     
     toast.success('Child removed')
-  }
+  })
 
   const handleAddChildAvailability = (
     entryData: Omit<ChildAvailabilityEntry, 'id'>
@@ -2080,7 +2100,11 @@ Please log in to ChoreQuest to approve or reject this completion.
           onRequestAccess={handleRequestAccess}
         />
       ) : mode === 'parent' ? (
-        <ParentPanel
+        <>
+          {viewOnlyMode && viewingTenantId && (
+            <ViewOnlyBanner tenantId={viewingTenantId} onExit={exitViewMode} />
+          )}
+          <ParentPanel
           chores={migratedChores || []}
           childrenList={safeChildrenList}
           assignments={safeAssignments}
@@ -2175,6 +2199,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             setShowCalendar(false)
           }}
         />
+        </>
       ) : selectedChild ? (
         showCalendar ? (
           <CalendarView

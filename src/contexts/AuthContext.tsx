@@ -13,10 +13,13 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  viewOnlyMode: boolean;
+  viewingTenantId: string | null;
   login: (email: string, password: string) => Promise<void>;
   loginWithDevice: (deviceGuid: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  exitViewMode: () => void;
   inviteParent: (email: string) => Promise<void>;
   acceptInvitation: (token: string, password: string) => Promise<void>;
   getInvitationDetails: (token: string) => Promise<any>;
@@ -31,12 +34,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewOnlyMode, setViewOnlyMode] = useState<boolean>(false);
+  const [viewingTenantId, setViewingTenantId] = useState<string | null>(null);
 
   // Load token from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token');
+    const viewOnlyFlag = localStorage.getItem('view_only_mode') === 'true';
+    const viewingTenant = localStorage.getItem('viewing_tenant_id');
+    
     if (storedToken) {
       setToken(storedToken);
+      setViewOnlyMode(viewOnlyFlag);
+      setViewingTenantId(viewingTenant);
       // Verify token and load user info
       fetchUserInfo(storedToken);
     } else {
@@ -177,7 +187,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setToken(null);
     setUser(null);
+    setViewOnlyMode(false);
+    setViewingTenantId(null);
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('view_only_mode');
+    localStorage.removeItem('viewing_tenant_id');
+  };
+
+  const exitViewMode = () => {
+    // Clear view-only mode and navigate back to admin panel
+    setViewOnlyMode(false);
+    setViewingTenantId(null);
+    localStorage.removeItem('view_only_mode');
+    localStorage.removeItem('viewing_tenant_id');
+    // Note: Token remains for admin user, just exit view mode
   };
 
   const inviteParent = async (email: string) => {
@@ -303,10 +326,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         token,
         loading,
+        viewOnlyMode,
+        viewingTenantId,
         login,
         loginWithDevice,
         signup,
         logout,
+        exitViewMode,
         inviteParent,
         acceptInvitation,
         getInvitationDetails,
