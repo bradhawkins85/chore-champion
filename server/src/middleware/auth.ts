@@ -16,6 +16,8 @@ export interface AuthRequest extends Request {
   userId?: string;
   tenantId?: string;
   userEmail?: string;
+  viewOnly?: boolean;
+  viewingTenantId?: string;
 }
 
 /**
@@ -35,12 +37,16 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
       userId: string;
       tenantId: string;
       email: string;
+      viewOnly?: boolean;
+      viewingTenantId?: string;
     };
 
     // Attach user info to request
     req.userId = decoded.userId;
     req.tenantId = decoded.tenantId;
     req.userEmail = decoded.email;
+    req.viewOnly = decoded.viewOnly;
+    req.viewingTenantId = decoded.viewingTenantId;
 
     next();
   } catch (error) {
@@ -74,11 +80,15 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
       userId: string;
       tenantId: string;
       email: string;
+      viewOnly?: boolean;
+      viewingTenantId?: string;
     };
 
     req.userId = decoded.userId;
     req.tenantId = decoded.tenantId;
     req.userEmail = decoded.email;
+    req.viewOnly = decoded.viewOnly;
+    req.viewingTenantId = decoded.viewingTenantId;
 
     next();
   } catch (error) {
