@@ -396,19 +396,30 @@ export async function cancelSubscription(tenantId: string): Promise<void> {
   if (!subscription) {
     throw new Error('No subscription found');
   }
-  
+  let updatedPeriodEnd: number | null = null;
+
   // Cancel Stripe subscription if exists
   if (stripe && subscription.stripe_subscription_id) {
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+    const updatedSubscription = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,
     });
+    if (updatedSubscription.current_period_end) {
+      updatedPeriodEnd = updatedSubscription.current_period_end * 1000;
+    }
   }
   
   // Update database
-  await pool.query<ResultSetHeader>(
-    'UPDATE subscriptions SET cancel_at_period_end = TRUE WHERE tenant_id = ?',
-    [tenantId]
-  );
+  if (updatedPeriodEnd) {
+    await pool.query<ResultSetHeader>(
+      'UPDATE subscriptions SET cancel_at_period_end = TRUE, current_period_end = ? WHERE tenant_id = ?',
+      [updatedPeriodEnd, tenantId]
+    );
+  } else {
+    await pool.query<ResultSetHeader>(
+      'UPDATE subscriptions SET cancel_at_period_end = TRUE WHERE tenant_id = ?',
+      [tenantId]
+    );
+  }
 }
 
 /**

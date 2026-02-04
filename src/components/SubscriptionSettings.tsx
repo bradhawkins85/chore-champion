@@ -350,8 +350,19 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
               <Alert>
                 <Warning className="h-4 w-4" />
                 <AlertDescription>
-                  Your subscription will be canceled on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
-                  You can reactivate it at any time before then.
+                  {subscription.currentPeriodEnd && !Number.isNaN(new Date(subscription.currentPeriodEnd).getTime())
+                    ? (
+                      <>
+                        Your subscription will be canceled on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+                        You can reactivate it at any time before then.
+                      </>
+                    )
+                    : (
+                      <>
+                        Your subscription is set to cancel at the end of the current billing period.
+                        You can reactivate it at any time before then.
+                      </>
+                    )}
                 </AlertDescription>
               </Alert>
             )}
