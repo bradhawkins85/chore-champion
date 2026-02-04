@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 import {
   getSubscriptionPlans,
   getTenantSubscription,
@@ -19,7 +19,7 @@ const router = Router();
  * GET /api/subscriptions/plans
  * Get all available subscription plans
  */
-router.get('/plans', authenticateToken, async (req: Request, res: Response) => {
+router.get('/plans', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const plans = await getSubscriptionPlans();
     res.json(plans);
@@ -33,9 +33,9 @@ router.get('/plans', authenticateToken, async (req: Request, res: Response) => {
  * GET /api/subscriptions/current
  * Get current subscription for the authenticated tenant
  */
-router.get('/current', authenticateToken, async (req: Request, res: Response) => {
+router.get('/current', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -52,9 +52,9 @@ router.get('/current', authenticateToken, async (req: Request, res: Response) =>
  * GET /api/subscriptions/limits
  * Check current usage against plan limits
  */
-router.get('/limits', authenticateToken, async (req: Request, res: Response) => {
+router.get('/limits', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -72,10 +72,10 @@ router.get('/limits', authenticateToken, async (req: Request, res: Response) => 
  * Create a new paid subscription
  * Body: { paymentMethodId: string, childrenCount: number }
  */
-router.post('/create', authenticateToken, async (req: Request, res: Response) => {
+router.post('/create', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
-    const email = (req as any).user?.email;
+    const tenantId = req.tenantId;
+    const email = req.userEmail;
     
     if (!tenantId || !email) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -103,9 +103,9 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
  * POST /api/subscriptions/cancel
  * Cancel subscription at period end
  */
-router.post('/cancel', authenticateToken, async (req: Request, res: Response) => {
+router.post('/cancel', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -122,9 +122,9 @@ router.post('/cancel', authenticateToken, async (req: Request, res: Response) =>
  * POST /api/subscriptions/reactivate
  * Reactivate a canceled subscription
  */
-router.post('/reactivate', authenticateToken, async (req: Request, res: Response) => {
+router.post('/reactivate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -142,9 +142,9 @@ router.post('/reactivate', authenticateToken, async (req: Request, res: Response
  * Update subscription quantity (number of children)
  * Body: { childrenCount: number }
  */
-router.post('/update-quantity', authenticateToken, async (req: Request, res: Response) => {
+router.post('/update-quantity', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -167,9 +167,9 @@ router.post('/update-quantity', authenticateToken, async (req: Request, res: Res
  * POST /api/subscriptions/downgrade
  * Downgrade to free plan at period end
  */
-router.post('/downgrade', authenticateToken, async (req: Request, res: Response) => {
+router.post('/downgrade', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -186,9 +186,9 @@ router.post('/downgrade', authenticateToken, async (req: Request, res: Response)
  * GET /api/subscriptions/invoices
  * Get invoice history for the tenant
  */
-router.get('/invoices', authenticateToken, async (req: Request, res: Response) => {
+router.get('/invoices', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const tenantId = (req as any).user?.tenantId;
+    const tenantId = req.tenantId;
     if (!tenantId) {
       return res.status(401).json({ error: 'Tenant not found' });
     }
@@ -205,14 +205,14 @@ router.get('/invoices', authenticateToken, async (req: Request, res: Response) =
  * POST /api/subscriptions/create-setup-intent
  * Create a Stripe SetupIntent for saving payment method
  */
-router.post('/create-setup-intent', authenticateToken, async (req: Request, res: Response) => {
+router.post('/create-setup-intent', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!stripe) {
       return res.status(503).json({ error: 'Stripe is not configured' });
     }
     
-    const tenantId = (req as any).user?.tenantId;
-    const email = (req as any).user?.email;
+    const tenantId = req.tenantId;
+    const email = req.userEmail;
     
     if (!tenantId || !email) {
       return res.status(401).json({ error: 'Unauthorized' });
