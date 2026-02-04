@@ -162,7 +162,6 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
     effectiveTier,
     cancelSubscription,
     reactivateSubscription,
-    updateQuantity,
     downgradePlan,
     fetchInvoices,
     invoices,
@@ -170,8 +169,6 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [showChangeQuantity, setShowChangeQuantity] = useState(false);
-  const [newQuantity, setNewQuantity] = useState(childrenCount);
 
   const currentPlan = subscription?.plan;
   const freePlan = plans.find(p => p.tier === 'free');
@@ -214,26 +211,13 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
     fetchInvoices();
   };
 
-  const handleChangeQuantity = async () => {
-    if (newQuantity < 1 || isNaN(newQuantity)) {
-      toast.error('Must have at least 1 child');
-      return;
-    }
-
-    if (newQuantity === childrenCount) {
-      toast.info('No change in quantity');
-      setShowChangeQuantity(false);
-      return;
-    }
-
-    const success = await updateQuantity(newQuantity);
-    if (success) {
-      toast.success('Subscription updated successfully. Your next invoice will reflect the new amount.');
-      setShowChangeQuantity(false);
-    } else {
-      toast.error('Failed to update subscription quantity');
-    }
-  };
+  const hasUsageData = Boolean(
+    limits &&
+      (limits.current.children > 0 ||
+        limits.current.devices > 0 ||
+        limits.current.chores > 0 ||
+        limits.current.rewards > 0),
+  );
 
   const handleUpgradeAttempt = (plan: SubscriptionPlan) => {
     if (!isStripeConfigured) {
@@ -349,16 +333,6 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
                     </span>
                   </span>
                 </div>
-                {!subscription?.cancelAtPeriodEnd && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowChangeQuantity(true)}
-                    className="w-full font-fredoka"
-                  >
-                    Change Number of Children
-                  </Button>
-                )}
               </div>
             )}
             
@@ -389,7 +363,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
           )}
 
           {/* Current Usage */}
-          {limits && (
+          {limits && hasUsageData && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Current Usage:</p>
               <div className="grid grid-cols-2 gap-3">
@@ -575,86 +549,6 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
         </Card>
       )}
 
-      {/* Change Quantity Form */}
-      {showChangeQuantity && currentPlan?.tier === 'paid' && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="font-fredoka">Change Number of Children</CardTitle>
-                <CardDescription>Update your subscription quantity</CardDescription>
-              </div>
-              <Button variant="ghost" onClick={() => setShowChangeQuantity(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Number of Children</label>
-              <input
-                type="number"
-                min="1"
-                value={newQuantity}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val >= 1) {
-                    setNewQuantity(val);
-                  } else if (e.target.value === '') {
-                    setNewQuantity(1);
-                  }
-                }}
-                className="w-full border rounded-lg p-2"
-              />
-              <p className="text-xs text-muted-foreground">
-                Current: {childrenCount} {childrenCount === 1 ? 'child' : 'children'}
-              </p>
-            </div>
-
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Current Monthly Cost:</span>
-                <span className="font-medium">${((currentPlan.pricePerChildAUD || 0) * childrenCount).toFixed(2)} AUD</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>New Monthly Cost:</span>
-                <span className="font-medium">${((currentPlan.pricePerChildAUD || 0) * newQuantity).toFixed(2)} AUD</span>
-              </div>
-              <div className="flex justify-between font-semibold pt-2 border-t">
-                <span>Difference:</span>
-                <span className={newQuantity > childrenCount ? 'text-orange-600' : 'text-green-600'}>
-                  {newQuantity > childrenCount ? '+' : ''}${((currentPlan.pricePerChildAUD || 0) * (newQuantity - childrenCount)).toFixed(2)} AUD
-                </span>
-              </div>
-            </div>
-
-            <Alert>
-              <AlertDescription className="text-sm">
-                {newQuantity > childrenCount 
-                  ? 'Your next invoice will be prorated for the additional children.'
-                  : 'You will receive a prorated credit for the reduced number of children on your current billing period.'}
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowChangeQuantity(false)}
-                className="flex-1 font-fredoka"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleChangeQuantity}
-                className="flex-1 font-fredoka"
-                disabled={newQuantity === childrenCount}
-              >
-                Update Subscription
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
