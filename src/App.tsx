@@ -676,23 +676,15 @@ function App() {
     toast.success('Chore updated!')
   })
 
-  const handleDeleteChore = (id: string) => {
-    if (viewOnlyMode) {
-      toast.error('Cannot make changes in view-only mode')
-      return
-    }
+  const handleDeleteChore = wrapMutation((id: string) => {
     setChores((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
-  }
+  })
 
-  const handleAddChild = (
+  const handleAddChild = wrapMutation((
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
-    if (viewOnlyMode) {
-      toast.error('Cannot make changes in view-only mode')
-      return
-    }
     const newChild: Child = {
       ...childData,
       id: `child_${Date.now()}_${Math.random()}`,
@@ -701,36 +693,28 @@ function App() {
     }
     setChildrenList((current) => [...(current || []), newChild])
     toast.success(`${newChild.name} added!`)
-  }
+  })
 
-  const handleEditChild = (
+  const handleEditChild = wrapMutation((
     id: string,
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
-    if (viewOnlyMode) {
-      toast.error('Cannot make changes in view-only mode')
-      return
-    }
     setChildrenList((current) =>
       (current || []).map((c) =>
         c.id === id ? { ...c, ...childData } : c
       )
     )
     toast.success('Child updated!')
-  }
+  })
 
-  const handleDeleteChild = (id: string) => {
-    if (viewOnlyMode) {
-      toast.error('Cannot make changes in view-only mode')
-      return
-    }
+  const handleDeleteChild = wrapMutation((id: string) => {
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
     setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
     
     toast.success('Child removed')
-  }
+  })
 
   const handleAddChildAvailability = (
     entryData: Omit<ChildAvailabilityEntry, 'id'>
