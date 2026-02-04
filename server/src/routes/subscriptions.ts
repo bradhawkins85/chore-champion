@@ -11,6 +11,7 @@ import {
   downgradeToFreePlan,
   getTenantInvoices,
   checkPlanLimits,
+  getOrCreateStripeCustomer,
   stripe,
 } from '../services/subscription.js';
 
@@ -225,16 +226,7 @@ router.post('/create-setup-intent', authenticateToken, async (req: AuthRequest, 
     }
     
     // Get or create Stripe customer
-    const subscription = await getTenantSubscription(tenantId);
-    let customerId = subscription?.stripe_customer_id;
-    
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email,
-        metadata: { tenant_id: tenantId },
-      });
-      customerId = customer.id;
-    }
+    const customerId = await getOrCreateStripeCustomer(tenantId, email);
     
     // Create SetupIntent
     const setupIntent = await stripe.setupIntents.create({
