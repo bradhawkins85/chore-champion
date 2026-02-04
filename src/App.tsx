@@ -670,8 +670,8 @@ function App() {
     }
     await setChores((current) => [...(current || []), newChore])
     toast.success(`Chore "${newChore.name}" created!`)
-    // Re-fetch limits to immediately update canAddChore status
-    await fetchLimits()
+    // Re-fetch limits to update canAddChore flag
+    void fetchLimits()
   })
 
   const handleEditChore = wrapMutation((
@@ -694,8 +694,8 @@ function App() {
     await setChores((current) => (current || []).filter((c) => c.id !== id))
     await setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
-    // Re-fetch limits to immediately update canAddChore status
-    await fetchLimits()
+    // Re-fetch limits to update canAddChore flag
+    void fetchLimits()
   })
 
   const handleAddChild = wrapMutation(async (
