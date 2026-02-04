@@ -285,20 +285,29 @@ export async function createPaidSubscription(
   const customerId = await getOrCreateStripeCustomer(tenantId, email);
   
   // Attach payment method to customer (only if not already attached)
+  let paymentMethod;
   try {
-    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
     
-    // Check if payment method is already attached to this customer
-    if (paymentMethod.customer !== customerId) {
-      // Only attach if not already attached to this customer
+    // Only attach if not already attached to a customer, or attached to a different customer
+    if (!paymentMethod.customer) {
+      // Payment method not attached to any customer yet
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: customerId,
       });
+    } else if (paymentMethod.customer !== customerId) {
+      // Payment method is attached to a different customer
+      throw new Error('Payment method is attached to a different customer');
     }
-  } catch (error: any) {
+    // If paymentMethod.customer === customerId, it's already attached to the correct customer - continue
+  } catch (error: unknown) {
     // If the payment method is already attached to a customer, check if it's the right customer
-    if (error.code === 'resource_already_exists' || error.message?.includes('already been attached')) {
-      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (error instanceof Error && (error.message?.includes('already been attached') || 
+        (error as any).code === 'resource_already_exists')) {
+      // Retrieve again only if we don't have it yet (from the initial retrieve failing)
+      if (!paymentMethod) {
+        paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+      }
       if (paymentMethod.customer !== customerId) {
         throw new Error('Payment method is attached to a different customer');
       }
