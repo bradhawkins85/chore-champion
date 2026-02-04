@@ -671,7 +671,7 @@ function App() {
     await setChores((current) => [...(current || []), newChore])
     toast.success(`Chore "${newChore.name}" created!`)
     // Re-fetch limits to immediately update canAddChore status
-    fetchLimits()
+    await fetchLimits()
   })
 
   const handleEditChore = wrapMutation((
@@ -695,7 +695,7 @@ function App() {
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
     // Re-fetch limits to immediately update canAddChore status
-    fetchLimits()
+    await fetchLimits()
   })
 
   const handleAddChild = wrapMutation(async (
@@ -711,7 +711,7 @@ function App() {
     void updateQuantity((childrenList || []).length + 1)
     toast.success(`${newChild.name} added!`)
     // Re-fetch limits to immediately update canAddChild status
-    fetchLimits()
+    await fetchLimits()
   })
 
   const handleEditChild = wrapMutation((
@@ -736,7 +736,7 @@ function App() {
     void updateQuantity(nextCount)
     toast.success('Child removed')
     // Re-fetch limits to immediately update canAddChild status
-    fetchLimits()
+    await fetchLimits()
   })
 
   const handleAddChildAvailability = (
@@ -1023,7 +1023,7 @@ function App() {
     await setRewards((current) => [...(current || []), newReward])
     toast.success(`Reward "${newReward.name}" created!`)
     // Re-fetch limits to immediately update canAddReward status
-    fetchLimits()
+    await fetchLimits()
   }
 
   const handleEditReward = (
@@ -1048,7 +1048,7 @@ function App() {
     await setRewards((current) => (current || []).filter((r) => r.id !== id))
     toast.success('Reward deleted')
     // Re-fetch limits to immediately update canAddReward status
-    fetchLimits()
+    await fetchLimits()
   }
 
   const handleToggleRewardDisabled = (id: string) => {
