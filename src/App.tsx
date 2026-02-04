@@ -692,7 +692,7 @@ function App() {
 
   const handleDeleteChore = wrapMutation(async (id: string) => {
     await setChores((current) => (current || []).filter((c) => c.id !== id))
-    setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
+    await setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
     // Re-fetch limits to immediately update canAddChore status
     await fetchLimits()
@@ -728,9 +728,9 @@ function App() {
 
   const handleDeleteChild = wrapMutation(async (id: string) => {
     await setChildrenList((current) => (current || []).filter((c) => c.id !== id))
-    setAssignments((current) => (current || []).filter((a) => a.childId !== id))
-    setCompletions((current) => (current || []).filter((c) => c.childId !== id))
-    setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
+    await setAssignments((current) => (current || []).filter((a) => a.childId !== id))
+    await setCompletions((current) => (current || []).filter((c) => c.childId !== id))
+    await setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
     
     const nextCount = Math.max((childrenList || []).length - 1, 0)
     void updateQuantity(nextCount)
