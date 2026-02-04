@@ -204,13 +204,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(originalToken);
       // Fetch admin user info with restored token
       fetchUserInfo(originalToken);
+      
+      // Clear view-only mode flags
+      setViewOnlyMode(false);
+      setViewingTenantId(null);
+      localStorage.removeItem('view_only_mode');
+      localStorage.removeItem('viewing_tenant_id');
+    } else {
+      // If no original token was saved, force logout to ensure clean state
+      console.error('No original admin token found when exiting view mode');
+      logout();
     }
-    
-    // Clear view-only mode and navigate back to admin panel
-    setViewOnlyMode(false);
-    setViewingTenantId(null);
-    localStorage.removeItem('view_only_mode');
-    localStorage.removeItem('viewing_tenant_id');
   };
 
   const inviteParent = async (email: string) => {
