@@ -78,11 +78,30 @@ export async function getSubscriptionPlan(planId: string): Promise<SubscriptionP
   };
 }
 
+// Type for the joined query result with aliased plan columns
+interface SubscriptionWithPlanRow extends TenantSubscription, RowDataPacket {
+  plan_id_value: string;
+  plan_name: string | null;
+  plan_tier: 'free' | 'paid' | 'unlimited' | null;
+  plan_description: string | null;
+  plan_max_children: number | null;
+  plan_max_devices: number | null;
+  plan_max_chores: number | null;
+  plan_max_rewards: number | null;
+  plan_price_per_child_aud: number | null;
+  plan_base_price: number | null;
+  plan_billing_interval: 'monthly' | 'annual' | null;
+  plan_features: string | string[] | null;
+  plan_is_active: boolean | null;
+  plan_created_at: string | null;
+  plan_updated_at: string | null;
+}
+
 /**
  * Get current subscription for a tenant
  */
 export async function getTenantSubscription(tenantId: string): Promise<(TenantSubscription & { plan?: SubscriptionPlan }) | null> {
-  const [rows] = await pool.query<(TenantSubscription & RowDataPacket)[]>(
+  const [rows] = await pool.query<SubscriptionWithPlanRow[]>(
     `SELECT 
        s.id,
        s.tenant_id,
@@ -96,7 +115,7 @@ export async function getTenantSubscription(tenantId: string): Promise<(TenantSu
        s.stripe_subscription_id,
        s.created_at,
        s.updated_at,
-       p.id as plan_id_ref,
+       p.id as plan_id_value,
        p.name as plan_name,
        p.tier as plan_tier,
        p.description as plan_description,
@@ -121,7 +140,7 @@ export async function getTenantSubscription(tenantId: string): Promise<(TenantSu
   
   if (rows.length === 0) return null;
   
-  const row: any = rows[0];
+  const row = rows[0];
   
   // Build the subscription object
   const subscription: TenantSubscription = {
@@ -143,21 +162,21 @@ export async function getTenantSubscription(tenantId: string): Promise<(TenantSu
   let plan: SubscriptionPlan | undefined = undefined;
   if (row.plan_name) {
     plan = {
-      id: row.plan_id_ref,
+      id: row.plan_id_value!,
       name: row.plan_name,
-      tier: row.plan_tier,
-      description: row.plan_description,
+      tier: row.plan_tier!,
+      description: row.plan_description!,
       max_children: row.plan_max_children,
       max_devices: row.plan_max_devices,
       max_chores: row.plan_max_chores,
       max_rewards: row.plan_max_rewards,
-      price_per_child_aud: row.plan_price_per_child_aud,
-      base_price: row.plan_base_price,
-      billing_interval: row.plan_billing_interval,
-      features: typeof row.plan_features === 'string' ? JSON.parse(row.plan_features) : row.plan_features,
-      is_active: row.plan_is_active,
-      created_at: row.plan_created_at,
-      updated_at: row.plan_updated_at,
+      price_per_child_aud: row.plan_price_per_child_aud!,
+      base_price: row.plan_base_price!,
+      billing_interval: row.plan_billing_interval!,
+      features: typeof row.plan_features === 'string' ? JSON.parse(row.plan_features) : row.plan_features!,
+      is_active: row.plan_is_active!,
+      created_at: row.plan_created_at!,
+      updated_at: row.plan_updated_at!,
     };
   }
   
