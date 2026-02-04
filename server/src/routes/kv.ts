@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket } from 'mysql2';
 import { optionalAuth, AuthRequest } from '../middleware/auth.js';
+import { checkPlanLimits } from '../services/subscription.js';
 
 const router = Router();
 
@@ -12,6 +13,8 @@ const ARRAY_KEYS = [
   'chore-history', 'dismissed-missed-chores', 'tracked-goals', 'categories',
   'point-swaps', 'bonus-completions', 'child-availability'
 ];
+const PLAN_LIMIT_KEYS = ['children', 'chores', 'rewards'] as const;
+type PlanLimitKey = (typeof PLAN_LIMIT_KEYS)[number];
 
 /**
  * Check if the request is from Spark runtime (@github/spark useKV hook).
@@ -35,6 +38,24 @@ function sendNullResponse(req: Request, res: Response): void {
   } else {
     res.json({ value: null });
   }
+}
+
+function getPlanLimitForKey(
+  key: PlanLimitKey,
+  limits: Awaited<ReturnType<typeof checkPlanLimits>>
+): number | null {
+  switch (key) {
+    case 'children':
+      return limits.limits.maxChildren;
+    case 'chores':
+      return limits.limits.maxChores;
+    case 'rewards':
+      return limits.limits.maxRewards;
+  }
+}
+
+function isPlanLimitedKey(key: string): key is PlanLimitKey {
+  return PLAN_LIMIT_KEYS.includes(key as PlanLimitKey);
 }
 
 // Get a value by key
@@ -135,6 +156,18 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
         error: `Key "${key}" must be an array`,
         received: typeof value 
       });
+    }
+
+    if (isPlanLimitedKey(key)) {
+      const limits = await checkPlanLimits(tenantId);
+      const maxLimit = getPlanLimitForKey(key, limits);
+      if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
+        return res.status(403).json({
+          error: `Plan limit reached for ${key}`,
+          limit: maxLimit,
+          attempted: value.length,
+        });
+      }
     }
     
     await pool.query(
@@ -242,6 +275,22 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
       });
     }
     
+    const limitKeys = Object.keys(data).filter(isPlanLimitedKey);
+    if (limitKeys.length > 0) {
+      const limits = await checkPlanLimits(tenantId);
+      for (const key of limitKeys) {
+        const maxLimit = getPlanLimitForKey(key, limits);
+        const value = data[key];
+        if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
+          return res.status(403).json({
+            error: `Plan limit reached for ${key}`,
+            limit: maxLimit,
+            attempted: value.length,
+          });
+        }
+      }
+    }
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
