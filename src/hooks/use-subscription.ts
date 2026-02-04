@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Subscription, SubscriptionPlan, Invoice, UsageStats } from '@/lib/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface PlanLimitsResponse {
   canAddChild: boolean;
@@ -37,7 +37,7 @@ export function useSubscription() {
     if (!token) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/plans`, {
+      const response = await fetch(`${API_URL}/subscriptions/plans`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -61,7 +61,7 @@ export function useSubscription() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/subscriptions/current`, {
+      const response = await fetch(`${API_URL}/subscriptions/current`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -86,7 +86,7 @@ export function useSubscription() {
     if (!token) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/limits`, {
+      const response = await fetch(`${API_URL}/subscriptions/limits`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -109,7 +109,7 @@ export function useSubscription() {
     if (!token) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/invoices`, {
+      const response = await fetch(`${API_URL}/subscriptions/invoices`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -132,7 +132,7 @@ export function useSubscription() {
     if (!token) return null;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/create-setup-intent`, {
+      const response = await fetch(`${API_URL}/subscriptions/create-setup-intent`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,7 +157,7 @@ export function useSubscription() {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/create`, {
+      const response = await fetch(`${API_URL}/subscriptions/create`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -186,7 +186,7 @@ export function useSubscription() {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/cancel`, {
+      const response = await fetch(`${API_URL}/subscriptions/cancel`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -213,7 +213,7 @@ export function useSubscription() {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/reactivate`, {
+      const response = await fetch(`${API_URL}/subscriptions/reactivate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -240,7 +240,7 @@ export function useSubscription() {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/update-quantity`, {
+      const response = await fetch(`${API_URL}/subscriptions/update-quantity`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -268,7 +268,7 @@ export function useSubscription() {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/downgrade`, {
+      const response = await fetch(`${API_URL}/subscriptions/downgrade`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
