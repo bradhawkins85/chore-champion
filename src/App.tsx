@@ -790,11 +790,12 @@ function App() {
     toast.success('Assignment updated!')
   }
 
-  const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
-    const chore = (migratedChores || []).find((c) => c.id === choreId)
-    if (!chore) return
-    
-    // Check if all category prerequisites are met
+  // Helper function to validate category prerequisites for a chore
+  const validateCategoryPrerequisites = (
+    childId: string,
+    chore: Chore,
+    errorMessage: string
+  ): boolean => {
     const choreCategories = chore.categoryIds || []
     for (const categoryId of choreCategories) {
       const prerequisiteMet = isPrerequisiteCategoryCompleted(
@@ -811,13 +812,24 @@ function App() {
         const prerequisiteCategory = safeCategories.find(
           (c) => c.id === category?.prerequisiteCategoryId
         )
-        toast.error('Cannot complete this chore', {
+        toast.error(errorMessage, {
           description: prerequisiteCategory
-            ? `You must complete all ${prerequisiteCategory.name} chores first.`
+            ? `All ${prerequisiteCategory.name} chores must be completed first.`
             : 'Category prerequisites not met.',
         })
-        return
+        return false
       }
+    }
+    return true
+  }
+
+  const handleCompleteChore = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+    if (!chore) return
+    
+    // Check if all category prerequisites are met
+    if (!validateCategoryPrerequisites(childId, chore, 'Cannot complete this chore')) {
+      return
     }
     
     const requiresApproval = chore ? chore.approvalConfigs?.find(c => c.childId === childId)?.requiresApproval : false
@@ -1127,29 +1139,8 @@ function App() {
     if (!chore) return
     
     // Check if all category prerequisites are met
-    const choreCategories = chore.categoryIds || []
-    for (const categoryId of choreCategories) {
-      const prerequisiteMet = isPrerequisiteCategoryCompleted(
-        childId,
-        categoryId,
-        safeCategories,
-        safeAssignments,
-        choresMap,
-        safeCompletions
-      )
-      
-      if (!prerequisiteMet) {
-        const category = safeCategories.find((c) => c.id === categoryId)
-        const prerequisiteCategory = safeCategories.find(
-          (c) => c.id === category?.prerequisiteCategoryId
-        )
-        toast.error('Cannot override complete this chore', {
-          description: prerequisiteCategory
-            ? `All ${prerequisiteCategory.name} chores must be completed first.`
-            : 'Category prerequisites not met.',
-        })
-        return
-      }
+    if (!validateCategoryPrerequisites(childId, chore, 'Cannot override complete this chore')) {
+      return
     }
     
     const completionId = `completion_${Date.now()}_${Math.random()}`
@@ -1355,29 +1346,8 @@ function App() {
     if (!chore) return
     
     // Re-validate that all category prerequisites are still met at approval time
-    const choreCategories = chore.categoryIds || []
-    for (const categoryId of choreCategories) {
-      const prerequisiteMet = isPrerequisiteCategoryCompleted(
-        completion.childId,
-        categoryId,
-        safeCategories,
-        safeAssignments,
-        choresMap,
-        safeCompletions
-      )
-      
-      if (!prerequisiteMet) {
-        const category = safeCategories.find((c) => c.id === categoryId)
-        const prerequisiteCategory = safeCategories.find(
-          (c) => c.id === category?.prerequisiteCategoryId
-        )
-        toast.error('Cannot approve this chore', {
-          description: prerequisiteCategory
-            ? `All ${prerequisiteCategory.name} chores must be completed first.`
-            : 'Category prerequisites not met.',
-        })
-        return
-      }
+    if (!validateCategoryPrerequisites(completion.childId, chore, 'Cannot approve this chore')) {
+      return
     }
     
     setCompletions((current) =>
