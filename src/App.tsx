@@ -1123,6 +1123,35 @@ function App() {
   }
 
   const handleOverrideComplete = (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => {
+    const chore = (migratedChores || []).find((c) => c.id === choreId)
+    if (!chore) return
+    
+    // Check if all category prerequisites are met
+    const choreCategories = chore.categoryIds || []
+    for (const categoryId of choreCategories) {
+      const prerequisiteMet = isPrerequisiteCategoryCompleted(
+        childId,
+        categoryId,
+        safeCategories,
+        safeAssignments,
+        choresMap,
+        safeCompletions
+      )
+      
+      if (!prerequisiteMet) {
+        const category = safeCategories.find((c) => c.id === categoryId)
+        const prerequisiteCategory = safeCategories.find(
+          (c) => c.id === category?.prerequisiteCategoryId
+        )
+        toast.error('Cannot override complete this chore', {
+          description: prerequisiteCategory
+            ? `All ${prerequisiteCategory.name} chores must be completed first.`
+            : 'Category prerequisites not met.',
+        })
+        return
+      }
+    }
+    
     const completionId = `completion_${Date.now()}_${Math.random()}`
     const newCompletion: ChoreCompletion = {
       id: completionId,
@@ -1145,7 +1174,6 @@ function App() {
     }
     setHistory((current) => [...(current || []), historyEvent])
 
-    const chore = (migratedChores || []).find((c) => c.id === choreId)
     const child = safeChildrenList.find((c) => c.id === childId)
     toast.success(`Awarded ${chore?.points || 0} points to ${child?.name || 'child'}`, {
       description: 'Missed chore marked as complete',
@@ -1320,32 +1348,61 @@ function App() {
   }
 
   const handleApproveCompletion = (completionId: string) => {
+    const completion = safeCompletions.find((c) => c.id === completionId)
+    if (!completion) return
+    
+    const chore = (migratedChores || []).find((c) => c.id === completion.choreId)
+    if (!chore) return
+    
+    // Re-validate that all category prerequisites are still met at approval time
+    const choreCategories = chore.categoryIds || []
+    for (const categoryId of choreCategories) {
+      const prerequisiteMet = isPrerequisiteCategoryCompleted(
+        completion.childId,
+        categoryId,
+        safeCategories,
+        safeAssignments,
+        choresMap,
+        safeCompletions
+      )
+      
+      if (!prerequisiteMet) {
+        const category = safeCategories.find((c) => c.id === categoryId)
+        const prerequisiteCategory = safeCategories.find(
+          (c) => c.id === category?.prerequisiteCategoryId
+        )
+        toast.error('Cannot approve this chore', {
+          description: prerequisiteCategory
+            ? `All ${prerequisiteCategory.name} chores must be completed first.`
+            : 'Category prerequisites not met.',
+        })
+        return
+      }
+    }
+    
     setCompletions((current) =>
       (current || []).map((c) =>
         c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
       )
     )
     
-    const completion = safeCompletions.find((c) => c.id === completionId)
-    if (completion) {
-      const historyEvent: ChoreHistoryEvent = {
-        id: `history_${Date.now()}_${Math.random()}`,
-        type: 'approve',
-        childId: completion.childId,
-        choreId: completion.choreId,
-        timestamp: Date.now(),
-        timeOfDay: completion.timeOfDay,
-        completionId,
-      }
-      setHistory((current) => [...(current || []), historyEvent])
-
-      setTimeout(() => {
-        const updatedCompletions = safeCompletions.map((c) =>
-          c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
-        )
-        checkAndAwardCategoryBonuses(completion.childId, updatedCompletions)
-      }, 500)
+    const historyEvent: ChoreHistoryEvent = {
+      id: `history_${Date.now()}_${Math.random()}`,
+      type: 'approve',
+      childId: completion.childId,
+      choreId: completion.choreId,
+      timestamp: Date.now(),
+      timeOfDay: completion.timeOfDay,
+      completionId,
     }
+    setHistory((current) => [...(current || []), historyEvent])
+
+    setTimeout(() => {
+      const updatedCompletions = safeCompletions.map((c) =>
+        c.id === completionId ? { ...c, approvalStatus: 'approved' as const, approvedAt: Date.now() } : c
+      )
+      checkAndAwardCategoryBonuses(completion.childId, updatedCompletions)
+    }, 500)
     
     toast.success('Chore approved! Points awarded.')
   }
