@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getAvailableExchangeRates } from '@/lib/helpers'
 
 interface RewardDialogProps {
@@ -28,9 +29,11 @@ interface RewardDialogProps {
   childrenList?: Child[]
   chores?: Chore[]
   categories: Category[]
+  disabled?: boolean
+  disabledTooltip?: string
 }
 
-export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [], categories }: RewardDialogProps) {
+export function RewardDialog({ reward, onSave, trigger, childrenList = [], chores = [], categories, disabled = false, disabledTooltip }: RewardDialogProps) {
   const [open, setOpen] = useState(false)
   const [isPointSwap, setIsPointSwap] = useState(reward?.isPointSwap || false)
   const [name, setName] = useState(reward?.name || '')
@@ -170,15 +173,39 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
 
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button className="font-fredoka">
-            <Plus className="mr-2" />
-            Add Reward
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!disabled) {
+        setOpen(newOpen);
+      }
+    }}>
+      {disabled && disabledTooltip ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <DialogTrigger asChild>
+                {trigger || (
+                  <Button className="font-fredoka" disabled={disabled}>
+                    <Plus className="mr-2" />
+                    Add Reward
+                  </Button>
+                )}
+              </DialogTrigger>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{disabledTooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button className="font-fredoka">
+              <Plus className="mr-2" />
+              Add Reward
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-fredoka text-2xl">
