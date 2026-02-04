@@ -312,7 +312,7 @@ export async function createPaidSubscription(
       // Handle the race condition where the payment method was attached between retrieve and attach
       // Stripe error type check: resource_already_exists code or "already been attached" message
       const isAttachmentError = error instanceof Error && 
-        (error.message?.includes('already been attached') || 
+        (error.message.includes('already been attached') || 
          ('code' in error && (error as { code?: string }).code === 'resource_already_exists'));
       
       if (isAttachmentError) {
