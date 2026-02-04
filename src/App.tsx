@@ -74,7 +74,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers, viewOnlyMode, viewingTenantId, exitViewMode } = useAuth()
-  const { updateQuantity } = useSubscription()
+  const { updateQuantity, fetchLimits } = useSubscription()
   
   // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
@@ -1014,6 +1014,8 @@ function App() {
     }
     setRewards((current) => [...(current || []), newReward])
     toast.success(`Reward "${newReward.name}" created!`)
+    // Re-fetch limits to immediately update canAddReward status
+    fetchLimits()
   }
 
   const handleEditReward = (
@@ -1037,6 +1039,8 @@ function App() {
   const handleDeleteReward = (id: string) => {
     setRewards((current) => (current || []).filter((r) => r.id !== id))
     toast.success('Reward deleted')
+    // Re-fetch limits to immediately update canAddReward status
+    fetchLimits()
   }
 
   const handleToggleRewardDisabled = (id: string) => {
