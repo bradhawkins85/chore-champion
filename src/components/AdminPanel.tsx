@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Tenant {
@@ -57,6 +58,40 @@ interface Payment {
   amount: number
 }
 
+interface SubscriptionPlan {
+  id: string
+  name: string
+  tier: 'free' | 'paid' | 'unlimited'
+  description: string
+  max_children: number | null
+  max_devices: number | null
+  max_chores: number | null
+  max_rewards: number | null
+  price_per_child_aud: number
+  base_price: number
+  billing_interval: 'monthly' | 'annual'
+  features: string[]
+  is_active: boolean
+}
+
+interface TenantSubscription {
+  id: string
+  tenant_id: string
+  plan_id: string
+  status: string
+  current_period_start: number
+  current_period_end: number
+  cancel_at_period_end: boolean
+  canceled_at: number | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  plan?: SubscriptionPlan
+}
+
+interface TenantWithSubscription extends Tenant {
+  subscription?: TenantSubscription
+}
+
 export function AdminPanel() {
   const { token, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -67,6 +102,9 @@ export function AdminPanel() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [parentToDelete, setParentToDelete] = useState<{ id: string; email: string } | null>(null)
+  const [tenantsWithSubscriptions, setTenantsWithSubscriptions] = useState<TenantWithSubscription[]>([])
+  const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([])
+  const [changingSubscription, setChangingSubscription] = useState<string | null>(null)
 
   // Redirect if not admin
   useEffect(() => {
@@ -157,6 +195,103 @@ export function AdminPanel() {
     }
   }
 
+  const fetchAvailablePlans = async () => {
+    try {
+      const response = await fetch('/api/subscriptions/plans', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Failed to fetch plans')
+      
+      const plans = await response.json()
+      setAvailablePlans(plans)
+    } catch (error) {
+      console.error('Error fetching plans:', error)
+      toast.error('Failed to load subscription plans')
+    }
+  }
+
+  const fetchSubscriptions = async () => {
+    setLoading(true)
+    try {
+      // First fetch tenants
+      const tenantsResponse = await fetch('/api/admin/tenants', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!tenantsResponse.ok) throw new Error('Failed to fetch tenants')
+      
+      const tenantsData = await tenantsResponse.json()
+      const tenantsList = tenantsData.tenants
+
+      // Then fetch subscription for each tenant
+      const tenantsWithSubs = await Promise.all(
+        tenantsList.map(async (tenant: Tenant) => {
+          try {
+            const subResponse = await fetch(`/api/admin/subscriptions/${tenant.id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+
+            if (subResponse.ok) {
+              const subData = await subResponse.json()
+              return {
+                ...tenant,
+                subscription: subData.subscription
+              }
+            }
+            return tenant
+          } catch (error) {
+            console.error(`Error fetching subscription for tenant ${tenant.id}:`, error)
+            return tenant
+          }
+        })
+      )
+
+      setTenantsWithSubscriptions(tenantsWithSubs)
+    } catch (error) {
+      console.error('Error fetching subscriptions:', error)
+      toast.error('Failed to load subscription data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateTenantSubscription = async (tenantId: string, planId: string) => {
+    setChangingSubscription(tenantId)
+    try {
+      const response = await fetch(`/api/admin/subscriptions/${tenantId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ planId })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update subscription')
+      }
+      
+      const data = await response.json()
+      toast.success(data.message)
+      
+      // Refresh subscriptions list
+      fetchSubscriptions()
+    } catch (error: any) {
+      console.error('Error updating subscription:', error)
+      toast.error(error.message || 'Failed to update subscription')
+    } finally {
+      setChangingSubscription(null)
+    }
+  }
+
   const deleteParent = async (parentId: string, email: string) => {
     setParentToDelete({ id: parentId, email })
     setDeleteDialogOpen(true)
@@ -194,6 +329,7 @@ export function AdminPanel() {
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchStats()
+      fetchAvailablePlans()
     }
   }, [user, fetchStats])
 
@@ -281,6 +417,10 @@ export function AdminPanel() {
             <TabsTrigger value="parents" onClick={fetchParents}>
               <Users className="h-4 w-4 mr-2" />
               Parent Users
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions" onClick={fetchSubscriptions}>
+              <Settings className="h-4 w-4 mr-2" />
+              Subscriptions
             </TabsTrigger>
             <TabsTrigger value="payments" onClick={fetchPayments}>
               <CreditCard className="h-4 w-4 mr-2" />
@@ -397,6 +537,126 @@ export function AdminPanel() {
                     ))}
                     {parents.length === 0 && !loading && (
                       <p className="text-center text-muted-foreground py-8">No parent users found</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Subscriptions Tab */}
+          <TabsContent value="subscriptions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Subscription Management</CardTitle>
+                    <CardDescription>View and manage tenant subscriptions</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={fetchSubscriptions} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-4">
+                    {tenantsWithSubscriptions.map((tenant) => {
+                      const subscription = tenant.subscription
+                      const currentPlan = subscription?.plan
+                      const tierColors = {
+                        free: 'secondary',
+                        paid: 'default',
+                        unlimited: 'default'
+                      } as const
+
+                      return (
+                        <Card key={tenant.id}>
+                          <CardContent className="pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div className="md:col-span-2">
+                                <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
+                                <p className="font-mono text-sm">{tenant.id}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Parent Emails</p>
+                                <p className="text-sm">{tenant.parent_emails || 'No parents'}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Current Plan</p>
+                                {currentPlan ? (
+                                  <Badge variant={tierColors[currentPlan.tier] || 'secondary'}>
+                                    {currentPlan.name}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">No Subscription</Badge>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
+                                <Badge variant={subscription?.status === 'active' ? 'default' : 'outline'}>
+                                  {subscription?.status || 'none'}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Change Plan</p>
+                                <Select
+                                  value={subscription?.plan_id || ''}
+                                  onValueChange={(planId) => updateTenantSubscription(tenant.id, planId)}
+                                  disabled={changingSubscription === tenant.id}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select plan..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availablePlans.map((plan) => (
+                                      <SelectItem key={plan.id} value={plan.id}>
+                                        {plan.name} ({plan.tier})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {currentPlan && (
+                                <>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Max Children</p>
+                                    <p className="text-sm">{currentPlan.max_children === null ? '∞' : currentPlan.max_children}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Max Devices</p>
+                                    <p className="text-sm">{currentPlan.max_devices === null ? '∞' : currentPlan.max_devices}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Max Chores</p>
+                                    <p className="text-sm">{currentPlan.max_chores === null ? '∞' : currentPlan.max_chores}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Max Rewards</p>
+                                    <p className="text-sm">{currentPlan.max_rewards === null ? '∞' : currentPlan.max_rewards}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Period</p>
+                                    <p className="text-sm">
+                                      {subscription?.current_period_start 
+                                        ? new Date(subscription.current_period_start).toLocaleDateString()
+                                        : 'N/A'} 
+                                      {' - '}
+                                      {subscription?.current_period_end 
+                                        ? new Date(subscription.current_period_end).toLocaleDateString()
+                                        : 'N/A'}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                    {tenantsWithSubscriptions.length === 0 && !loading && (
+                      <p className="text-center text-muted-foreground py-8">No tenants found</p>
                     )}
                   </div>
                 </ScrollArea>
