@@ -335,12 +335,13 @@ export async function createPaidSubscription(
       tenant_id: tenantId,
       children_count: childrenCount.toString(),
     },
-  }) as any; // Type assertion needed due to expanded fields not in type definition
+  });
   
   // Create or update subscription in database
   const subscriptionId = uuidv4();
-  const currentPeriodStart = (stripeSubscription.current_period_start || 0) * 1000;
-  const currentPeriodEnd = (stripeSubscription.current_period_end || 0) * 1000;
+  // Get current_period_start and current_period_end from the first subscription item
+  const currentPeriodStart = (stripeSubscription.items?.data?.[0]?.current_period_start || 0) * 1000;
+  const currentPeriodEnd = (stripeSubscription.items?.data?.[0]?.current_period_end || 0) * 1000;
   
   // Check if subscription already exists
   const existingSubscription = await getTenantSubscription(tenantId);
@@ -376,10 +377,11 @@ export async function createPaidSubscription(
   
   // Get client secret for payment confirmation
   let clientSecret: string | undefined;
-  if (stripeSubscription.latest_invoice?.payment_intent) {
-    // Type assertion needed due to Stripe's complex expanded type system
-    const paymentIntent = stripeSubscription.latest_invoice.payment_intent as any;
-    clientSecret = paymentIntent.client_secret;
+  if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object' && 'payment_intent' in stripeSubscription.latest_invoice) {
+    const paymentIntent = stripeSubscription.latest_invoice.payment_intent;
+    if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+      clientSecret = paymentIntent.client_secret as string;
+    }
   }
   
   return {
@@ -403,8 +405,10 @@ export async function cancelSubscription(tenantId: string): Promise<void> {
     const updatedSubscription = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,
     });
-    if (updatedSubscription.current_period_end) {
-      updatedPeriodEnd = updatedSubscription.current_period_end * 1000;
+    // Get current_period_end from the first subscription item
+    const periodEnd = updatedSubscription.items?.data?.[0]?.current_period_end;
+    if (periodEnd) {
+      updatedPeriodEnd = periodEnd * 1000;
     }
   }
   
