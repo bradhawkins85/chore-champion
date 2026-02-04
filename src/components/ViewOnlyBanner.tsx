@@ -17,7 +17,7 @@ export function ViewOnlyBanner({ tenantId, onExit }: ViewOnlyBannerProps) {
   }
 
   return (
-    <Alert className="rounded-none border-x-0 border-t-0 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 py-2">
+    <Alert className="rounded-none border-x-0 border-t-0 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 py-2 grid-cols-1">
       <div className="flex items-center justify-between w-full gap-4">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Eye className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
