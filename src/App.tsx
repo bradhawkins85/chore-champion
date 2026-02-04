@@ -405,6 +405,11 @@ function App() {
   }, [ipRestrictions?.enabled, ipRestrictions?.allowedIPs])
 
   useEffect(() => {
+    // Wait for auth to complete before initializing categories to prevent 403 errors
+    if (authLoading) {
+      return
+    }
+    
     if (!hasInitializedCategories.current && safeCategories.length === 0) {
       const defaultCategories = DEFAULT_CATEGORIES.map((cat, index) => {
         const categoryId = `category_default_${index}`
@@ -425,9 +430,14 @@ function App() {
       setCategories(defaultCategories)
       hasInitializedCategories.current = true
     }
-  }, [safeCategories, setCategories])
+  }, [authLoading, safeCategories, setCategories])
 
   useEffect(() => {
+    // Wait for auth to complete before initializing report templates to prevent 403 errors
+    if (authLoading) {
+      return
+    }
+    
     if (safeReportTemplates.length === 0) {
       const defaultTemplates = DEFAULT_REPORT_TEMPLATES.map((template, index: number) => ({
         ...template,
@@ -436,7 +446,7 @@ function App() {
       }))
       setReportTemplates(defaultTemplates)
     }
-  }, [safeReportTemplates, setReportTemplates])
+  }, [authLoading, safeReportTemplates, setReportTemplates])
 
   useEffect(() => {
     if (safeRewards.length > 0) {
