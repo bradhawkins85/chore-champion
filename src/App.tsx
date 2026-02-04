@@ -647,6 +647,10 @@ function App() {
   }
 
   const handleAddChore = wrapMutation((choreData: Omit<Chore, 'id' | 'createdAt'>) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     const newChore: Chore = {
       ...choreData,
       id: `chore_${Date.now()}_${Math.random()}`,
@@ -660,15 +664,23 @@ function App() {
     id: string,
     choreData: Omit<Chore, 'id' | 'createdAt'>
   ) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     setChores((current) =>
       (current || []).map((c) =>
         c.id === id ? { ...c, ...choreData } : c
       )
     )
     toast.success('Chore updated!')
-  }
+  })
 
   const handleDeleteChore = (id: string) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     setChores((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
@@ -677,6 +689,10 @@ function App() {
   const handleAddChild = (
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     const newChild: Child = {
       ...childData,
       id: `child_${Date.now()}_${Math.random()}`,
@@ -691,6 +707,10 @@ function App() {
     id: string,
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     setChildrenList((current) =>
       (current || []).map((c) =>
         c.id === id ? { ...c, ...childData } : c
@@ -700,6 +720,10 @@ function App() {
   }
 
   const handleDeleteChild = (id: string) => {
+    if (viewOnlyMode) {
+      toast.error('Cannot make changes in view-only mode')
+      return
+    }
     setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
