@@ -11,8 +11,19 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Event emitter for auth token changes
 const authTokenListeners = new Set<() => void>();
 
+// Track if API is available
+let apiAvailable: boolean | null = null;
+let apiCheckTimestamp: number | null = null;
+const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
+
+function resetApiAvailability() {
+  apiAvailable = null;
+  apiCheckTimestamp = null;
+}
+
 // Notify all listeners when auth token changes
 function notifyAuthTokenChange() {
+  resetApiAvailability();
   authTokenListeners.forEach(listener => listener());
 }
 
@@ -56,11 +67,6 @@ localStorage.removeItem = function(key: string) {
     setTimeout(() => notifyAuthTokenChange(), 0);
   }
 };
-
-// Track if API is available
-let apiAvailable: boolean | null = null;
-let apiCheckTimestamp: number | null = null;
-const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
 
 // Request queue to throttle concurrent API requests
 interface QueuedRequest {
