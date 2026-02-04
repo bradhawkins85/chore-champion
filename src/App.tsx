@@ -658,7 +658,7 @@ function App() {
     }) as T
   }
 
-  const handleAddChore = wrapMutation((choreData: Omit<Chore, 'id' | 'createdAt'>) => {
+  const handleAddChore = wrapMutation(async (choreData: Omit<Chore, 'id' | 'createdAt'>) => {
     if (viewOnlyMode) {
       toast.error('Cannot make changes in view-only mode')
       return
@@ -668,8 +668,10 @@ function App() {
       id: `chore_${Date.now()}_${Math.random()}`,
       createdAt: Date.now(),
     }
-    setChores((current) => [...(current || []), newChore])
+    await setChores((current) => [...(current || []), newChore])
     toast.success(`Chore "${newChore.name}" created!`)
+    // Re-fetch limits to immediately update canAddChore status
+    fetchLimits()
   })
 
   const handleEditChore = wrapMutation((
@@ -688,13 +690,15 @@ function App() {
     toast.success('Chore updated!')
   })
 
-  const handleDeleteChore = wrapMutation((id: string) => {
-    setChores((current) => (current || []).filter((c) => c.id !== id))
+  const handleDeleteChore = wrapMutation(async (id: string) => {
+    await setChores((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.choreId !== id))
     toast.success('Chore deleted')
+    // Re-fetch limits to immediately update canAddChore status
+    fetchLimits()
   })
 
-  const handleAddChild = wrapMutation((
+  const handleAddChild = wrapMutation(async (
     childData: Omit<Child, 'id' | 'createdAt' | 'totalPoints'>
   ) => {
     const newChild: Child = {
@@ -703,9 +707,11 @@ function App() {
       totalPoints: 0,
       createdAt: Date.now(),
     }
-    setChildrenList((current) => [...(current || []), newChild])
+    await setChildrenList((current) => [...(current || []), newChild])
     void updateQuantity((childrenList || []).length + 1)
     toast.success(`${newChild.name} added!`)
+    // Re-fetch limits to immediately update canAddChild status
+    fetchLimits()
   })
 
   const handleEditChild = wrapMutation((
@@ -720,8 +726,8 @@ function App() {
     toast.success('Child updated!')
   })
 
-  const handleDeleteChild = wrapMutation((id: string) => {
-    setChildrenList((current) => (current || []).filter((c) => c.id !== id))
+  const handleDeleteChild = wrapMutation(async (id: string) => {
+    await setChildrenList((current) => (current || []).filter((c) => c.id !== id))
     setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     setCompletions((current) => (current || []).filter((c) => c.childId !== id))
     setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
@@ -729,6 +735,8 @@ function App() {
     const nextCount = Math.max((childrenList || []).length - 1, 0)
     void updateQuantity(nextCount)
     toast.success('Child removed')
+    // Re-fetch limits to immediately update canAddChild status
+    fetchLimits()
   })
 
   const handleAddChildAvailability = (
