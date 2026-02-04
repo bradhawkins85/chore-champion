@@ -209,8 +209,8 @@ export function useSubscription() {
   }, [token]);
 
   // Create paid subscription
-  const createPaidSubscription = useCallback(async (paymentMethodId: string, childrenCount: number): Promise<boolean> => {
-    if (!token) return false;
+  const createPaidSubscription = useCallback(async (paymentMethodId: string, childrenCount: number): Promise<{ clientSecret?: string } | null> => {
+    if (!token) return null;
 
     try {
       const response = await fetch(`${API_URL}/subscriptions/create`, {
@@ -227,13 +227,14 @@ export function useSubscription() {
         throw new Error(errorData.error || 'Failed to create subscription');
       }
 
+      const result = await response.json();
       await fetchSubscription();
       await fetchLimits();
-      return true;
+      return result;
     } catch (err: any) {
       console.error('Error creating subscription:', err);
       setError(err.message);
-      return false;
+      return null;
     }
   }, [token, fetchSubscription, fetchLimits]);
 

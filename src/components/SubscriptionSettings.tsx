@@ -70,17 +70,27 @@ function PaymentForm({ plan, childrenCount, onSuccess }: {
       }
 
       // Create subscription
-      const success = await createPaidSubscription(
+      const subscriptionResult = await createPaidSubscription(
         setupIntent.payment_method as string,
         childrenCount
       );
 
-      if (success) {
-        toast.success('Subscription activated successfully!');
-        onSuccess();
-      } else {
+      if (!subscriptionResult) {
         throw new Error('Failed to activate subscription');
       }
+
+      if (subscriptionResult.clientSecret) {
+        const { error: paymentError } = await stripe.confirmCardPayment(
+          subscriptionResult.clientSecret
+        );
+
+        if (paymentError) {
+          throw new Error(paymentError.message);
+        }
+      }
+
+      toast.success('Subscription activated successfully!');
+      onSuccess();
     } catch (err: any) {
       setError(err.message || 'Payment failed');
       toast.error(err.message || 'Payment failed');
