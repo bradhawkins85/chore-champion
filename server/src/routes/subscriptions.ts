@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 import {
   getSubscriptionPlans,
+  getSubscriptionPlansForTenant,
   getTenantSubscription,
   createPaidSubscription,
   cancelSubscription,
@@ -21,7 +22,12 @@ const router = Router();
  */
 router.get('/plans', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const plans = await getSubscriptionPlans();
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Tenant not found' });
+    }
+
+    const plans = await getSubscriptionPlansForTenant(tenantId);
     res.json(plans);
   } catch (error: any) {
     console.error('Error fetching plans:', error);

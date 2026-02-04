@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { pool } from '../config/database.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { v4 as uuidv4 } from 'uuid';
+import { getEffectivePricePerChild } from './subscription-pricing.js';
 
 // Initialize Stripe with secret key
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -59,6 +60,26 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
     ...row,
     features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features,
   }));
+}
+
+export async function getSubscriptionPlansForTenant(tenantId: string): Promise<SubscriptionPlan[]> {
+  const plans = await getSubscriptionPlans();
+  const pricedPlans = await Promise.all(
+    plans.map(async (plan) => {
+      if (plan.tier !== 'paid') {
+        return plan;
+      }
+
+      const fallbackPrice = Number(plan.price_per_child_aud) || 0;
+      const effectivePrice = await getEffectivePricePerChild(tenantId, fallbackPrice);
+      return {
+        ...plan,
+        price_per_child_aud: effectivePrice,
+      };
+    })
+  );
+
+  return pricedPlans;
 }
 
 /**
@@ -161,6 +182,11 @@ export async function getTenantSubscription(tenantId: string): Promise<(TenantSu
   // Build the plan object if plan data exists
   let plan: SubscriptionPlan | undefined = undefined;
   if (row.plan_name) {
+    const fallbackPrice = Number(row.plan_price_per_child_aud) || 0;
+    const effectivePrice = row.plan_tier === 'paid'
+      ? await getEffectivePricePerChild(tenantId, fallbackPrice)
+      : fallbackPrice;
+
     plan = {
       id: row.plan_id_value!,
       name: row.plan_name,
@@ -170,7 +196,7 @@ export async function getTenantSubscription(tenantId: string): Promise<(TenantSu
       max_devices: row.plan_max_devices,
       max_chores: row.plan_max_chores,
       max_rewards: row.plan_max_rewards,
-      price_per_child_aud: row.plan_price_per_child_aud!,
+      price_per_child_aud: effectivePrice,
       base_price: row.plan_base_price!,
       billing_interval: row.plan_billing_interval!,
       features: typeof row.plan_features === 'string' ? JSON.parse(row.plan_features) : row.plan_features!,
@@ -270,10 +296,21 @@ export async function createPaidSubscription(
     },
   });
   
+  const paidPlan = await getSubscriptionPlan('plan_paid');
+  if (!paidPlan) {
+    throw new Error('Paid plan not found');
+  }
+
+  const effectivePrice = await getEffectivePricePerChild(tenantId, Number(paidPlan.price_per_child_aud) || 0);
+  const unitAmount = Math.round(effectivePrice * 100);
+  if (unitAmount <= 0) {
+    throw new Error('Paid plan price is not configured');
+  }
+
   // First, create a price
   const price = await stripe.prices.create({
     currency: 'aud',
-    unit_amount: 100, // $1 in cents
+    unit_amount: unitAmount,
     recurring: {
       interval: 'month',
     },

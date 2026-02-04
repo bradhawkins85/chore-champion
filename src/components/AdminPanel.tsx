@@ -101,6 +101,16 @@ interface TenantWithSubscription extends Tenant {
   subscription?: TenantSubscription
 }
 
+interface SubscriptionPricingOverride {
+  tenantId: string
+  pricePerChildAUD: number
+}
+
+interface SubscriptionPricingSettings {
+  globalPricePerChildAUD: number | null
+  tenantOverrides: SubscriptionPricingOverride[]
+}
+
 type SortField = 'id' | 'created_at' | 'user_count' | 'device_count' | 'email' | 'tenant_id' | 'plan' | 'status'
 type SortDirection = 'asc' | 'desc'
 
@@ -117,6 +127,12 @@ export function AdminPanel() {
   const [tenantsWithSubscriptions, setTenantsWithSubscriptions] = useState<TenantWithSubscription[]>([])
   const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([])
   const [changingSubscription, setChangingSubscription] = useState<string | null>(null)
+  const [pricingSettings, setPricingSettings] = useState<SubscriptionPricingSettings | null>(null)
+  const [pricingLoading, setPricingLoading] = useState(false)
+  const [globalPriceInput, setGlobalPriceInput] = useState('')
+  const [selectedOverrideTenant, setSelectedOverrideTenant] = useState('')
+  const [overridePriceInput, setOverridePriceInput] = useState('')
+  const [overrideEditInputs, setOverrideEditInputs] = useState<Record<string, string>>({})
 
   // Search and filter states
   const [tenantsSearch, setTenantsSearch] = useState('')
@@ -238,6 +254,106 @@ export function AdminPanel() {
     } catch (error) {
       console.error('Error fetching plans:', error)
       toast.error('Failed to load subscription plans')
+    }
+  }
+
+  const fetchPricingSettings = useCallback(async () => {
+    setPricingLoading(true)
+    try {
+      const response = await fetch('/api/admin/subscription-pricing', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Failed to fetch pricing settings')
+
+      const data = await response.json()
+      setPricingSettings(data)
+      setGlobalPriceInput(
+        data.globalPricePerChildAUD !== null && data.globalPricePerChildAUD !== undefined
+          ? String(data.globalPricePerChildAUD)
+          : ''
+      )
+      const edits: Record<string, string> = {}
+      data.tenantOverrides.forEach((override: SubscriptionPricingOverride) => {
+        edits[override.tenantId] = String(override.pricePerChildAUD)
+      })
+      setOverrideEditInputs(edits)
+    } catch (error) {
+      console.error('Error fetching pricing settings:', error)
+      toast.error('Failed to load pricing settings')
+    } finally {
+      setPricingLoading(false)
+    }
+  }, [token])
+
+  const saveGlobalPrice = async () => {
+    const payloadValue = globalPriceInput.trim() === '' ? null : Number(globalPriceInput)
+
+    if (payloadValue !== null && (Number.isNaN(payloadValue) || payloadValue < 0)) {
+      toast.error('Enter a valid global price')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/subscription-pricing/global', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ pricePerChildAUD: payloadValue })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update global pricing')
+      }
+
+      toast.success(payloadValue === null ? 'Global pricing cleared' : 'Global pricing updated')
+      fetchPricingSettings()
+    } catch (error: any) {
+      console.error('Error updating global pricing:', error)
+      toast.error(error.message || 'Failed to update global pricing')
+    }
+  }
+
+  const saveTenantOverride = async (tenantId: string, inputValue: string) => {
+    const payloadValue = inputValue.trim() === '' ? null : Number(inputValue)
+
+    if (!tenantId) {
+      toast.error('Select a tenant')
+      return
+    }
+
+    if (payloadValue !== null && (Number.isNaN(payloadValue) || payloadValue < 0)) {
+      toast.error('Enter a valid tenant price')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/subscription-pricing/tenant/${tenantId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ pricePerChildAUD: payloadValue })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update tenant pricing')
+      }
+
+      toast.success(payloadValue === null ? 'Tenant pricing cleared' : 'Tenant pricing updated')
+      fetchPricingSettings()
+      setSelectedOverrideTenant('')
+      setOverridePriceInput('')
+    } catch (error: any) {
+      console.error('Error updating tenant pricing:', error)
+      toast.error(error.message || 'Failed to update tenant pricing')
     }
   }
 
@@ -391,8 +507,9 @@ export function AdminPanel() {
     if (user?.role === 'admin') {
       fetchStats()
       fetchAvailablePlans()
+      fetchPricingSettings()
     }
-  }, [user, fetchStats])
+  }, [user, fetchStats, fetchPricingSettings])
 
   // Sorting and filtering logic
   const sortData = <T extends Record<string, any>>(data: T[], field: SortField, direction: SortDirection): T[] => {
@@ -585,7 +702,13 @@ export function AdminPanel() {
                 <Users className="h-4 w-4 mr-2" />
                 Parent Users
               </TabsTrigger>
-              <TabsTrigger value="subscriptions" onClick={fetchSubscriptions}>
+              <TabsTrigger
+                value="subscriptions"
+                onClick={() => {
+                  fetchSubscriptions()
+                  fetchPricingSettings()
+                }}
+              >
                 <Settings className="h-4 w-4 mr-2" />
                 Subscriptions
               </TabsTrigger>
@@ -800,6 +923,140 @@ export function AdminPanel() {
 
             {/* Subscriptions Tab */}
             <TabsContent value="subscriptions" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Subscription Pricing</CardTitle>
+                      <CardDescription className="text-xs">
+                        Configure the per-child price globally or override it for specific tenants.
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchPricingSettings} disabled={pricingLoading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${pricingLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Global price per child (AUD)</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={globalPriceInput}
+                          onChange={(e) => setGlobalPriceInput(e.target.value)}
+                          placeholder="e.g. 1.00"
+                        />
+                      </div>
+                      <Button onClick={saveGlobalPrice} className="font-fredoka">
+                        Save Global Price
+                      </Button>
+                    </div>
+                    {pricingSettings?.globalPricePerChildAUD !== null && pricingSettings?.globalPricePerChildAUD !== undefined ? (
+                      <p className="text-xs text-muted-foreground">
+                        Current global price: ${pricingSettings.globalPricePerChildAUD.toFixed(2)} AUD per child/month.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        No global override set. Paid plan pricing will use the default plan rate.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Tenant override</label>
+                        <Select value={selectedOverrideTenant} onValueChange={setSelectedOverrideTenant}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select tenant..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tenantsWithSubscriptions.map((tenant) => (
+                              <SelectItem key={tenant.id} value={tenant.id} className="text-xs">
+                                {tenant.id} {tenant.parent_emails ? `(${tenant.parent_emails})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-full sm:w-48 space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Price (AUD)</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={overridePriceInput}
+                          onChange={(e) => setOverridePriceInput(e.target.value)}
+                          placeholder="e.g. 1.25"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => saveTenantOverride(selectedOverrideTenant, overridePriceInput)}
+                        className="font-fredoka"
+                      >
+                        Save Override
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-xs font-medium text-muted-foreground">Existing tenant overrides</p>
+                      {pricingSettings?.tenantOverrides.length ? (
+                        <div className="space-y-2">
+                          {pricingSettings.tenantOverrides.map((override) => (
+                            <div
+                              key={override.tenantId}
+                              className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center"
+                            >
+                              <div className="flex-1 text-xs font-mono">{override.tenantId}</div>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={overrideEditInputs[override.tenantId] ?? ''}
+                                onChange={(e) =>
+                                  setOverrideEditInputs((prev) => ({
+                                    ...prev,
+                                    [override.tenantId]: e.target.value,
+                                  }))
+                                }
+                                className="sm:w-32"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    saveTenantOverride(
+                                      override.tenantId,
+                                      overrideEditInputs[override.tenantId] ?? ''
+                                    )
+                                  }
+                                >
+                                  Update
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => saveTenantOverride(override.tenantId, '')}
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No tenant overrides configured.</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="flex-1 overflow-hidden flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
