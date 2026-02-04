@@ -1003,7 +1003,7 @@ function App() {
     })
   }
 
-  const handleAddReward = (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
+  const handleAddReward = async (rewardData: Omit<Reward, 'id' | 'createdAt'>) => {
     const categoryIdsArray = Array.isArray(rewardData.categoryIds) ? [...rewardData.categoryIds] : []
     
     const newReward: Reward = {
@@ -1012,7 +1012,7 @@ function App() {
       createdAt: Date.now(),
       categoryIds: categoryIdsArray,
     }
-    setRewards((current) => [...(current || []), newReward])
+    await setRewards((current) => [...(current || []), newReward])
     toast.success(`Reward "${newReward.name}" created!`)
     // Re-fetch limits to immediately update canAddReward status
     fetchLimits()
@@ -1036,8 +1036,8 @@ function App() {
     toast.success('Reward updated!')
   }
 
-  const handleDeleteReward = (id: string) => {
-    setRewards((current) => (current || []).filter((r) => r.id !== id))
+  const handleDeleteReward = async (id: string) => {
+    await setRewards((current) => (current || []).filter((r) => r.id !== id))
     toast.success('Reward deleted')
     // Re-fetch limits to immediately update canAddReward status
     fetchLimits()
