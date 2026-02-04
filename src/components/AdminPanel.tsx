@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Tenant {
@@ -92,6 +101,9 @@ interface TenantWithSubscription extends Tenant {
   subscription?: TenantSubscription
 }
 
+type SortField = 'id' | 'created_at' | 'user_count' | 'device_count' | 'email' | 'tenant_id' | 'plan' | 'status'
+type SortDirection = 'asc' | 'desc'
+
 export function AdminPanel() {
   const { token, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -105,6 +117,22 @@ export function AdminPanel() {
   const [tenantsWithSubscriptions, setTenantsWithSubscriptions] = useState<TenantWithSubscription[]>([])
   const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([])
   const [changingSubscription, setChangingSubscription] = useState<string | null>(null)
+
+  // Search and filter states
+  const [tenantsSearch, setTenantsSearch] = useState('')
+  const [parentsSearch, setParentsSearch] = useState('')
+  const [subscriptionsSearch, setSubscriptionsSearch] = useState('')
+  const [paymentsSearch, setPaymentsSearch] = useState('')
+
+  // Sorting states
+  const [tenantsSortField, setTenantsSortField] = useState<SortField>('created_at')
+  const [tenantsSortDirection, setTenantsSortDirection] = useState<SortDirection>('desc')
+  const [parentsSortField, setParentsSortField] = useState<SortField>('created_at')
+  const [parentsSortDirection, setParentsSortDirection] = useState<SortDirection>('desc')
+  const [subscriptionsSortField, setSubscriptionsSortField] = useState<SortField>('created_at')
+  const [subscriptionsSortDirection, setSubscriptionsSortDirection] = useState<SortDirection>('desc')
+  const [paymentsSortField, setPaymentsSortField] = useState<SortField>('status')
+  const [paymentsSortDirection, setPaymentsSortDirection] = useState<SortDirection>('desc')
 
   // Redirect if not admin
   useEffect(() => {
@@ -333,403 +361,594 @@ export function AdminPanel() {
     }
   }, [user, fetchStats])
 
+  // Sorting and filtering logic
+  const sortData = <T extends Record<string, any>>(data: T[], field: SortField, direction: SortDirection): T[] => {
+    return [...data].sort((a, b) => {
+      let aVal = a[field]
+      let bVal = b[field]
+
+      // Handle nested subscription plan name for subscriptions
+      if (field === 'plan' && a.subscription?.plan) {
+        aVal = a.subscription.plan.name
+        bVal = b.subscription?.plan?.name || ''
+      }
+
+      if (aVal === undefined || aVal === null) return 1
+      if (bVal === undefined || bVal === null) return -1
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return direction === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal)
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'asc' ? aVal - bVal : bVal - aVal
+      }
+
+      return 0
+    })
+  }
+
+  const toggleSort = (
+    currentField: SortField,
+    currentDirection: SortDirection,
+    newField: SortField,
+    setField: (field: SortField) => void,
+    setDirection: (direction: SortDirection) => void
+  ) => {
+    if (currentField === newField) {
+      setDirection(currentDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setField(newField)
+      setDirection('asc')
+    }
+  }
+
+  const SortButton = ({ field, currentField, currentDirection, onClick }: {
+    field: string
+    currentField: SortField
+    currentDirection: SortDirection
+    onClick: () => void
+  }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 px-2 hover:bg-muted"
+      onClick={onClick}
+    >
+      <span className="mr-1">{field}</span>
+      {currentField === field.toLowerCase().replace(' ', '_') ? (
+        currentDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-50" />
+      )}
+    </Button>
+  )
+
+  // Filtered and sorted data
+  const filteredTenants = useMemo(() => {
+    let filtered = tenants.filter(tenant => 
+      tenant.id.toLowerCase().includes(tenantsSearch.toLowerCase()) ||
+      tenant.parent_emails?.toLowerCase().includes(tenantsSearch.toLowerCase())
+    )
+    return sortData(filtered, tenantsSortField, tenantsSortDirection)
+  }, [tenants, tenantsSearch, tenantsSortField, tenantsSortDirection])
+
+  const filteredParents = useMemo(() => {
+    let filtered = parents.filter(parent =>
+      parent.email.toLowerCase().includes(parentsSearch.toLowerCase()) ||
+      parent.tenant_id.toLowerCase().includes(parentsSearch.toLowerCase())
+    )
+    return sortData(filtered, parentsSortField, parentsSortDirection)
+  }, [parents, parentsSearch, parentsSortField, parentsSortDirection])
+
+  const filteredSubscriptions = useMemo(() => {
+    let filtered = tenantsWithSubscriptions.filter(tenant =>
+      tenant.id.toLowerCase().includes(subscriptionsSearch.toLowerCase()) ||
+      tenant.parent_emails?.toLowerCase().includes(subscriptionsSearch.toLowerCase()) ||
+      tenant.subscription?.plan?.name?.toLowerCase().includes(subscriptionsSearch.toLowerCase())
+    )
+    return sortData(filtered, subscriptionsSortField, subscriptionsSortDirection)
+  }, [tenantsWithSubscriptions, subscriptionsSearch, subscriptionsSortField, subscriptionsSortDirection])
+
+  const filteredPayments = useMemo(() => {
+    let filtered = payments.filter(payment =>
+      payment.tenantId.toLowerCase().includes(paymentsSearch.toLowerCase()) ||
+      payment.plan.toLowerCase().includes(paymentsSearch.toLowerCase()) ||
+      payment.status.toLowerCase().includes(paymentsSearch.toLowerCase())
+    )
+    return sortData(filtered, paymentsSortField, paymentsSortDirection)
+  }, [payments, paymentsSearch, paymentsSortField, paymentsSortDirection])
+
   if (!user || user.role !== 'admin') {
     return null
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="flex flex-col h-screen bg-background">
+      <div className="flex-none p-6 border-b">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to App
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Admin Panel</h1>
-              <p className="text-muted-foreground">Platform management and administration</p>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to App
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">Admin Panel</h1>
+                <p className="text-sm text-muted-foreground">Platform management and administration</p>
+              </div>
             </div>
+            <Button variant="outline" onClick={logout}>
+              Sign Out
+            </Button>
           </div>
-          <Button variant="outline" onClick={logout}>
-            Sign Out
-          </Button>
+
+          {/* Stats Overview */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="text-xs">Total Tenants</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalTenants}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="text-xs">Total Parents</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalParents}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="text-xs">Total Devices</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalDevices}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="text-xs">Recent Signups (30d)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.recentSignups}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="text-xs">Active Tenants (7d)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeTenants}</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Stats Overview */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Tenants</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.totalTenants}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Parents</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.totalParents}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Devices</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.totalDevices}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Recent Signups (30d)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.recentSignups}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Active Tenants (7d)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.activeTenants}</div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+      {/* Main Content Tabs - Scrollable */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full max-w-7xl mx-auto px-6">
+          <Tabs defaultValue="tenants" className="h-full flex flex-col">
+            <TabsList className="flex-none mt-4">
+              <TabsTrigger value="tenants" onClick={fetchTenants}>
+                <Database className="h-4 w-4 mr-2" />
+                Tenants
+              </TabsTrigger>
+              <TabsTrigger value="parents" onClick={fetchParents}>
+                <Users className="h-4 w-4 mr-2" />
+                Parent Users
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" onClick={fetchSubscriptions}>
+                <Settings className="h-4 w-4 mr-2" />
+                Subscriptions
+              </TabsTrigger>
+              <TabsTrigger value="payments" onClick={fetchPayments}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Payments
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="tenants" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="tenants" onClick={fetchTenants}>
-              <Database className="h-4 w-4 mr-2" />
-              Tenants
-            </TabsTrigger>
-            <TabsTrigger value="parents" onClick={fetchParents}>
-              <Users className="h-4 w-4 mr-2" />
-              Parent Users
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions" onClick={fetchSubscriptions}>
-              <Settings className="h-4 w-4 mr-2" />
-              Subscriptions
-            </TabsTrigger>
-            <TabsTrigger value="payments" onClick={fetchPayments}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Payments
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Tenants Tab */}
-          <TabsContent value="tenants" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Tenant Management</CardTitle>
-                    <CardDescription>View and manage all tenants on the platform</CardDescription>
+            {/* Tenants Tab */}
+            <TabsContent value="tenants" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card className="flex-1 overflow-hidden flex flex-col">
+                <CardHeader className="flex-none pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Tenant Management</CardTitle>
+                      <CardDescription className="text-xs">View and manage all tenants on the platform</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchTenants} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={fetchTenants} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-4">
-                    {tenants.map((tenant) => (
-                      <Card key={tenant.id}>
-                        <CardContent className="pt-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
-                              <p className="font-mono text-sm">{tenant.id}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Created</p>
-                              <p className="text-sm">{new Date(tenant.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                              <p className="text-sm font-medium text-muted-foreground mb-1">Parent Emails</p>
-                              <p className="text-sm">{tenant.parent_emails || 'No parents'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Users</p>
-                              <Badge variant="secondary">{tenant.user_count}</Badge>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Devices</p>
-                              <Badge variant="secondary">{tenant.device_count}</Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {tenants.length === 0 && !loading && (
-                      <p className="text-center text-muted-foreground py-8">No tenants found</p>
-                    )}
+                  <div className="mt-3">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by tenant ID or parent email..."
+                        value={tenantsSearch}
+                        onChange={(e) => setTenantsSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-6 pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>
+                              <SortButton
+                                field="Tenant ID"
+                                currentField={tenantsSortField}
+                                currentDirection={tenantsSortDirection}
+                                onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'id', setTenantsSortField, setTenantsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead>
+                              <SortButton
+                                field="Created"
+                                currentField={tenantsSortField}
+                                currentDirection={tenantsSortDirection}
+                                onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'created_at', setTenantsSortField, setTenantsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead>Parent Emails</TableHead>
+                            <TableHead className="text-center">
+                              <SortButton
+                                field="Users"
+                                currentField={tenantsSortField}
+                                currentDirection={tenantsSortDirection}
+                                onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'user_count', setTenantsSortField, setTenantsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead className="text-center">
+                              <SortButton
+                                field="Devices"
+                                currentField={tenantsSortField}
+                                currentDirection={tenantsSortDirection}
+                                onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'device_count', setTenantsSortField, setTenantsSortDirection)}
+                              />
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredTenants.map((tenant) => (
+                            <TableRow key={tenant.id}>
+                              <TableCell className="font-mono text-xs">{tenant.id}</TableCell>
+                              <TableCell className="text-sm">{new Date(tenant.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell className="text-sm max-w-xs truncate">{tenant.parent_emails || 'No parents'}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary" className="text-xs">{tenant.user_count}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary" className="text-xs">{tenant.device_count}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {filteredTenants.length === 0 && !loading && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                No tenants found
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Parents Tab */}
-          <TabsContent value="parents" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Parent User Management</CardTitle>
-                    <CardDescription>View and manage parent accounts</CardDescription>
+            {/* Parents Tab */}
+            <TabsContent value="parents" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card className="flex-1 overflow-hidden flex flex-col">
+                <CardHeader className="flex-none pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Parent User Management</CardTitle>
+                      <CardDescription className="text-xs">View and manage parent accounts</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchParents} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={fetchParents} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-4">
-                    {parents.map((parent) => (
-                      <Card key={parent.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                                <p className="text-sm font-medium">{parent.email}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
-                                <p className="font-mono text-xs">{parent.tenant_id}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Created</p>
-                                <p className="text-sm">{new Date(parent.created_at).toLocaleDateString()}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Role</p>
-                                <Badge>{parent.role}</Badge>
-                              </div>
-                            </div>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteParent(parent.id, parent.email)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {parents.length === 0 && !loading && (
-                      <p className="text-center text-muted-foreground py-8">No parent users found</p>
-                    )}
+                  <div className="mt-3">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by email or tenant ID..."
+                        value={parentsSearch}
+                        onChange={(e) => setParentsSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Subscriptions Tab */}
-          <TabsContent value="subscriptions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Subscription Management</CardTitle>
-                    <CardDescription>View and manage tenant subscriptions</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={fetchSubscriptions} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-4">
-                    {tenantsWithSubscriptions.map((tenant) => {
-                      const subscription = tenant.subscription
-                      const currentPlan = subscription?.plan
-                      const tierColors = {
-                        free: 'secondary',
-                        paid: 'default',
-                        unlimited: 'default'
-                      } as const
-
-                      return (
-                        <Card key={tenant.id}>
-                          <CardContent className="pt-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <div className="md:col-span-2">
-                                <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
-                                <p className="font-mono text-sm">{tenant.id}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Parent Emails</p>
-                                <p className="text-sm">{tenant.parent_emails || 'No parents'}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Current Plan</p>
-                                {currentPlan ? (
-                                  <Badge variant={tierColors[currentPlan.tier] || 'secondary'}>
-                                    {currentPlan.name}
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="secondary">No Subscription</Badge>
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
-                                <Badge variant={subscription?.status === 'active' ? 'default' : 'outline'}>
-                                  {subscription?.status || 'none'}
-                                </Badge>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Change Plan</p>
-                                <Select
-                                  value={subscription?.plan_id || ''}
-                                  onValueChange={(planId) => updateTenantSubscription(tenant.id, planId)}
-                                  disabled={changingSubscription === tenant.id}
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-6 pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>
+                              <SortButton
+                                field="Email"
+                                currentField={parentsSortField}
+                                currentDirection={parentsSortDirection}
+                                onClick={() => toggleSort(parentsSortField, parentsSortDirection, 'email', setParentsSortField, setParentsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead>Tenant ID</TableHead>
+                            <TableHead>
+                              <SortButton
+                                field="Created"
+                                currentField={parentsSortField}
+                                currentDirection={parentsSortDirection}
+                                onClick={() => toggleSort(parentsSortField, parentsSortDirection, 'created_at', setParentsSortField, setParentsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredParents.map((parent) => (
+                            <TableRow key={parent.id}>
+                              <TableCell className="font-medium text-sm">{parent.email}</TableCell>
+                              <TableCell className="font-mono text-xs max-w-xs truncate">{parent.tenant_id}</TableCell>
+                              <TableCell className="text-sm">{new Date(parent.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Badge className="text-xs">{parent.role}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deleteParent(parent.id, parent.email)}
                                 >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select plan..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availablePlans.map((plan) => (
-                                      <SelectItem key={plan.id} value={plan.id}>
-                                        {plan.name} ({plan.tier})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              {currentPlan && (
-                                <>
-                                  <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Max Children</p>
-                                    <p className="text-sm">{currentPlan.max_children === null ? '∞' : currentPlan.max_children}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Max Devices</p>
-                                    <p className="text-sm">{currentPlan.max_devices === null ? '∞' : currentPlan.max_devices}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Max Chores</p>
-                                    <p className="text-sm">{currentPlan.max_chores === null ? '∞' : currentPlan.max_chores}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Max Rewards</p>
-                                    <p className="text-sm">{currentPlan.max_rewards === null ? '∞' : currentPlan.max_rewards}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Period</p>
-                                    <p className="text-sm">
-                                      {subscription?.current_period_start 
-                                        ? new Date(subscription.current_period_start).toLocaleDateString()
-                                        : 'N/A'} 
-                                      {' - '}
-                                      {subscription?.current_period_end 
-                                        ? new Date(subscription.current_period_end).toLocaleDateString()
-                                        : 'N/A'}
-                                    </p>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                    {tenantsWithSubscriptions.length === 0 && !loading && (
-                      <p className="text-center text-muted-foreground py-8">No tenants found</p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {filteredParents.length === 0 && !loading && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                No parent users found
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+            {/* Subscriptions Tab */}
+            <TabsContent value="subscriptions" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card className="flex-1 overflow-hidden flex flex-col">
+                <CardHeader className="flex-none pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Subscription Management</CardTitle>
+                      <CardDescription className="text-xs">View and manage tenant subscriptions</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchSubscriptions} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                  <div className="mt-3">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by tenant ID, email, or plan..."
+                        value={subscriptionsSearch}
+                        onChange={(e) => setSubscriptionsSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-6 pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tenant ID</TableHead>
+                            <TableHead>Parent Emails</TableHead>
+                            <TableHead>Current Plan</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Limits</TableHead>
+                            <TableHead>Period</TableHead>
+                            <TableHead>Change Plan</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredSubscriptions.map((tenant) => {
+                            const subscription = tenant.subscription
+                            const currentPlan = subscription?.plan
+                            const tierColors = {
+                              free: 'secondary',
+                              paid: 'default',
+                              unlimited: 'default'
+                            } as const
+
+                            return (
+                              <TableRow key={tenant.id}>
+                                <TableCell className="font-mono text-xs">{tenant.id}</TableCell>
+                                <TableCell className="text-sm max-w-xs truncate">{tenant.parent_emails || 'No parents'}</TableCell>
+                                <TableCell>
+                                  {currentPlan ? (
+                                    <Badge variant={tierColors[currentPlan.tier] || 'secondary'} className="text-xs">
+                                      {currentPlan.name}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">No Subscription</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={subscription?.status === 'active' ? 'default' : 'outline'} className="text-xs">
+                                    {subscription?.status || 'none'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {currentPlan && (
+                                    <div className="space-y-1">
+                                      <div>Ch: {currentPlan.max_children === null ? '∞' : currentPlan.max_children}</div>
+                                      <div>Dev: {currentPlan.max_devices === null ? '∞' : currentPlan.max_devices}</div>
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {subscription?.current_period_start 
+                                    ? `${new Date(subscription.current_period_start).toLocaleDateString()} - ${new Date(subscription.current_period_end).toLocaleDateString()}`
+                                    : 'N/A'}
+                                </TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={subscription?.plan_id || ''}
+                                    onValueChange={(planId) => updateTenantSubscription(tenant.id, planId)}
+                                    disabled={changingSubscription === tenant.id}
+                                  >
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                      <SelectValue placeholder="Select plan..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availablePlans.map((plan) => (
+                                        <SelectItem key={plan.id} value={plan.id} className="text-xs">
+                                          {plan.name} ({plan.tier})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                          {filteredSubscriptions.length === 0 && !loading && (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                No tenants found
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Payments Tab */}
+            <TabsContent value="payments" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card className="flex-1 overflow-hidden flex flex-col">
+                <CardHeader className="flex-none pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Payment Status</CardTitle>
+                      <CardDescription className="text-xs">View billing and payment information (placeholder)</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchPayments} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                  <div className="mb-3 p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      ℹ️ This is a placeholder for future payment integration. Currently showing mock data.
+                    </p>
+                  </div>
                   <div>
-                    <CardTitle>Payment Status</CardTitle>
-                    <CardDescription>View billing and payment information (placeholder)</CardDescription>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by tenant ID, plan, or status..."
+                        value={paymentsSearch}
+                        onChange={(e) => setPaymentsSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={fetchPayments} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4 p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    ℹ️ This is a placeholder for future payment integration. Currently showing mock data.
-                  </p>
-                </div>
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-4">
-                    {payments.map((payment) => (
-                      <Card key={payment.tenantId}>
-                        <CardContent className="pt-6">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
-                              <p className="font-mono text-xs">{payment.tenantId}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Status</p>
-                              <Badge variant={payment.status === 'active' ? 'default' : 'secondary'}>
-                                {payment.status}
-                              </Badge>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Plan</p>
-                              <Badge variant="outline">{payment.plan}</Badge>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Users</p>
-                              <p className="text-sm">{payment.users}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Devices</p>
-                              <p className="text-sm">{payment.devices}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                              <p className="text-sm">${payment.amount.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {payments.length === 0 && !loading && (
-                      <p className="text-center text-muted-foreground py-8">No payment data available</p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-6 pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tenant ID</TableHead>
+                            <TableHead>
+                              <SortButton
+                                field="Status"
+                                currentField={paymentsSortField}
+                                currentDirection={paymentsSortDirection}
+                                onClick={() => toggleSort(paymentsSortField, paymentsSortDirection, 'status', setPaymentsSortField, setPaymentsSortDirection)}
+                              />
+                            </TableHead>
+                            <TableHead>Plan</TableHead>
+                            <TableHead className="text-center">Users</TableHead>
+                            <TableHead className="text-center">Devices</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPayments.map((payment) => (
+                            <TableRow key={payment.tenantId}>
+                              <TableCell className="font-mono text-xs">{payment.tenantId}</TableCell>
+                              <TableCell>
+                                <Badge variant={payment.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                                  {payment.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{payment.plan}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center text-sm">{payment.users}</TableCell>
+                              <TableCell className="text-center text-sm">{payment.devices}</TableCell>
+                              <TableCell className="text-right text-sm font-medium">${payment.amount.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                          {filteredPayments.length === 0 && !loading && (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                No payment data available
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
