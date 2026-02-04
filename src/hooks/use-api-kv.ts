@@ -135,15 +135,14 @@ async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
 
   if (apiAvailable === null) {
     try {
-      // Check a lightweight endpoint that requires authentication to verify
-      // both API availability and that our auth token is valid
-      // Use a test key that should return null if authentication is valid
-      const response = await fetch(`${API_URL}/kv/__availability_check__`, {
+      // Check the /auth/me endpoint which requires valid authentication
+      // This verifies both API availability and that our auth token is valid
+      const response = await fetch(`${API_URL}/auth/me`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
       
-      // API is available if we get 200 OK (even with null value)
+      // API is available if we get 200 OK
       // Auth failures (401/403) mean token is invalid/expired or view-only
       // In those cases, fall back to localStorage
       if (isAuthFailure(response.status)) {
