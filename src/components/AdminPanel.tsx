@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Tenant {
@@ -354,6 +354,33 @@ export function AdminPanel() {
     }
   }
 
+  const viewTenant = async (tenantId: string) => {
+    try {
+      // Generate a view-only token for this tenant
+      const response = await fetch(`/api/admin/tenants/${tenantId}/view-token`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Failed to generate view token')
+      
+      const data = await response.json()
+      
+      // Store the view token and redirect to the main app
+      localStorage.setItem('auth_token', data.token)
+      localStorage.setItem('view_only_mode', 'true')
+      localStorage.setItem('viewing_tenant_id', tenantId)
+      
+      // Redirect to main app (will show parent panel in read-only mode)
+      navigate('/')
+    } catch (error) {
+      console.error('Error viewing tenant:', error)
+      toast.error('Failed to view tenant dashboard')
+    }
+  }
+
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchStats()
@@ -631,6 +658,7 @@ export function AdminPanel() {
                                 onClick={() => toggleSort(tenantsSortField, tenantsSortDirection, 'device_count', setTenantsSortField, setTenantsSortDirection)}
                               />
                             </TableHead>
+                            <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -645,11 +673,22 @@ export function AdminPanel() {
                               <TableCell className="text-center">
                                 <Badge variant="secondary" className="text-xs">{tenant.device_count}</Badge>
                               </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => viewTenant(tenant.id)}
+                                  className="h-8 w-8 p-0"
+                                  title="View Dashboard"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))}
                           {filteredTenants.length === 0 && !loading && (
                             <TableRow>
-                              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                 No tenants found
                               </TableCell>
                             </TableRow>
