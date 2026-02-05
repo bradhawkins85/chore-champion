@@ -245,29 +245,62 @@ export async function getOrCreateStripeCustomer(tenantId: string, email: string)
     throw new Error('Stripe is not configured');
   }
   
-  // Check if customer already exists
+  // Check if customer already exists in local database
   const subscription = await getTenantSubscription(tenantId);
   if (subscription?.stripe_customer_id) {
     return subscription.stripe_customer_id;
   }
   
-  // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  // Check if customer already exists in Stripe by email
+  const existingCustomers = await stripe.customers.list({
     email,
-    metadata: {
-      tenant_id: tenantId,
-    },
+    limit: 10, // Get up to 10 customers to handle potential duplicates
   });
+  
+  let customerId: string;
+  
+  if (existingCustomers.data.length > 0) {
+    // Check if any existing customer already has this tenant_id
+    let existingCustomer = existingCustomers.data.find(
+      (customer) => customer.metadata?.tenant_id === tenantId
+    );
+    
+    // If no customer with this tenant_id, use the first (most recent) one
+    if (!existingCustomer) {
+      existingCustomer = existingCustomers.data[0];
+    }
+    
+    customerId = existingCustomer.id;
+    
+    // Update the customer metadata to include tenant_id if not already set
+    if (!existingCustomer.metadata?.tenant_id) {
+      await stripe.customers.update(customerId, {
+        metadata: {
+          ...existingCustomer.metadata,
+          tenant_id: tenantId,
+        },
+      });
+    }
+  } else {
+    // Create new Stripe customer
+    const customer = await stripe.customers.create({
+      email,
+      metadata: {
+        tenant_id: tenantId,
+      },
+    });
+    customerId = customer.id;
+  }
   
   // Update subscription with customer ID
   if (subscription) {
     await pool.query<ResultSetHeader>(
       'UPDATE subscriptions SET stripe_customer_id = ? WHERE id = ?',
-      [customer.id, subscription.id]
+      [customerId, subscription.id]
     );
   }
   
-  return customer.id;
+  return customerId;
 }
 
 /**
