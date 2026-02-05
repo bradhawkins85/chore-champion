@@ -34,7 +34,9 @@ app.use('/api/subscriptions/webhook', bodyParser.raw({ type: 'application/json' 
 app.use(bodyParser.json({
   limit: '10mb',
   type: (req) => {
-    if (req.originalUrl === '/api/subscriptions/webhook') {
+    const request = req as express.Request;
+    const requestUrl = request.originalUrl ?? req.url ?? '';
+    if (requestUrl === '/api/subscriptions/webhook') {
       return false;
     }
     const contentType = req.headers['content-type'] || '';
