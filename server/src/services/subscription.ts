@@ -23,7 +23,8 @@ type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'i
  * Escape single quotes in a string for Stripe search query
  */
 function escapeStripeSearchQuery(value: string): string {
-  return value.replace(/'/g, "\\'");
+  // Escape backslashes first, then single quotes
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 /**
