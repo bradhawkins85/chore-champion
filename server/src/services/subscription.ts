@@ -245,29 +245,54 @@ export async function getOrCreateStripeCustomer(tenantId: string, email: string)
     throw new Error('Stripe is not configured');
   }
   
-  // Check if customer already exists
+  // Check if customer already exists in local database
   const subscription = await getTenantSubscription(tenantId);
   if (subscription?.stripe_customer_id) {
     return subscription.stripe_customer_id;
   }
   
-  // Create new Stripe customer
-  const customer = await stripe.customers.create({
-    email,
-    metadata: {
-      tenant_id: tenantId,
-    },
+  // Check if customer already exists in Stripe by email
+  const existingCustomers = await stripe.customers.list({
+    email: email,
+    limit: 1,
   });
+  
+  let customerId: string;
+  
+  if (existingCustomers.data.length > 0) {
+    // Use existing customer from Stripe
+    customerId = existingCustomers.data[0].id;
+    
+    // Update the customer metadata to include tenant_id if not already set
+    const existingCustomer = existingCustomers.data[0];
+    if (!existingCustomer.metadata?.tenant_id) {
+      await stripe.customers.update(customerId, {
+        metadata: {
+          ...existingCustomer.metadata,
+          tenant_id: tenantId,
+        },
+      });
+    }
+  } else {
+    // Create new Stripe customer
+    const customer = await stripe.customers.create({
+      email,
+      metadata: {
+        tenant_id: tenantId,
+      },
+    });
+    customerId = customer.id;
+  }
   
   // Update subscription with customer ID
   if (subscription) {
     await pool.query<ResultSetHeader>(
       'UPDATE subscriptions SET stripe_customer_id = ? WHERE id = ?',
-      [customer.id, subscription.id]
+      [customerId, subscription.id]
     );
   }
   
-  return customer.id;
+  return customerId;
 }
 
 /**
