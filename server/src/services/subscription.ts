@@ -482,8 +482,10 @@ export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): 
 }
 
 export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<void> {
+  const legacySubscription = (invoice as { subscription?: string | Stripe.Subscription | null }).subscription;
+  const subscriptionReference = legacySubscription ?? invoice.parent?.subscription_details?.subscription;
   const stripeSubscriptionId =
-    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+    typeof subscriptionReference === 'string' ? subscriptionReference : subscriptionReference?.id;
 
   if (!stripeSubscriptionId) {
     return;
