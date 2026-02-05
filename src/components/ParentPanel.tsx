@@ -1285,6 +1285,7 @@ export function ParentPanel({
         onAssignChild={onAssignChore}
         onUnassignChild={onUnassignChore}
         categories={categories}
+        canAddChore={limits?.canAddChore ?? true}
       />
 
       <ChildDialog

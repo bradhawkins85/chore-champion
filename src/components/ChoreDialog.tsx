@@ -30,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ChoreDialogProps {
   open: boolean
@@ -41,6 +42,7 @@ interface ChoreDialogProps {
   onAssignChild?: (childId: string, choreId: string) => void
   onUnassignChild?: (assignmentId: string) => void
   categories: Category[]
+  canAddChore?: boolean
 }
 
 export function ChoreDialog({ 
@@ -53,6 +55,7 @@ export function ChoreDialog({
   onAssignChild,
   onUnassignChild,
   categories,
+  canAddChore = true,
 }: ChoreDialogProps) {
   const [name, setName] = useState(editChore?.name || '')
   const [description, setDescription] = useState(editChore?.description || '')
@@ -402,14 +405,34 @@ export function ChoreDialog({
                                   )}
                                 </div>
                               </div>
-                              <Button
-                                size="icon"
-                                variant="default"
-                                onClick={() => handleQuickAddTemplate(template)}
-                                className="flex-shrink-0"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                              {!canAddChore ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        size="icon"
+                                        variant="default"
+                                        disabled={true}
+                                        className="flex-shrink-0"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Upgrade to paid plan to add more chores</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="default"
+                                  onClick={() => handleQuickAddTemplate(template)}
+                                  className="flex-shrink-0"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
