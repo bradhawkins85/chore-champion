@@ -562,36 +562,28 @@ export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<
         existingInvoiceId,
       ]
     );
-    
-    // Send meter event if invoice is paid
-    if (invoice.status === 'paid' && invoice.customer) {
-      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
-      await sendStripeMeterEvent(customerId, 1);
-    }
-    
-    return;
+  } else {
+    const invoiceId = uuidv4();
+    await pool.query<ResultSetHeader>(
+      `INSERT INTO invoices
+       (id, tenant_id, subscription_id, amount_due, amount_paid, status, due_date, paid_at, hosted_invoice_url, invoice_pdf, stripe_invoice_id, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        invoiceId,
+        subscriptionRow.tenant_id,
+        subscriptionRow.id,
+        invoice.amount_due ?? 0,
+        invoice.amount_paid ?? 0,
+        invoice.status ?? 'draft',
+        dueDateSeconds * 1000,
+        paidAt,
+        hostedInvoiceUrl,
+        invoicePdf,
+        invoice.id,
+        description,
+      ]
+    );
   }
-
-  const invoiceId = uuidv4();
-  await pool.query<ResultSetHeader>(
-    `INSERT INTO invoices
-     (id, tenant_id, subscription_id, amount_due, amount_paid, status, due_date, paid_at, hosted_invoice_url, invoice_pdf, stripe_invoice_id, description)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      invoiceId,
-      subscriptionRow.tenant_id,
-      subscriptionRow.id,
-      invoice.amount_due ?? 0,
-      invoice.amount_paid ?? 0,
-      invoice.status ?? 'draft',
-      dueDateSeconds * 1000,
-      paidAt,
-      hostedInvoiceUrl,
-      invoicePdf,
-      invoice.id,
-      description,
-    ]
-  );
   
   // Send meter event if invoice is paid
   if (invoice.status === 'paid' && invoice.customer) {
