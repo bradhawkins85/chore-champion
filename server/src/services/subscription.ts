@@ -19,7 +19,7 @@ type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'i
 /**
  * Send a meter event to Stripe for billing tracking
  * @param customerId - The Stripe customer ID
- * @param value - The value to track (e.g., 1 for a single API request)
+ * @param value - The value to track (e.g., 1 for a single API request). Accepts a number for convenience, which is converted to a string as required by Stripe's API
  */
 export async function sendStripeMeterEvent(customerId: string, value: number = 1): Promise<void> {
   if (!stripe) {
