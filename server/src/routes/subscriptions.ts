@@ -91,17 +91,35 @@ router.post('/create', authenticateToken, async (req: AuthRequest, res: Response
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    const { paymentMethodId, childrenCount } = req.body;
-    
-    if (!paymentMethodId || !childrenCount) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const { paymentMethodId, payment_method_id, childrenCount, children_count } = req.body;
+    const resolvedPaymentMethodId = paymentMethodId ?? payment_method_id;
+    let resolvedChildrenCount: number | null | undefined = childrenCount ?? children_count;
+
+    if (resolvedChildrenCount === undefined || resolvedChildrenCount === null) {
+      const limits = await checkPlanLimits(tenantId);
+      resolvedChildrenCount = limits.current.children;
     }
-    
-    if (childrenCount < 1) {
+
+    const normalizedChildrenCount = Number(resolvedChildrenCount);
+
+    if (!resolvedPaymentMethodId) {
+      return res.status(400).json({ error: 'Missing payment method' });
+    }
+
+    if (Number.isNaN(normalizedChildrenCount)) {
+      return res.status(400).json({ error: 'Invalid children count' });
+    }
+
+    if (normalizedChildrenCount < 1) {
       return res.status(400).json({ error: 'Must have at least 1 child' });
     }
-    
-    const result = await createPaidSubscription(tenantId, email, paymentMethodId, childrenCount);
+
+    const result = await createPaidSubscription(
+      tenantId,
+      email,
+      resolvedPaymentMethodId,
+      normalizedChildrenCount,
+    );
     res.json(result);
   } catch (error: any) {
     console.error('Error creating subscription:', error);
