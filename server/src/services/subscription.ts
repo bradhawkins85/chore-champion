@@ -14,7 +14,46 @@ export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2026-01-28.clover',
 }) : null;
 
+// Product name constant for consistency
+const STRIPE_PRODUCT_NAME = 'ChoreQuest Paid Subscription';
+
 type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
+
+/**
+ * Escape single quotes in a string for Stripe search query
+ */
+function escapeStripeSearchQuery(value: string): string {
+  // Escape backslashes first, then single quotes
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/**
+ * Get or create Stripe product for ChoreQuest subscription
+ * Checks if product already exists before creating a new one
+ */
+export async function getOrCreateStripeProduct(): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
+  // Search for existing product by name (escape single quotes for safety)
+  const escapedProductName = escapeStripeSearchQuery(STRIPE_PRODUCT_NAME);
+  const existingProducts = await stripe.products.search({
+    query: `name:'${escapedProductName}' AND active:true`,
+    limit: 1,
+  });
+
+  if (existingProducts.data.length > 0) {
+    return existingProducts.data[0].id;
+  }
+
+  // Create new product if not found
+  const product = await stripe.products.create({
+    name: STRIPE_PRODUCT_NAME,
+  });
+
+  return product.id;
+}
 
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
@@ -386,16 +425,17 @@ export async function createPaidSubscription(
     throw new Error('Paid plan price is not configured');
   }
 
-  // First, create a price
+  // Get or create the product
+  const productId = await getOrCreateStripeProduct();
+
+  // Create a price for the product
   const price = await stripe.prices.create({
     currency: 'aud',
     unit_amount: unitAmount,
     recurring: {
       interval: 'month',
     },
-    product_data: {
-      name: 'ChoreQuest Paid Subscription',
-    },
+    product: productId,
   });
   
   // Create Stripe subscription - use any to work around type issues with expanded fields
