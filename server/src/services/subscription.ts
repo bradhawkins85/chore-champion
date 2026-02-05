@@ -14,7 +14,17 @@ export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2026-01-28.clover',
 }) : null;
 
+// Product name constant for consistency
+const STRIPE_PRODUCT_NAME = 'ChoreQuest Paid Subscription';
+
 type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
+
+/**
+ * Escape single quotes in a string for Stripe search query
+ */
+function escapeStripeSearchQuery(value: string): string {
+  return value.replace(/'/g, "\\'");
+}
 
 /**
  * Get or create Stripe product for ChoreQuest subscription
@@ -25,11 +35,10 @@ export async function getOrCreateStripeProduct(): Promise<string> {
     throw new Error('Stripe is not configured');
   }
 
-  const productName = 'ChoreQuest Paid Subscription';
-  
-  // Search for existing product by name
+  // Search for existing product by name (escape single quotes for safety)
+  const escapedProductName = escapeStripeSearchQuery(STRIPE_PRODUCT_NAME);
   const existingProducts = await stripe.products.search({
-    query: `name:'${productName}' AND active:true`,
+    query: `name:'${escapedProductName}' AND active:true`,
     limit: 1,
   });
 
@@ -39,7 +48,7 @@ export async function getOrCreateStripeProduct(): Promise<string> {
 
   // Create new product if not found
   const product = await stripe.products.create({
-    name: productName,
+    name: STRIPE_PRODUCT_NAME,
   });
 
   return product.id;
