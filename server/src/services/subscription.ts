@@ -54,6 +54,7 @@ export async function sendStripeMeterEvent(customerId: string, value: number = 1
   }
 }
 
+/**
  * Escape single quotes in a string for Stripe search query
  */
 function escapeStripeSearchQuery(value: string): string {
@@ -589,8 +590,9 @@ export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): 
 }
 
 export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<void> {
+  const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription }).subscription;
   const stripeSubscriptionId =
-    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+    typeof subscription === 'string' ? subscription : subscription?.id;
 
   if (!stripeSubscriptionId) {
     return;
