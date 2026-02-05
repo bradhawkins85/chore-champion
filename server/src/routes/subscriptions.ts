@@ -402,6 +402,19 @@ router.post('/webhook', async (req: Request, res: Response) => {
     
     // Handle the event
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as any;
+        // When checkout is completed, sync the subscription created by Stripe
+        if (session.subscription) {
+          const stripeSubscriptionId = typeof session.subscription === 'string'
+            ? session.subscription
+            : session.subscription.id;
+          await syncSubscriptionByStripeId(stripeSubscriptionId);
+          console.log('Checkout session completed:', session.id, 'subscription:', stripeSubscriptionId);
+        }
+        break;
+      }
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
