@@ -402,6 +402,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     
     // Handle the event
     switch (event.type) {
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as any;

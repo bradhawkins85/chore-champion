@@ -567,16 +567,101 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
   const currentPeriodEnd = (stripeSubscription.items?.data?.[0]?.current_period_end || 0) * 1000;
   const cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end ?? false;
   const canceledAt = stripeSubscription.canceled_at ? stripeSubscription.canceled_at * 1000 : null;
+  const stripeCustomerId = typeof stripeSubscription.customer === 'string'
+    ? stripeSubscription.customer
+    : stripeSubscription.customer?.id ?? null;
 
-  await pool.query<ResultSetHeader>(
+  const [updateResult] = await pool.query<ResultSetHeader>(
     `UPDATE subscriptions
-     SET status = ?,
+     SET plan_id = ?,
+         status = ?,
          current_period_start = ?,
          current_period_end = ?,
          cancel_at_period_end = ?,
-         canceled_at = ?
+         canceled_at = ?,
+         stripe_customer_id = COALESCE(stripe_customer_id, ?)
      WHERE stripe_subscription_id = ?`,
-    [status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, stripeSubscriptionId]
+    [
+      'plan_paid',
+      status,
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      canceledAt,
+      stripeCustomerId,
+      stripeSubscriptionId,
+    ]
+  );
+
+  if (updateResult.affectedRows > 0) {
+    return;
+  }
+
+  const metadataTenantId = stripeSubscription.metadata?.tenant_id || stripeSubscription.metadata?.tenantId;
+  let tenantId = metadataTenantId ?? null;
+
+  if (!tenantId && stripeCustomerId) {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT tenant_id FROM subscriptions WHERE stripe_customer_id = ? ORDER BY created_at DESC LIMIT 1',
+      [stripeCustomerId]
+    );
+    tenantId = rows[0]?.tenant_id ?? null;
+  }
+
+  if (!tenantId) {
+    return;
+  }
+
+  const [existingRows] = await pool.query<RowDataPacket[]>(
+    'SELECT id FROM subscriptions WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1',
+    [tenantId]
+  );
+  const existingId = existingRows[0]?.id ?? null;
+
+  if (existingId) {
+    await pool.query<ResultSetHeader>(
+      `UPDATE subscriptions
+       SET plan_id = ?,
+           status = ?,
+           current_period_start = ?,
+           current_period_end = ?,
+           cancel_at_period_end = ?,
+           canceled_at = ?,
+           stripe_customer_id = ?,
+           stripe_subscription_id = ?
+       WHERE id = ?`,
+      [
+        'plan_paid',
+        status,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd,
+        canceledAt,
+        stripeCustomerId,
+        stripeSubscriptionId,
+        existingId,
+      ]
+    );
+    return;
+  }
+
+  const subscriptionId = uuidv4();
+  await pool.query<ResultSetHeader>(
+    `INSERT INTO subscriptions
+     (id, tenant_id, plan_id, status, current_period_start, current_period_end, stripe_customer_id, stripe_subscription_id, cancel_at_period_end, canceled_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      subscriptionId,
+      tenantId,
+      'plan_paid',
+      status,
+      currentPeriodStart,
+      currentPeriodEnd,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      cancelAtPeriodEnd,
+      canceledAt,
+    ]
   );
 }
 
