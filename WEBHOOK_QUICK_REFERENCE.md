@@ -39,9 +39,10 @@ Replace `PORT` with your `CHOREQUEST_PORT` value.
 
 ## Required Events
 
-Configure these 4 events in Stripe Dashboard:
+Configure these 5 events in Stripe Dashboard:
 
 ```
+✓ checkout.session.completed
 ✓ customer.subscription.updated
 ✓ customer.subscription.deleted
 ✓ invoice.paid
@@ -54,7 +55,7 @@ Configure these 4 events in Stripe Dashboard:
 2. Navigate to: **Developers** > **Webhooks**
 3. Click **Add endpoint**
 4. Enter your webhook URL (see above)
-5. Click **Select events** and choose the 4 required events
+5. Click **Select events** and choose the 5 required events
 6. Click **Add endpoint**
 7. Copy the **Signing secret** (starts with `whsec_`)
 8. Add to `.env`: `STRIPE_WEBHOOK_SECRET=whsec_your_secret`

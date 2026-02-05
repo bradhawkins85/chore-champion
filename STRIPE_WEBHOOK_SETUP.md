@@ -80,8 +80,9 @@ The webhook endpoint URL you configure in Stripe depends on your deployment envi
 
 ### Step 3: Select Events
 
-Click **Select events** and choose these four events:
+Click **Select events** and choose these five events:
 
+- ✅ `checkout.session.completed` - When customer completes checkout (creates subscription)
 - ✅ `customer.subscription.updated` - When subscription details change
 - ✅ `customer.subscription.deleted` - When subscription is canceled
 - ✅ `invoice.paid` - When payment succeeds
@@ -177,6 +178,12 @@ Invoice paid: in_xxx...
 ```
 
 ## Webhook Events Explained
+
+### checkout.session.completed
+
+**When:** Customer completes a Stripe Checkout session
+**Action:** Syncs the newly created subscription to the database, updating tenant from Free to Paid plan
+**Example:** User completes payment through Stripe Checkout and subscription is created
 
 ### customer.subscription.updated
 
@@ -314,6 +321,7 @@ Stripe has separate test and live modes:
 | Docker + Traefik | `https://your-domain.com/api/subscriptions/webhook` |
 
 **Required Events:**
+- `checkout.session.completed`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 - `invoice.paid`
