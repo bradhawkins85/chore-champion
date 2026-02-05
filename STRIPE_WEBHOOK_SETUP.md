@@ -103,7 +103,22 @@ Click **Add events** to confirm.
    STRIPE_WEBHOOK_SECRET=whsec_1a2b3c4d5e6f...
    ```
 
-### Step 6: Restart Application
+### Step 6: Configure Meter Event Name (Optional)
+
+If you're using Stripe Billing Meters for usage-based billing:
+
+1. Log in to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Go to **Billing** > **Meters**
+3. Create or locate your meter
+4. Note the **Event name** (e.g., `api_requests`)
+5. Add to your `.env` file:
+   ```bash
+   STRIPE_METER_EVENT_NAME=api_requests
+   ```
+
+If not configured, the default value `api_requests` will be used.
+
+### Step 7: Restart Application
 
 **Standard deployment:**
 ```bash
@@ -178,7 +193,7 @@ Invoice paid: in_xxx...
 ### invoice.paid
 
 **When:** Payment successfully processes
-**Action:** Records payment, removes limited mode flag
+**Action:** Records payment, removes limited mode flag, sends meter event to Stripe for usage tracking
 **Example:** Monthly subscription payment succeeds
 
 ### invoice.payment_failed
