@@ -308,7 +308,7 @@ export function ParentPanel({
   
   // Calculate canAddChild locally for immediate UI feedback
   const canAddChild = useMemo(() => {
-    if (!limits) return true // Default to allowing if limits not loaded yet
+    if (!limits) return false // Disable button until limits are loaded
     const maxChildren = limits.limits.maxChildren
     const currentChildren = childrenList.length
     // If maxChildren is null, there's no limit (unlimited)
