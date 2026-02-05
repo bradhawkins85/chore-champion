@@ -14,6 +14,8 @@ export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2026-01-28.clover',
 }) : null;
 
+type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
+
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
   id: string;
@@ -434,6 +436,125 @@ export async function createPaidSubscription(
   };
 }
 
+async function getSubscriptionRowByStripeId(stripeSubscriptionId: string): Promise<{ id: string; tenant_id: string } | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT id, tenant_id FROM subscriptions WHERE stripe_subscription_id = ? LIMIT 1',
+    [stripeSubscriptionId]
+  );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return {
+    id: rows[0].id,
+    tenant_id: rows[0].tenant_id,
+  };
+}
+
+export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Subscription): Promise<void> {
+  const stripeSubscriptionId = stripeSubscription.id;
+  const status = stripeSubscription.status as SubscriptionStatus;
+  const currentPeriodStart = (stripeSubscription.items?.data?.[0]?.current_period_start || 0) * 1000;
+  const currentPeriodEnd = (stripeSubscription.items?.data?.[0]?.current_period_end || 0) * 1000;
+  const cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end ?? false;
+  const canceledAt = stripeSubscription.canceled_at ? stripeSubscription.canceled_at * 1000 : null;
+
+  await pool.query<ResultSetHeader>(
+    `UPDATE subscriptions
+     SET status = ?,
+         current_period_start = ?,
+         current_period_end = ?,
+         cancel_at_period_end = ?,
+         canceled_at = ?
+     WHERE stripe_subscription_id = ?`,
+    [status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, stripeSubscriptionId]
+  );
+}
+
+export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): Promise<void> {
+  if (!stripe) {
+    return;
+  }
+
+  const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  await upsertSubscriptionFromStripe(stripeSubscription);
+}
+
+export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<void> {
+  const stripeSubscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+
+  if (!stripeSubscriptionId) {
+    return;
+  }
+
+  const subscriptionRow = await getSubscriptionRowByStripeId(stripeSubscriptionId);
+  if (!subscriptionRow) {
+    return;
+  }
+
+  const dueDateSeconds = invoice.due_date ?? invoice.created ?? Math.floor(Date.now() / 1000);
+  const paidAtSeconds = invoice.status_transitions?.paid_at ?? null;
+  const paidAt = paidAtSeconds ? paidAtSeconds * 1000 : null;
+  const hostedInvoiceUrl = invoice.hosted_invoice_url ?? null;
+  const invoicePdf = invoice.invoice_pdf ?? null;
+  const description = invoice.description ?? null;
+  const [existingInvoiceRows] = await pool.query<RowDataPacket[]>(
+    'SELECT id FROM invoices WHERE stripe_invoice_id = ? LIMIT 1',
+    [invoice.id]
+  );
+  const existingInvoiceId = existingInvoiceRows[0]?.id ?? null;
+
+  if (existingInvoiceId) {
+    await pool.query<ResultSetHeader>(
+      `UPDATE invoices
+       SET amount_due = ?,
+           amount_paid = ?,
+           status = ?,
+           due_date = ?,
+           paid_at = ?,
+           hosted_invoice_url = ?,
+           invoice_pdf = ?,
+           description = ?
+       WHERE id = ?`,
+      [
+        invoice.amount_due ?? 0,
+        invoice.amount_paid ?? 0,
+        invoice.status ?? 'draft',
+        dueDateSeconds * 1000,
+        paidAt,
+        hostedInvoiceUrl,
+        invoicePdf,
+        description,
+        existingInvoiceId,
+      ]
+    );
+    return;
+  }
+
+  const invoiceId = uuidv4();
+  await pool.query<ResultSetHeader>(
+    `INSERT INTO invoices
+     (id, tenant_id, subscription_id, amount_due, amount_paid, status, due_date, paid_at, hosted_invoice_url, invoice_pdf, stripe_invoice_id, description)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      invoiceId,
+      subscriptionRow.tenant_id,
+      subscriptionRow.id,
+      invoice.amount_due ?? 0,
+      invoice.amount_paid ?? 0,
+      invoice.status ?? 'draft',
+      dueDateSeconds * 1000,
+      paidAt,
+      hostedInvoiceUrl,
+      invoicePdf,
+      invoice.id,
+      description,
+    ]
+  );
+}
+
 /**
  * Cancel subscription at period end
  */
@@ -576,8 +697,8 @@ export async function checkPlanLimits(tenantId: string): Promise<{
 }> {
   const subscription = await getTenantSubscription(tenantId);
   
-  // If no subscription or in limited mode (past_due/unpaid), use free tier limits
-  const effectivePlanId = (subscription?.status === 'past_due' || subscription?.status === 'unpaid') 
+  // If no subscription or in limited mode (past_due/unpaid/incomplete), use free tier limits
+  const effectivePlanId = (subscription?.status === 'past_due' || subscription?.status === 'unpaid' || subscription?.status === 'incomplete' || subscription?.status === 'incomplete_expired')
     ? 'plan_free' 
     : subscription?.plan_id || 'plan_free';
   

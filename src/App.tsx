@@ -74,7 +74,7 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, token, loading: authLoading, logout, loginWithDevice, getTenantUsers, viewOnlyMode, viewingTenantId, exitViewMode } = useAuth()
-  const { updateQuantity, fetchLimits } = useSubscription()
+  const { subscription, createBillingPortalSession, fetchLimits } = useSubscription()
   
   // Handle accept-invitation route (doesn't require authentication)
   if (location.pathname === '/accept-invitation') {
@@ -708,8 +708,16 @@ function App() {
       createdAt: Date.now(),
     }
     await setChildrenList((current) => [...(current || []), newChild])
-    void updateQuantity((childrenList || []).length + 1)
     toast.success(`${newChild.name} added!`)
+    if (subscription?.plan?.tier === 'paid') {
+      const portalUrl = await createBillingPortalSession()
+      if (portalUrl) {
+        toast.message('Redirecting to Stripe to update your subscription quantity.')
+        window.location.assign(portalUrl)
+      } else {
+        toast.error('Unable to open Stripe billing portal.')
+      }
+    }
     // Re-fetch limits to immediately update canAddChild status
     await fetchLimits()
   })
@@ -731,10 +739,17 @@ function App() {
     await setAssignments((current) => (current || []).filter((a) => a.childId !== id))
     await setCompletions((current) => (current || []).filter((c) => c.childId !== id))
     await setChildAvailability((current) => (current || []).filter((entry) => entry.childId !== id))
-    
-    const nextCount = Math.max((childrenList || []).length - 1, 0)
-    void updateQuantity(nextCount)
+
     toast.success('Child removed')
+    if (subscription?.plan?.tier === 'paid') {
+      const portalUrl = await createBillingPortalSession()
+      if (portalUrl) {
+        toast.message('Redirecting to Stripe to update your subscription quantity.')
+        window.location.assign(portalUrl)
+      } else {
+        toast.error('Unable to open Stripe billing portal.')
+      }
+    }
     // Re-fetch limits to immediately update canAddChild status
     await fetchLimits()
   })
