@@ -74,7 +74,7 @@ export async function getOrCreateStripeProduct(): Promise<string> {
   // Search for existing product by name (escape single quotes for safety)
   const escapedProductName = escapeStripeSearchQuery(STRIPE_PRODUCT_NAME);
   const existingProducts = await stripe.products.search({
-    query: `name:'${escapedProductName}' AND active:true`,
+    query: `name:'${escapedProductName}' AND active:\"true\"`,
     limit: 1,
   });
 
