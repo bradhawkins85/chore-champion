@@ -63,7 +63,9 @@ export function useSubscription() {
       status: subscription.status,
       currentPeriodStart: subscription.current_period_start ?? subscription.currentPeriodStart,
       currentPeriodEnd: subscription.current_period_end ?? subscription.currentPeriodEnd,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd,
+      cancelAtPeriodEnd: Boolean(
+        subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd,
+      ),
       canceledAt: subscription.canceled_at ?? subscription.canceledAt ?? null,
       stripeCustomerId: subscription.stripe_customer_id ?? subscription.stripeCustomerId ?? null,
       stripeSubscriptionId: subscription.stripe_subscription_id ?? subscription.stripeSubscriptionId ?? null,
