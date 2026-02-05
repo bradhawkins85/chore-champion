@@ -305,6 +305,17 @@ export function ParentPanel({
   onExitParentMode,
 }: ParentPanelProps) {
   const { limits } = useSubscription()
+  
+  // Calculate canAddChild locally for immediate UI feedback
+  const canAddChild = useMemo(() => {
+    if (!limits) return false // Disable button until limits are loaded
+    const maxChildren = limits.limits.maxChildren
+    const currentChildren = childrenList.length
+    // If maxChildren is null, there's no limit (unlimited)
+    // Otherwise, check if current count is less than max
+    return maxChildren === null || currentChildren < maxChildren
+  }, [limits, childrenList.length])
+  
   const [choreDialogOpen, setChoreDialogOpen] = useState(false)
   const [childDialogOpen, setChildDialogOpen] = useState(false)
   const [editingChore, setEditingChore] = useState<Chore | undefined>()
@@ -878,7 +889,7 @@ export function ParentPanel({
 
             <TabsContent value="children" className="space-y-4">
           <div className="flex justify-end">
-            {!limits?.canAddChild ? (
+            {!canAddChild ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
@@ -909,7 +920,7 @@ export function ParentPanel({
                 <p className="text-lg text-muted-foreground mb-4">
                   No children added yet. Add your first child to get started!
                 </p>
-                {!limits?.canAddChild ? (
+                {!canAddChild ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>
