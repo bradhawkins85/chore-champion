@@ -590,7 +590,7 @@ export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): 
 }
 
 export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<void> {
-  const subscription = (invoice as any).subscription;
+  const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription }).subscription;
   const stripeSubscriptionId =
     typeof subscription === 'string' ? subscription : subscription?.id;
 
