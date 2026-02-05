@@ -30,7 +30,17 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(bodyParser.text({ type: 'text/plain', limit: '10mb' })); // For Spark runtime KV requests
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use('/api/subscriptions/webhook', bodyParser.raw({ type: 'application/json' }));
+app.use(bodyParser.json({
+  limit: '10mb',
+  type: (req) => {
+    if (req.originalUrl === '/api/subscriptions/webhook') {
+      return false;
+    }
+    const contentType = req.headers['content-type'] || '';
+    return contentType.includes('application/json') || contentType.includes('+json');
+  },
+}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting configuration - applied AFTER body parser
