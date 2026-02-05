@@ -16,6 +16,38 @@ export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
 
 type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
 
+/**
+ * Send a meter event to Stripe for billing tracking
+ * @param customerId - The Stripe customer ID
+ * @param value - The value to track (e.g., 1 for a single API request)
+ */
+export async function sendStripeMeterEvent(customerId: string, value: number = 1): Promise<void> {
+  if (!stripe) {
+    console.warn('⚠️  Stripe is not configured. Meter event not sent.');
+    return;
+  }
+
+  const eventName = process.env.STRIPE_METER_EVENT_NAME || 'api_requests';
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  try {
+    // Send meter event to Stripe
+    await stripe.billing.meterEvents.create({
+      event_name: eventName,
+      payload: {
+        stripe_customer_id: customerId,
+        value: value.toString(),
+      },
+      timestamp: timestamp,
+    });
+    console.log(`✓ Meter event sent for customer ${customerId}: ${eventName}=${value}`);
+  } catch (error: unknown) {
+    console.error('Failed to send Stripe meter event:', error instanceof Error ? error.message : 'Unknown error');
+    // Don't throw error - meter events are for tracking, not critical to payment flow
+  }
+}
+
+
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
   id: string;
@@ -530,6 +562,13 @@ export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<
         existingInvoiceId,
       ]
     );
+    
+    // Send meter event if invoice is paid
+    if (invoice.status === 'paid' && invoice.customer) {
+      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
+      await sendStripeMeterEvent(customerId, 1);
+    }
+    
     return;
   }
 
@@ -553,6 +592,12 @@ export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<
       description,
     ]
   );
+  
+  // Send meter event if invoice is paid
+  if (invoice.status === 'paid' && invoice.customer) {
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
+    await sendStripeMeterEvent(customerId, 1);
+  }
 }
 
 /**
