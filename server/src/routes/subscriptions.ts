@@ -16,6 +16,7 @@ import {
   stripe,
   upsertInvoiceFromStripe,
   upsertSubscriptionFromStripe,
+  getOrCreateStripeProduct,
 } from '../services/subscription.js';
 
 const router = Router();
@@ -266,15 +267,16 @@ router.post('/checkout-session', authenticateToken, async (req: AuthRequest, res
       return res.status(400).json({ error: 'Paid plan price is not configured' });
     }
 
+    // Get or create the product
+    const productId = await getOrCreateStripeProduct();
+
     const price = await stripe.prices.create({
       currency: 'aud',
       unit_amount: unitAmount,
       recurring: {
         interval: 'month',
       },
-      product_data: {
-        name: 'ChoreQuest Paid Subscription',
-      },
+      product: productId,
     });
 
     const appUrl = process.env.APP_URL || 'http://localhost:5000';

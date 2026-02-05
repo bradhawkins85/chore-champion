@@ -16,6 +16,35 @@ export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
 
 type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
 
+/**
+ * Get or create Stripe product for ChoreQuest subscription
+ * Checks if product already exists before creating a new one
+ */
+export async function getOrCreateStripeProduct(): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
+  const productName = 'ChoreQuest Paid Subscription';
+  
+  // Search for existing product by name
+  const existingProducts = await stripe.products.search({
+    query: `name:'${productName}' AND active:true`,
+    limit: 1,
+  });
+
+  if (existingProducts.data.length > 0) {
+    return existingProducts.data[0].id;
+  }
+
+  // Create new product if not found
+  const product = await stripe.products.create({
+    name: productName,
+  });
+
+  return product.id;
+}
+
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
   id: string;
@@ -353,16 +382,17 @@ export async function createPaidSubscription(
     throw new Error('Paid plan price is not configured');
   }
 
-  // First, create a price
+  // Get or create the product
+  const productId = await getOrCreateStripeProduct();
+
+  // Create a price for the product
   const price = await stripe.prices.create({
     currency: 'aud',
     unit_amount: unitAmount,
     recurring: {
       interval: 'month',
     },
-    product_data: {
-      name: 'ChoreQuest Paid Subscription',
-    },
+    product: productId,
   });
   
   // Create Stripe subscription - use any to work around type issues with expanded fields
