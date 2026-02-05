@@ -183,60 +183,60 @@ export function useSubscription() {
     }
   }, [mapInvoice, token]);
 
-  // Create setup intent for payment method
-  const createSetupIntent = useCallback(async (): Promise<{ clientSecret: string; customerId: string } | null> => {
+  // Create Stripe Checkout session for a paid subscription
+  const createCheckoutSession = useCallback(async (childrenCount: number): Promise<string | null> => {
     if (!token) return null;
 
     try {
-      const response = await fetch(`${API_URL}/subscriptions/create-setup-intent`, {
+      const response = await fetch(`${API_URL}/subscriptions/checkout-session`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ childrenCount }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create setup intent');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.url || null;
     } catch (err: any) {
-      console.error('Error creating setup intent:', err);
+      console.error('Error creating checkout session:', err);
       setError(err.message);
       return null;
     }
   }, [token]);
 
-  // Create paid subscription
-  const createPaidSubscription = useCallback(async (paymentMethodId: string, childrenCount: number): Promise<{ clientSecret?: string } | null> => {
+  // Create Stripe Billing Portal session
+  const createBillingPortalSession = useCallback(async (): Promise<string | null> => {
     if (!token) return null;
 
     try {
-      const response = await fetch(`${API_URL}/subscriptions/create`, {
+      const response = await fetch(`${API_URL}/subscriptions/billing-portal`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ paymentMethodId, childrenCount }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create subscription');
+        throw new Error(errorData.error || 'Failed to create billing portal session');
       }
 
       const result = await response.json();
-      await fetchSubscription();
-      await fetchLimits();
-      return result;
+      return result.url || null;
     } catch (err: any) {
-      console.error('Error creating subscription:', err);
+      console.error('Error creating billing portal session:', err);
       setError(err.message);
       return null;
     }
-  }, [token, fetchSubscription, fetchLimits]);
+  }, [token]);
 
   // Cancel subscription
   const cancelSubscription = useCallback(async (): Promise<boolean> => {
@@ -292,34 +292,6 @@ export function useSubscription() {
     }
   }, [token, fetchSubscription]);
 
-  // Update subscription quantity
-  const updateQuantity = useCallback(async (childrenCount: number): Promise<boolean> => {
-    if (!token) return false;
-
-    try {
-      const response = await fetch(`${API_URL}/subscriptions/update-quantity`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ childrenCount }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update quantity');
-      }
-
-      await fetchSubscription();
-      return true;
-    } catch (err: any) {
-      console.error('Error updating quantity:', err);
-      setError(err.message);
-      return false;
-    }
-  }, [token, fetchSubscription]);
-
   // Downgrade to free plan
   const downgradePlan = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
@@ -356,8 +328,11 @@ export function useSubscription() {
     }
   }, [token, user, fetchPlans, fetchSubscription, fetchLimits]);
 
-  // Check if account is in limited mode (past_due or unpaid)
-  const isLimitedMode = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+  // Check if account is in limited mode (past_due, unpaid, or incomplete)
+  const isLimitedMode = subscription?.status === 'past_due'
+    || subscription?.status === 'unpaid'
+    || subscription?.status === 'incomplete'
+    || subscription?.status === 'incomplete_expired';
   
   // Get effective tier (Free if in limited mode)
   const effectiveTier = isLimitedMode ? 'free' : subscription?.plan?.tier || 'free';
@@ -374,11 +349,10 @@ export function useSubscription() {
     fetchSubscription,
     fetchLimits,
     fetchInvoices,
-    createSetupIntent,
-    createPaidSubscription,
+    createCheckoutSession,
+    createBillingPortalSession,
     cancelSubscription,
     reactivateSubscription,
-    updateQuantity,
     downgradePlan,
   };
 }

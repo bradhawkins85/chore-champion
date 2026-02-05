@@ -12,7 +12,10 @@ import {
   getTenantInvoices,
   checkPlanLimits,
   getOrCreateStripeCustomer,
+  syncSubscriptionByStripeId,
   stripe,
+  upsertInvoiceFromStripe,
+  upsertSubscriptionFromStripe,
 } from '../services/subscription.js';
 
 const router = Router();
@@ -209,6 +212,112 @@ router.get('/invoices', authenticateToken, async (req: AuthRequest, res: Respons
 });
 
 /**
+ * POST /api/subscriptions/checkout-session
+ * Create a Stripe Checkout session for starting a paid subscription
+ * Body: { childrenCount: number }
+ */
+router.post('/checkout-session', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured' });
+    }
+
+    const tenantId = req.tenantId;
+    const email = req.userEmail;
+
+    if (!tenantId || !email) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { childrenCount } = req.body;
+
+    if (!childrenCount || childrenCount < 1) {
+      return res.status(400).json({ error: 'Must have at least 1 child' });
+    }
+
+    const customerId = await getOrCreateStripeCustomer(tenantId, email);
+    const plans = await getSubscriptionPlansForTenant(tenantId);
+    const paidPlan = plans.find((plan) => plan.tier === 'paid');
+
+    if (!paidPlan) {
+      return res.status(404).json({ error: 'Paid plan not found' });
+    }
+
+    const unitAmount = Math.round((Number(paidPlan.price_per_child_aud) || 0) * 100);
+    if (unitAmount <= 0) {
+      return res.status(400).json({ error: 'Paid plan price is not configured' });
+    }
+
+    const price = await stripe.prices.create({
+      currency: 'aud',
+      unit_amount: unitAmount,
+      recurring: {
+        interval: 'month',
+      },
+      product_data: {
+        name: 'ChoreQuest Paid Subscription',
+      },
+    });
+
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [
+        {
+          price: price.id,
+          quantity: childrenCount,
+        },
+      ],
+      success_url: `${appUrl}/?checkout=success`,
+      cancel_url: `${appUrl}/?checkout=cancel`,
+      subscription_data: {
+        metadata: {
+          tenant_id: tenantId,
+          children_count: childrenCount.toString(),
+        },
+      },
+    });
+
+    res.json({ url: session.url });
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
+  }
+});
+
+/**
+ * POST /api/subscriptions/billing-portal
+ * Create a Stripe Billing Portal session for managing subscription changes
+ */
+router.post('/billing-portal', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured' });
+    }
+
+    const tenantId = req.tenantId;
+    const email = req.userEmail;
+
+    if (!tenantId || !email) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const customerId = await getOrCreateStripeCustomer(tenantId, email);
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appUrl}/?portal=return`,
+    });
+
+    res.json({ url: session.url });
+  } catch (error: any) {
+    console.error('Error creating billing portal session:', error);
+    res.status(500).json({ error: error.message || 'Failed to create billing portal session' });
+  }
+});
+
+/**
  * POST /api/subscriptions/create-setup-intent
  * Create a Stripe SetupIntent for saving payment method
  */
@@ -275,28 +384,34 @@ router.post('/webhook', async (req: Request, res: Response) => {
     switch (event.type) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        // Type assertion for webhook event data
         const subscription = event.data.object as any;
-        // Update subscription status in database
-        // TODO: Implement subscription status update
+        await upsertSubscriptionFromStripe(subscription);
         console.log('Subscription event:', event.type, subscription.id);
         break;
       }
-      
+
       case 'invoice.paid': {
-        // Type assertion for webhook event data
         const invoice = event.data.object as any;
-        // Record successful payment
-        // TODO: Implement invoice recording
+        await upsertInvoiceFromStripe(invoice);
+        if (invoice.subscription) {
+          const stripeSubscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription.id;
+          await syncSubscriptionByStripeId(stripeSubscriptionId);
+        }
         console.log('Invoice paid:', invoice.id);
         break;
       }
-      
+
       case 'invoice.payment_failed': {
-        // Type assertion for webhook event data
         const failedInvoice = event.data.object as any;
-        // Handle failed payment - move to limited mode
-        // TODO: Implement payment failure handling
+        await upsertInvoiceFromStripe(failedInvoice);
+        if (failedInvoice.subscription) {
+          const stripeSubscriptionId = typeof failedInvoice.subscription === 'string'
+            ? failedInvoice.subscription
+            : failedInvoice.subscription.id;
+          await syncSubscriptionByStripeId(stripeSubscriptionId);
+        }
         console.log('Invoice payment failed:', failedInvoice.id);
         break;
       }

@@ -7,89 +7,28 @@ import { CreditCard, Check, X, ArrowRight, Warning, Crown, Sparkle } from '@phos
 import { useSubscription } from '@/hooks/use-subscription';
 import { toast } from 'sonner';
 import { SubscriptionPlan } from '@/lib/types';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const STRIPE_DASHBOARD_COPY = 'You will be redirected to Stripe to manage your subscription and payment details.';
 
 interface SubscriptionSettingsProps {
   childrenCount: number;
 }
 
-// Payment form component
-function PaymentForm({ plan, childrenCount, onSuccess }: { 
+// Checkout prompt component
+function CheckoutPrompt({ plan, childrenCount, onSuccess, onRedirect }: { 
   plan: SubscriptionPlan; 
   childrenCount: number;
   onSuccess: () => void;
+  onRedirect: () => Promise<void>;
 }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { createPaidSubscription, createSetupIntent } = useSubscription();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
+  const handleCheckout = async () => {
     setProcessing(true);
     setError(null);
 
     try {
-      // Create setup intent
-      const setupIntentData = await createSetupIntent();
-      if (!setupIntentData) {
-        throw new Error('Failed to create payment setup');
-      }
-
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Card element not found');
-      }
-
-      // Confirm card setup
-      const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(
-        setupIntentData.clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-          },
-        }
-      );
-
-      if (stripeError) {
-        throw new Error(stripeError.message);
-      }
-
-      if (!setupIntent?.payment_method) {
-        throw new Error('Payment method not created');
-      }
-
-      // Create subscription
-      const subscriptionResult = await createPaidSubscription(
-        setupIntent.payment_method as string,
-        childrenCount
-      );
-
-      if (!subscriptionResult) {
-        throw new Error('Failed to activate subscription');
-      }
-
-      if (subscriptionResult.clientSecret) {
-        const { error: paymentError } = await stripe.confirmCardPayment(
-          subscriptionResult.clientSecret
-        );
-
-        if (paymentError) {
-          throw new Error(paymentError.message);
-        }
-      }
-
-      toast.success('Subscription activated successfully!');
+      await onRedirect();
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Payment failed');
@@ -102,28 +41,8 @@ function PaymentForm({ plan, childrenCount, onSuccess }: {
   const monthlyAmount = plan.pricePerChildAUD * childrenCount;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Card Details</label>
-        <div className="border rounded-lg p-3">
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#424770',
-                  '::placeholder': {
-                    color: '#aab7c4',
-                  },
-                },
-                invalid: {
-                  color: '#9e2146',
-                },
-              },
-            }}
-          />
-        </div>
-      </div>
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">{STRIPE_DASHBOARD_COPY}</p>
 
       {error && (
         <Alert variant="destructive">
@@ -152,13 +71,14 @@ function PaymentForm({ plan, childrenCount, onSuccess }: {
       </div>
 
       <Button 
-        type="submit" 
+        type="button" 
         className="w-full font-fredoka" 
-        disabled={!stripe || processing}
+        disabled={processing}
+        onClick={handleCheckout}
       >
-        {processing ? 'Processing...' : `Activate Paid Plan - $${monthlyAmount.toFixed(2)} AUD/month`}
+        {processing ? 'Redirecting...' : `Continue to Stripe - $${monthlyAmount.toFixed(2)} AUD/month`}
       </Button>
-    </form>
+    </div>
   );
 }
 
@@ -170,9 +90,8 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
     loading,
     isLimitedMode,
     effectiveTier,
-    cancelSubscription,
-    reactivateSubscription,
-    downgradePlan,
+    createCheckoutSession,
+    createBillingPortalSession,
     fetchInvoices,
     invoices,
   } = useSubscription();
@@ -188,33 +107,32 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
   // Check if Stripe is configured
   const isStripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-  const handleCancelSubscription = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of the current billing period.')) {
+  const handleManageSubscription = async (successMessage: string) => {
+    const portalUrl = await createBillingPortalSession();
+    if (!portalUrl) {
+      toast.error('Unable to open Stripe billing portal.');
       return;
     }
+    toast.success(successMessage);
+    window.location.assign(portalUrl);
+  };
 
-    const success = await cancelSubscription();
-    if (success) {
-      toast.success('Subscription will be canceled at the end of the billing period');
+  const handleCancelSubscription = async () => {
+    if (!confirm('You will be redirected to Stripe to cancel your subscription. Continue?')) {
+      return;
     }
+    await handleManageSubscription('Redirecting to Stripe to cancel your subscription...');
   };
 
   const handleDowngradeToFree = async () => {
-    if (!confirm('Are you sure you want to downgrade to the Free plan? You will be limited to 1 child, 1 device, 3 chores, and 3 rewards at the end of your current billing period.')) {
+    if (!confirm('You will be redirected to Stripe to manage your plan. Continue?')) {
       return;
     }
-
-    const success = await downgradePlan();
-    if (success) {
-      toast.success('Your plan will be downgraded to Free at the end of the billing period');
-    }
+    await handleManageSubscription('Redirecting to Stripe to manage your plan...');
   };
 
   const handleReactivate = async () => {
-    const success = await reactivateSubscription();
-    if (success) {
-      toast.success('Subscription reactivated successfully');
-    }
+    await handleManageSubscription('Redirecting to Stripe to manage your subscription...');
   };
 
   const handleViewInvoices = () => {
@@ -236,6 +154,15 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
     }
     setSelectedPlan(plan);
     setShowUpgrade(true);
+  };
+
+  const handleCheckoutRedirect = async () => {
+    if (!selectedPlan) return;
+    const sessionUrl = await createCheckoutSession(childrenCount);
+    if (!sessionUrl) {
+      throw new Error('Unable to start Stripe Checkout.');
+    }
+    window.location.assign(sessionUrl);
   };
 
   if (loading) {
@@ -269,6 +196,9 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
       past_due: 'bg-orange-500',
       canceled: 'bg-gray-500',
       unpaid: 'bg-red-500',
+      incomplete: 'bg-yellow-500',
+      incomplete_expired: 'bg-red-500',
+      trialing: 'bg-blue-500',
     };
 
     return (
@@ -551,7 +481,7 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="font-fredoka">Upgrade to {selectedPlan.name} Plan</CardTitle>
-                <CardDescription>Enter your payment details to activate</CardDescription>
+                <CardDescription>Complete your upgrade securely in Stripe</CardDescription>
               </div>
               <Button variant="ghost" onClick={() => setShowUpgrade(false)}>
                 <X className="h-4 w-4" />
@@ -559,13 +489,12 @@ export function SubscriptionSettings({ childrenCount }: SubscriptionSettingsProp
             </div>
           </CardHeader>
           <CardContent>
-            <Elements stripe={stripePromise}>
-              <PaymentForm
-                plan={selectedPlan}
-                childrenCount={childrenCount}
-                onSuccess={() => setShowUpgrade(false)}
-              />
-            </Elements>
+            <CheckoutPrompt
+              plan={selectedPlan}
+              childrenCount={childrenCount}
+              onSuccess={() => setShowUpgrade(false)}
+              onRedirect={handleCheckoutRedirect}
+            />
           </CardContent>
         </Card>
       )}
