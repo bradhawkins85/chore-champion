@@ -66,6 +66,7 @@ services:
       - APP_URL=${APP_URL:-http://localhost:8080}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_METER_EVENT_NAME=${STRIPE_METER_EVENT_NAME:-api_requests}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /usr/bin/docker:/usr/bin/docker:ro

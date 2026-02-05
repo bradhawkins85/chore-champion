@@ -20,6 +20,40 @@ const STRIPE_PRODUCT_NAME = 'ChoreQuest Paid Subscription';
 type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
 
 /**
+ * Send a meter event to Stripe for billing tracking
+ * 
+ * This function is primarily called internally by `upsertInvoiceFromStripe()` when an invoice is paid.
+ * It can also be called directly for custom usage tracking scenarios.
+ * 
+ * @param customerId - The Stripe customer ID
+ * @param value - The value to track (e.g., 1 for a single API request). Accepts a number for convenience, which is converted to a string as required by Stripe's API
+ */
+export async function sendStripeMeterEvent(customerId: string, value: number = 1): Promise<void> {
+  if (!stripe) {
+    console.warn('⚠️  Stripe is not configured. Meter event not sent.');
+    return;
+  }
+
+  const eventName = process.env.STRIPE_METER_EVENT_NAME || 'api_requests';
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  try {
+    // Send meter event to Stripe
+    await stripe.billing.meterEvents.create({
+      event_name: eventName,
+      payload: {
+        stripe_customer_id: customerId,
+        value: value.toString(),
+      },
+      timestamp: timestamp,
+    });
+    console.log(`✓ Meter event sent for customer ${customerId}: ${eventName}=${value}`);
+  } catch (error: unknown) {
+    console.error('Failed to send Stripe meter event:', error instanceof Error ? error.message : 'Unknown error');
+    // Don't throw error - meter events are for tracking, not critical to payment flow
+  }
+}
+
  * Escape single quotes in a string for Stripe search query
  */
 function escapeStripeSearchQuery(value: string): string {
@@ -603,29 +637,36 @@ export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<
         existingInvoiceId,
       ]
     );
-    return;
+  } else {
+    const invoiceId = uuidv4();
+    await pool.query<ResultSetHeader>(
+      `INSERT INTO invoices
+       (id, tenant_id, subscription_id, amount_due, amount_paid, status, due_date, paid_at, hosted_invoice_url, invoice_pdf, stripe_invoice_id, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        invoiceId,
+        subscriptionRow.tenant_id,
+        subscriptionRow.id,
+        invoice.amount_due ?? 0,
+        invoice.amount_paid ?? 0,
+        invoice.status ?? 'draft',
+        dueDateSeconds * 1000,
+        paidAt,
+        hostedInvoiceUrl,
+        invoicePdf,
+        invoice.id,
+        description,
+      ]
+    );
   }
 
-  const invoiceId = uuidv4();
-  await pool.query<ResultSetHeader>(
-    `INSERT INTO invoices
-     (id, tenant_id, subscription_id, amount_due, amount_paid, status, due_date, paid_at, hosted_invoice_url, invoice_pdf, stripe_invoice_id, description)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      invoiceId,
-      subscriptionRow.tenant_id,
-      subscriptionRow.id,
-      invoice.amount_due ?? 0,
-      invoice.amount_paid ?? 0,
-      invoice.status ?? 'draft',
-      dueDateSeconds * 1000,
-      paidAt,
-      hostedInvoiceUrl,
-      invoicePdf,
-      invoice.id,
-      description,
-    ]
-  );
+  // Send meter event if invoice is paid
+  if (invoice.status === 'paid' && invoice.customer) {
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
+    if (customerId) {
+      await sendStripeMeterEvent(customerId, 1);
+    }
+  }
 }
 
 /**
