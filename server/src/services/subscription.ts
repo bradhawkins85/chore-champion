@@ -584,7 +584,7 @@ export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<
       ]
     );
   }
-  
+
   // Send meter event if invoice is paid
   if (invoice.status === 'paid' && invoice.customer) {
     const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
