@@ -213,6 +213,9 @@
 }
 
 .wallpaper-animate {
+  /* Note: background-position includes 3 values (gradient, pattern, accent) 
+     even though not all wallpapers have an accent layer. Extra values are 
+     ignored by browsers when there are fewer background layers. */
   background-position: center, 0 0, 40px 20px;
   animation: wallpaper-drift 60s linear infinite;
 }
