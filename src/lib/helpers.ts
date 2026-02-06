@@ -960,6 +960,27 @@ export function sortChoresByDesiredTime<T extends { chore: { desiredTime?: strin
   })
 }
 
+export function sortChoresWithLockPriority<T extends { chore: { id: string; desiredTime?: string } }>(
+  items: T[],
+  lockedChoreIds: Map<string, unknown>
+): T[] {
+  return [...items].sort((a, b) => {
+    // Check if chores are locked
+    const aLocked = lockedChoreIds.has(a.chore.id)
+    const bLocked = lockedChoreIds.has(b.chore.id)
+    
+    // Locked chores should appear after unlocked ones
+    if (aLocked !== bLocked) {
+      return aLocked ? 1 : -1
+    }
+    
+    // Within the same lock status, sort by desired time
+    const timeA = timeToMinutes(a.chore.desiredTime)
+    const timeB = timeToMinutes(b.chore.desiredTime)
+    return timeA - timeB
+  })
+}
+
 export function getCurrentTimeInMinutes(): number {
   const now = new Date()
   return now.getHours() * 60 + now.getMinutes()

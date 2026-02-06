@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -108,6 +108,37 @@ export function ChildChoreView({
       c.approvalStatus === 'pending'
     )
   }, [completions, child.id])
+
+  // Check which chores are locked due to unmet prerequisites
+  const lockedChoresInfo = useMemo(() => {
+    const locked = new Map<string, Category | null>() // Map choreId to blockedByCategory
+    const choresMap = new Map(chores.map(c => [c.id, c]))
+    
+    childChores.forEach((chore) => {
+      const choreCategories = chore.categoryIds || []
+      for (const categoryId of choreCategories) {
+        const prerequisiteMet = isPrerequisiteCategoryCompleted(
+          child.id,
+          categoryId,
+          categories,
+          assignments,
+          choresMap,
+          completions
+        )
+        
+        if (!prerequisiteMet) {
+          const category = categories.find(c => c.id === categoryId)
+          const blockedBy = category?.prerequisiteCategoryId 
+            ? categories.find(c => c.id === category.prerequisiteCategoryId) || null
+            : null
+          locked.set(chore.id, blockedBy)
+          break
+        }
+      }
+    })
+    
+    return locked
+  }, [childChores, child.id, categories, assignments, chores, completions])
 
   const { pendingChores, completedChores, missedChores, unavailableChores } = useMemo(() => {
     const pending: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
@@ -305,43 +336,12 @@ export function ChildChoreView({
     })
 
     return { 
-      pendingChores: sortChoresByDesiredTime(pending), 
+      pendingChores: sortChoresWithLockPriority(pending, lockedChoresInfo), 
       completedChores: completed, 
       missedChores: missed,
       unavailableChores: unavailable
     }
-  }, [childChores, completions, child.id, currentTimeOfDay, categories])
-
-  // Check which chores are locked due to unmet prerequisites
-  const lockedChoresInfo = useMemo(() => {
-    const locked = new Map<string, Category | null>() // Map choreId to blockedByCategory
-    const choresMap = new Map(chores.map(c => [c.id, c]))
-    
-    childChores.forEach((chore) => {
-      const choreCategories = chore.categoryIds || []
-      for (const categoryId of choreCategories) {
-        const prerequisiteMet = isPrerequisiteCategoryCompleted(
-          child.id,
-          categoryId,
-          categories,
-          assignments,
-          choresMap,
-          completions
-        )
-        
-        if (!prerequisiteMet) {
-          const category = categories.find(c => c.id === categoryId)
-          const blockedBy = category?.prerequisiteCategoryId 
-            ? categories.find(c => c.id === category.prerequisiteCategoryId) || null
-            : null
-          locked.set(chore.id, blockedBy)
-          break
-        }
-      }
-    })
-    
-    return locked
-  }, [childChores, child.id, categories, assignments, chores, completions])
+  }, [childChores, completions, child.id, currentTimeOfDay, categories, lockedChoresInfo])
 
   const initials = getInitialsFromName(child.name)
 
