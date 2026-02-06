@@ -338,22 +338,33 @@ export async function getOrCreateStripeCustomer(tenantId: string, email: string)
     let existingCustomer = existingCustomers.data.find(
       (customer) => customer.metadata?.tenant_id === tenantId
     );
-    
-    // If no customer with this tenant_id, use the first (most recent) one
+
     if (!existingCustomer) {
-      existingCustomer = existingCustomers.data[0];
+      existingCustomer = existingCustomers.data.find(
+        (customer) => !customer.metadata?.tenant_id
+      );
     }
-    
-    customerId = existingCustomer.id;
-    
-    // Update the customer metadata to include tenant_id if not already set
-    if (!existingCustomer.metadata?.tenant_id) {
-      await stripe.customers.update(customerId, {
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+
+      // Update the customer metadata to include tenant_id if not already set
+      if (!existingCustomer.metadata?.tenant_id) {
+        await stripe.customers.update(customerId, {
+          metadata: {
+            ...existingCustomer.metadata,
+            tenant_id: tenantId,
+          },
+        });
+      }
+    } else {
+      const customer = await stripe.customers.create({
+        email,
         metadata: {
-          ...existingCustomer.metadata,
           tenant_id: tenantId,
         },
       });
+      customerId = customer.id;
     }
   } else {
     // Create new Stripe customer
