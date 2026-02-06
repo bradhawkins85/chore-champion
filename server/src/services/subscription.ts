@@ -727,11 +727,11 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
     return;
   }
 
-  const [existingRows] = await pool.query<RowDataPacket[]>(
+  const [existingTenantRows] = await pool.query<RowDataPacket[]>(
     'SELECT id FROM subscriptions WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1',
     [tenantId]
   );
-  const existingId = existingRows[0]?.id ?? null;
+  const existingId = existingTenantRows[0]?.id ?? null;
 
   if (existingId) {
     await pool.query<ResultSetHeader>(
