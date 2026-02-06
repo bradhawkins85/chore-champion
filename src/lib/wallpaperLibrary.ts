@@ -787,17 +787,24 @@ const pickBySeed = <T,>(items: T[], seed: number) => {
 const hashSeed = (value: string) =>
   value.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
-const buildWallpaperStyle = (wallpaper: WallpaperDefinition): CSSProperties => {
+const buildWallpaperStyle = (wallpaper: WallpaperDefinition, animationsEnabled: boolean): CSSProperties => {
   const accentLayer = wallpaper.accentPattern ? `, url("${wallpaper.accentPattern}")` : ''
   const accentSize = wallpaper.accentSize ? `, ${wallpaper.accentSize}` : ''
   const basePatternSize = wallpaper.patternSize || '260px 260px'
 
-  return {
+  const style: CSSProperties = {
     backgroundImage: `${wallpaper.gradient}, url("${wallpaper.pattern}")${accentLayer}`,
     backgroundSize: `cover, ${basePatternSize}${accentSize}`,
     backgroundRepeat: `no-repeat, repeat${accentLayer ? ', repeat' : ''}`,
-    backgroundPosition: `center, 0 0${accentLayer ? ', 40px 20px' : ''}`,
   }
+
+  // Only set backgroundPosition inline if animations are disabled
+  // When animations are enabled, let the CSS animation control the position
+  if (!animationsEnabled) {
+    style.backgroundPosition = `center, 0 0${accentLayer ? ', 40px 20px' : ''}`
+  }
+
+  return style
 }
 
 export const getWallpaperSelection = ({
@@ -840,7 +847,7 @@ export const getWallpaperSelection = ({
     id: wallpaper.id,
     label: wallpaper.label,
     category: wallpaper.category,
-    style: buildWallpaperStyle(wallpaper),
+    style: buildWallpaperStyle(wallpaper, settings.animationsEnabled),
   }
 }
 
