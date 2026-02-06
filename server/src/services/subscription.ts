@@ -608,6 +608,18 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
     tenantId = rows[0]?.tenant_id ?? null;
   }
 
+  if (!tenantId && stripeCustomerId && stripe) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (!Array.isArray(customer)) {
+        tenantId = customer.metadata?.tenant_id || customer.metadata?.tenantId || tenantId;
+      }
+    } catch (error: unknown) {
+      console.warn('Unable to retrieve Stripe customer metadata for subscription sync:',
+        error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
   if (!tenantId) {
     return;
   }
