@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar, Star, CalendarBlank, CalendarCheck, PencilSimple, Repeat } from '@phosphor-icons/react'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -143,31 +151,92 @@ export function AssignChoresView({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {assignedChores.map((chore) => {
-            const assignment = assignments.find(
-              (a) => a.childId === child.id && a.choreId === chore.id
-            )
-            const active = assignment ? isChoreActive(assignment) : false
-            return (
-              <Card key={chore.id} className={!active ? 'opacity-60' : ''}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked disabled />
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <CardTitle className="text-lg font-fredoka">
-                            {chore.name}
-                          </CardTitle>
-                          {!active && (
-                            <Badge variant="outline" className="text-xs">
-                              Inactive
-                            </Badge>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[30px]"></TableHead>
+                  <TableHead className="font-semibold">Chore</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Points</TableHead>
+                  <TableHead className="font-semibold">Frequency</TableHead>
+                  <TableHead className="font-semibold">Schedule</TableHead>
+                  <TableHead className="font-semibold">Categories</TableHead>
+                  <TableHead className="text-right font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignedChores.map((chore) => {
+                  const assignment = assignments.find(
+                    (a) => a.childId === child.id && a.choreId === chore.id
+                  )
+                  const active = assignment ? isChoreActive(assignment) : false
+                  return (
+                    <TableRow key={chore.id} className={!active ? 'opacity-60' : ''}>
+                      <TableCell>
+                        <Checkbox checked disabled />
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-fredoka font-semibold">{chore.name}</div>
+                        {chore.description && (
+                          <div className="text-xs text-muted-foreground mt-0.5 max-w-xs line-clamp-2">
+                            {chore.description}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {!active && (
+                          <Badge variant="outline" className="text-xs">
+                            Inactive
+                          </Badge>
+                        )}
+                        {active && (
+                          <Badge variant="secondary" className="text-xs">
+                            Active
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Star weight="fill" className="h-3.5 w-3.5 text-accent" />
+                          <span className="font-fredoka font-semibold">{chore.points}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm capitalize">{chore.frequency}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          {assignment?.daysOfWeek && assignment.daysOfWeek.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>{formatDaysOfWeek(assignment.daysOfWeek)}</span>
+                            </div>
+                          )}
+                          {assignment?.repeatPattern && (
+                            <div className="flex items-center gap-1">
+                              <Repeat className="h-3 w-3" />
+                              <span>Every {assignment.repeatPattern.interval}w</span>
+                            </div>
+                          )}
+                          {assignment?.startDate && (
+                            <div className="flex items-center gap-1">
+                              <CalendarBlank className="h-3 w-3" />
+                              <span>{formatDate(assignment.startDate)}</span>
+                            </div>
+                          )}
+                          {assignment?.endDate && (
+                            <div className="flex items-center gap-1">
+                              <CalendarCheck className="h-3 w-3" />
+                              <span>{formatDate(assignment.endDate)}</span>
+                            </div>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
                         {chore.categoryIds && chore.categoryIds.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
+                          <div className="flex flex-wrap gap-1">
                             {chore.categoryIds.map((categoryId) => {
                               const category = categories.find(c => c.id === categoryId)
                               if (!category) return null
@@ -175,7 +244,7 @@ export function AssignChoresView({
                                 <Badge
                                   key={categoryId}
                                   variant="outline"
-                                  className="font-fredoka font-semibold px-2.5 py-0.5 border-2"
+                                  className="text-xs px-1.5 py-0 border"
                                   style={{
                                     backgroundColor: `${category.color}20`,
                                     borderColor: category.color,
@@ -188,74 +257,34 @@ export function AssignChoresView({
                             })}
                           </div>
                         )}
-                        {chore.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {chore.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => assignment && handleEditAssignment(assignment, chore.name)}
-                      >
-                        <PencilSimple className="h-4 w-4 mr-1" />
-                        Manage Chore
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => assignment && onUnassign(assignment.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Star weight="fill" className="h-4 w-4 text-accent" />
-                      <Badge variant="secondary" className="font-fredoka">
-                        {chore.points} pts
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span className="capitalize">{chore.frequency}</span>
-                    </div>
-                    {assignment?.daysOfWeek && assignment.daysOfWeek.length > 0 && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatDaysOfWeek(assignment.daysOfWeek)}</span>
-                      </div>
-                    )}
-                    {assignment?.repeatPattern && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Repeat className="h-4 w-4" />
-                        <span>Every {assignment.repeatPattern.interval} week{assignment.repeatPattern.interval > 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    {assignment?.startDate && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <CalendarBlank className="h-4 w-4" />
-                        <span>Starts {formatDate(assignment.startDate)}</span>
-                      </div>
-                    )}
-                    {assignment?.endDate && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <CalendarCheck className="h-4 w-4" />
-                        <span>Ends {formatDate(assignment.endDate)}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => assignment && handleEditAssignment(assignment, chore.name)}
+                          >
+                            <PencilSimple className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-destructive hover:text-destructive"
+                            onClick={() => assignment && onUnassign(assignment.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
