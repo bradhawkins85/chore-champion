@@ -109,7 +109,7 @@ export function WallpaperSurface({
   const shouldAnimate = Boolean(wallpaperSelection && wallpaperSettings.animationsEnabled)
 
   const wrapperClassName = cn(
-    'relative h-full overflow-y-auto',
+    'relative h-full overflow-hidden',
     hasWallpaper ? 'wallpaper-surface' : fallbackClassName,
     shouldAnimate ? 'wallpaper-animate' : '',
     className
@@ -119,7 +119,7 @@ export function WallpaperSurface({
     <div className={wrapperClassName} style={galleryStyle || wallpaperSelection?.style}>
       {galleryWallpaper?.fileType === 'video' && (
         <video
-          className="absolute inset-0 h-full w-full object-cover"
+          className="fixed inset-0 h-full w-full object-cover"
           autoPlay
           muted
           loop
@@ -130,13 +130,13 @@ export function WallpaperSurface({
       {hasWallpaper && (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 wallpaper-overlay',
+            'pointer-events-none fixed inset-0 wallpaper-overlay',
             shouldAnimate ? 'wallpaper-overlay-animate' : ''
           )}
           aria-hidden="true"
         />
       )}
-      <div className={cn('relative z-10', contentClassName)}>{children}</div>
+      <div className={cn('relative z-10 h-full overflow-y-auto', contentClassName)}>{children}</div>
     </div>
   )
 }
