@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket } from 'mysql2';
 import { optionalAuth, AuthRequest } from '../middleware/auth.js';
-import { checkPlanLimits } from '../services/subscription.js';
+import { checkPlanLimits, updateSubscriptionQuantity } from '../services/subscription.js';
 
 const router = Router();
 
@@ -176,6 +176,14 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
        ON DUPLICATE KEY UPDATE value_data = ?`,
       [key, JSON.stringify(value), tenantId, JSON.stringify(value)]
     );
+
+    if (key === 'children' && Array.isArray(value)) {
+      try {
+        await updateSubscriptionQuantity(tenantId, value.length);
+      } catch (subscriptionError) {
+        console.error('Error updating subscription quantity:', subscriptionError);
+      }
+    }
     
     res.json({ success: true });
   } catch (error) {
