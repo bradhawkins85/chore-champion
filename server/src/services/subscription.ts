@@ -175,6 +175,82 @@ export async function getSubscriptionPlan(planId: string): Promise<SubscriptionP
   };
 }
 
+async function updatePlanLimitedItems(
+  tenantId: string,
+  keyName: 'children' | 'chores' | 'rewards',
+  maxAllowed: number | null,
+  isActive: boolean
+): Promise<void> {
+  if (maxAllowed === null && !isActive) {
+    return;
+  }
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
+    [tenantId, keyName]
+  );
+  if (rows.length === 0) {
+    return;
+  }
+  const valueData = rows[0]?.value_data;
+  if (!valueData) {
+    return;
+  }
+  let items: unknown;
+  try {
+    items = JSON.parse(valueData);
+  } catch (error) {
+    console.error(`Unable to parse kv_store for ${keyName}:`, error);
+    return;
+  }
+  if (!Array.isArray(items)) {
+    return;
+  }
+  let activeCount = 0;
+  const updatedItems = items.map((item) => {
+    if (!item || typeof item !== 'object') {
+      return item;
+    }
+    if (!isActive && maxAllowed !== null) {
+      if (activeCount < maxAllowed) {
+        activeCount += 1;
+        return { ...item, isActive: true };
+      }
+      return { ...item, isActive: false };
+    }
+    return { ...item, isActive: true };
+  });
+  const hasChanges = updatedItems.some((item, index) => {
+    const previous = items[index];
+    if (!item || typeof item !== 'object' || !previous || typeof previous !== 'object') {
+      return false;
+    }
+    return (item as { isActive?: boolean }).isActive !== (previous as { isActive?: boolean }).isActive;
+  });
+  if (!hasChanges) {
+    return;
+  }
+  await pool.query(
+    'UPDATE kv_store SET value_data = ? WHERE tenant_id = ? AND key_name = ?',
+    [JSON.stringify(updatedItems), tenantId, keyName]
+  );
+}
+
+export async function applyFreePlanDeactivations(tenantId: string): Promise<void> {
+  const freePlan = await getSubscriptionPlan('plan_free');
+  if (!freePlan) {
+    return;
+  }
+  await updatePlanLimitedItems(tenantId, 'children', freePlan.max_children, false);
+  await updatePlanLimitedItems(tenantId, 'chores', freePlan.max_chores, false);
+  await updatePlanLimitedItems(tenantId, 'rewards', freePlan.max_rewards, false);
+}
+
+export async function reactivatePlanItems(tenantId: string): Promise<void> {
+  await updatePlanLimitedItems(tenantId, 'children', null, true);
+  await updatePlanLimitedItems(tenantId, 'chores', null, true);
+  await updatePlanLimitedItems(tenantId, 'rewards', null, true);
+}
+
 // Type for the joined query result with aliased plan columns
 interface SubscriptionWithPlanRow extends TenantSubscription, RowDataPacket {
   plan_id_value: string;
@@ -574,6 +650,7 @@ async function getSubscriptionRowByStripeId(stripeSubscriptionId: string): Promi
 export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Subscription): Promise<void> {
   const stripeSubscriptionId = stripeSubscription.id;
   const status = stripeSubscription.status as SubscriptionStatus;
+  const planId = status === 'canceled' ? 'plan_free' : 'plan_paid';
   const currentPeriodStart = (stripeSubscription.items?.data?.[0]?.current_period_start || 0) * 1000;
   const currentPeriodEnd = (stripeSubscription.items?.data?.[0]?.current_period_end || 0) * 1000;
   const cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end ?? false;
@@ -581,6 +658,12 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
   const stripeCustomerId = typeof stripeSubscription.customer === 'string'
     ? stripeSubscription.customer
     : stripeSubscription.customer?.id ?? null;
+  const [existingRows] = await pool.query<RowDataPacket[]>(
+    'SELECT tenant_id, plan_id FROM subscriptions WHERE stripe_subscription_id = ? LIMIT 1',
+    [stripeSubscriptionId]
+  );
+  const existingTenantId = existingRows[0]?.tenant_id ?? null;
+  const previousPlanId = existingRows[0]?.plan_id ?? null;
 
   const [updateResult] = await pool.query<ResultSetHeader>(
     `UPDATE subscriptions
@@ -593,7 +676,7 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
          stripe_customer_id = COALESCE(stripe_customer_id, ?)
      WHERE stripe_subscription_id = ?`,
     [
-      'plan_paid',
+      planId,
       status,
       currentPeriodStart,
       currentPeriodEnd,
@@ -605,6 +688,14 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
   );
 
   if (updateResult.affectedRows > 0) {
+    if (previousPlanId !== planId && existingTenantId) {
+      if (planId === 'plan_free') {
+        await applyFreePlanDeactivations(existingTenantId);
+      }
+      if (planId === 'plan_paid') {
+        await reactivatePlanItems(existingTenantId);
+      }
+    }
     return;
   }
 
@@ -655,7 +746,7 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
            stripe_subscription_id = ?
        WHERE id = ?`,
       [
-        'plan_paid',
+        planId,
         status,
         currentPeriodStart,
         currentPeriodEnd,
@@ -666,6 +757,12 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
         existingId,
       ]
     );
+    if (planId === 'plan_free') {
+      await applyFreePlanDeactivations(tenantId);
+    }
+    if (planId === 'plan_paid') {
+      await reactivatePlanItems(tenantId);
+    }
     return;
   }
 
@@ -677,7 +774,7 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
     [
       subscriptionId,
       tenantId,
-      'plan_paid',
+      planId,
       status,
       currentPeriodStart,
       currentPeriodEnd,
@@ -687,6 +784,12 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
       canceledAt,
     ]
   );
+  if (planId === 'plan_free') {
+    await applyFreePlanDeactivations(tenantId);
+  }
+  if (planId === 'plan_paid') {
+    await reactivatePlanItems(tenantId);
+  }
 }
 
 export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): Promise<void> {
@@ -970,21 +1073,27 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     [tenantId, 'children']
   );
   const children = childrenRows.length > 0 ? JSON.parse(childrenRows[0].value_data) : [];
-  const childrenCount = Array.isArray(children) ? children.length : 0;
+  const childrenCount = Array.isArray(children)
+    ? children.filter((child) => child?.isActive !== false).length
+    : 0;
   
   const [choresRows] = await pool.query<RowDataPacket[]>(
     'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
     [tenantId, 'chores']
   );
   const chores = choresRows.length > 0 ? JSON.parse(choresRows[0].value_data) : [];
-  const choresCount = Array.isArray(chores) ? chores.length : 0;
+  const choresCount = Array.isArray(chores)
+    ? chores.filter((chore) => chore?.isActive !== false).length
+    : 0;
   
   const [rewardsRows] = await pool.query<RowDataPacket[]>(
     'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
     [tenantId, 'rewards']
   );
   const rewards = rewardsRows.length > 0 ? JSON.parse(rewardsRows[0].value_data) : [];
-  const rewardsCount = Array.isArray(rewards) ? rewards.length : 0;
+  const rewardsCount = Array.isArray(rewards)
+    ? rewards.filter((reward) => reward?.isActive !== false).length
+    : 0;
   
   const [devicesRows] = await pool.query<RowDataPacket[]>(
     'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',

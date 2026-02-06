@@ -134,6 +134,7 @@ export interface Chore {
   speakDescription?: boolean
   inactiveOnSchoolHolidays?: boolean
   onlyOnSchoolHolidays?: boolean
+  isActive?: boolean
   rotationConfig?: RotationConfig
   emoji?: string
 }
@@ -146,6 +147,7 @@ export interface Child {
   avatarColor: string
   totalPoints: number
   createdAt: number
+  isActive?: boolean
   icsUrl?: string
   calendarLastRefresh?: number
   calendarAutoRefresh?: boolean
@@ -247,6 +249,7 @@ export interface Reward {
   imageEmoji: string
   createdAt: number
   categoryIds: string[]
+  isActive?: boolean
   costOverrides?: RewardCostOverride[]
   requirements?: RewardRequirement[]
   purchaseLimit?: PurchaseLimit

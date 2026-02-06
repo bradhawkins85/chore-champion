@@ -2,7 +2,13 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { getTenantSubscription, getSubscriptionPlan, syncTenantSubscription } from '../services/subscription.js';
+import {
+  applyFreePlanDeactivations,
+  getTenantSubscription,
+  getSubscriptionPlan,
+  reactivatePlanItems,
+  syncTenantSubscription,
+} from '../services/subscription.js';
 import {
   clearGlobalPricePerChild,
   clearTenantPricePerChild,
@@ -346,9 +352,10 @@ router.put('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: R
 
     // Get existing subscription
     const [existingSubRows] = await connection.query<RowDataPacket[]>(
-      'SELECT id FROM subscriptions WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, plan_id FROM subscriptions WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1',
       [tenantId]
     );
+    const previousPlanId = existingSubRows[0]?.plan_id ?? null;
 
     const now = Date.now();
     const oneYearFromNow = now + (365 * 24 * 60 * 60 * 1000);
@@ -379,6 +386,15 @@ router.put('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: R
     }
 
     await connection.commit();
+
+    if (previousPlanId && previousPlanId !== planId) {
+      if (planId === 'plan_free') {
+        await applyFreePlanDeactivations(tenantId);
+      }
+      if (planId === 'plan_paid') {
+        await reactivatePlanItems(tenantId);
+      }
+    }
 
     // Fetch and return updated subscription
     const updatedSubscription = await getTenantSubscription(tenantId);
