@@ -341,7 +341,7 @@ export function ChildChoreView({
       missedChores: missed,
       unavailableChores: unavailable
     }
-  }, [childChores, completions, child.id, currentTimeOfDay, categories, assignments, chores])
+  }, [childChores, completions, child.id, currentTimeOfDay, categories, assignments, chores, lockedChoresInfo])
 
   const initials = getInitialsFromName(child.name)
 
