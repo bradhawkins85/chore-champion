@@ -210,6 +210,8 @@
 .wallpaper-surface {
   position: relative;
   background-repeat: no-repeat, repeat, repeat;
+  background-attachment: fixed, fixed, fixed;
+  background-size: cover, auto, auto;
 }
 
 .wallpaper-animate {
