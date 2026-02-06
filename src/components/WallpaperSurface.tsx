@@ -125,6 +125,7 @@ export function WallpaperSurface({
           loop
           playsInline
           src={galleryWallpaper.url}
+          aria-hidden="true"
         />
       )}
       {hasWallpaper && (
