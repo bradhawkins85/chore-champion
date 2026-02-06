@@ -235,6 +235,101 @@ const createCandyPattern = (color: string, accent: string) =>
     </svg>
   `)
 
+const createOceanPattern = (color: string, accent: string) =>
+  toDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <g stroke="${color}" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round">
+        <path d="M10 50 Q30 40, 50 50 T90 50 T130 50 T170 50" />
+        <path d="M20 90 Q40 80, 60 90 T100 90 T140 90 T180 90" />
+        <path d="M0 130 Q20 120, 40 130 T80 130 T120 130 T160 130" />
+      </g>
+      <g fill="${accent}" fill-opacity="0.28">
+        <path d="M40 70 C55 60, 70 60, 85 70 C70 80, 55 80, 40 70Z" />
+        <circle cx="140" cy="120" r="10" />
+        <path d="M150 140 L165 150 L150 160 Z" />
+      </g>
+      <g fill="${color}" fill-opacity="0.3">
+        <path d="M120 40 C135 30, 150 30, 165 40 C150 50, 135 50, 120 40Z" />
+        <circle cx="65" cy="140" r="8" />
+      </g>
+    </svg>
+  `)
+
+const createBeachPattern = (color: string, accent: string) =>
+  toDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <g fill="${color}" fill-opacity="0.35">
+        <path d="M40 50 L80 50 L60 20 Z" />
+        <rect x="58" y="50" width="4" height="20" rx="2" />
+        <path d="M130 120 C140 110, 160 110, 170 120 C160 130, 140 130, 130 120Z" />
+      </g>
+      <g stroke="${accent}" stroke-opacity="0.3" stroke-width="4" fill="none" stroke-linecap="round">
+        <path d="M10 160 Q30 150, 50 160 T90 160 T130 160 T170 160" />
+      </g>
+      <g fill="${accent}" fill-opacity="0.25">
+        <circle cx="120" cy="40" r="8" />
+        <path d="M90 110 C96 100, 110 100, 116 110 C110 120, 96 120, 90 110Z" />
+      </g>
+    </svg>
+  `)
+
+const createForestPattern = (color: string, accent: string) =>
+  toDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <g fill="${color}" fill-opacity="0.35">
+        <polygon points="40,70 60,30 80,70" />
+        <rect x="58" y="70" width="4" height="14" rx="2" />
+        <polygon points="120,90 140,50 160,90" />
+        <rect x="138" y="90" width="4" height="16" rx="2" />
+        <path d="M60 140 C70 125, 90 125, 100 140 C90 155, 70 155, 60 140Z" />
+      </g>
+      <g fill="${accent}" fill-opacity="0.28">
+        <circle cx="110" cy="120" r="7" />
+        <path d="M130 140 C138 130, 150 130, 158 140 C150 150, 138 150, 130 140Z" />
+      </g>
+    </svg>
+  `)
+
+const createMeadowCrittersPattern = (color: string, accent: string) =>
+  toDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <g fill="${color}" fill-opacity="0.35">
+        <circle cx="50" cy="60" r="10" />
+        <circle cx="65" cy="55" r="6" />
+        <circle cx="35" cy="55" r="6" />
+        <circle cx="140" cy="120" r="12" />
+        <circle cx="155" cy="115" r="7" />
+        <circle cx="125" cy="115" r="7" />
+      </g>
+      <g fill="${accent}" fill-opacity="0.28">
+        <path d="M80 140 C90 125, 110 125, 120 140 C110 155, 90 155, 80 140Z" />
+        <circle cx="100" cy="40" r="6" />
+      </g>
+      <g stroke="${accent}" stroke-opacity="0.3" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M30 90 Q40 80, 50 90 T70 90" />
+        <path d="M120 70 Q130 60, 140 70 T160 70" />
+      </g>
+    </svg>
+  `)
+
+const createSkyFriendsPattern = (color: string, accent: string) =>
+  toDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <g fill="${color}" fill-opacity="0.32">
+        <path d="M40 40 C50 30, 70 30, 80 40 C70 50, 50 50, 40 40Z" />
+        <path d="M120 60 C130 50, 150 50, 160 60 C150 70, 130 70, 120 60Z" />
+        <path d="M70 120 L90 140 L70 160 Z" />
+      </g>
+      <g fill="${accent}" fill-opacity="0.28">
+        <circle cx="50" cy="110" r="8" />
+        <path d="M130 140 L150 160 L130 180 Z" />
+      </g>
+      <g stroke="${accent}" stroke-opacity="0.3" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M20 90 Q35 80, 50 90 T80 90" />
+      </g>
+    </svg>
+  `)
+
 const weatherWallpaperSets: Record<WeatherWallpaperType, WallpaperDefinition[]> = {
   clear: [
     {
@@ -630,6 +725,41 @@ const nonWeatherWallpapers: WallpaperDefinition[] = [
     category: 'non-weather',
     gradient: 'linear-gradient(135deg, #fde68a 0%, #a7f3d0 45%, #bfdbfe 100%)',
     pattern: createConfettiPattern('#10b981', '#3b82f6'),
+  },
+  {
+    id: 'ocean-explorers',
+    label: 'Ocean Explorers',
+    category: 'non-weather',
+    gradient: 'linear-gradient(135deg, #bae6fd 0%, #7dd3fc 45%, #bbf7d0 100%)',
+    pattern: createOceanPattern('#0ea5e9', '#22c55e'),
+  },
+  {
+    id: 'beach-day',
+    label: 'Beach Day',
+    category: 'non-weather',
+    gradient: 'linear-gradient(135deg, #fde68a 0%, #fdba74 45%, #93c5fd 100%)',
+    pattern: createBeachPattern('#f97316', '#38bdf8'),
+  },
+  {
+    id: 'forest-friends',
+    label: 'Forest Friends',
+    category: 'non-weather',
+    gradient: 'linear-gradient(135deg, #bbf7d0 0%, #86efac 45%, #fef3c7 100%)',
+    pattern: createForestPattern('#22c55e', '#f59e0b'),
+  },
+  {
+    id: 'meadow-critters',
+    label: 'Meadow Critters',
+    category: 'non-weather',
+    gradient: 'linear-gradient(135deg, #fbcfe8 0%, #c7d2fe 45%, #bbf7d0 100%)',
+    pattern: createMeadowCrittersPattern('#ec4899', '#8b5cf6'),
+  },
+  {
+    id: 'sky-friends',
+    label: 'Sky Friends',
+    category: 'non-weather',
+    gradient: 'linear-gradient(135deg, #dbeafe 0%, #bae6fd 45%, #fef3c7 100%)',
+    pattern: createSkyFriendsPattern('#60a5fa', '#facc15'),
   },
 ]
 
