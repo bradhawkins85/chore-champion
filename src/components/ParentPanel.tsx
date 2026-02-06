@@ -16,7 +16,7 @@ import {
 import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard, ImageSquare, Pencil, Trash, CaretUp, CaretDown, SunHorizon, MoonStars, Clock, Calendar } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSubscription } from '@/hooks/use-subscription'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap, ChoreTimeOfDay } from '@/lib/types'
 import {
   DndContext,
   closestCenter,
@@ -72,6 +72,8 @@ import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay, format
 import { toast } from 'sonner'
 
 const welcomeCardIds = ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
+
+const timeOfDayOrder: Record<string, number> = { 'am': 1, 'pm': 2, 'both': 3, 'anytime': 4 }
 
 const normalizeCardOrder = (order: string[], allIds: string[]) => {
   const unique = order.filter((id, index) => order.indexOf(id) === index && allIds.includes(id))
@@ -626,6 +628,37 @@ export function ParentPanel({
     }
   }
 
+  // Helper function to get timeOfDay display badge
+  const getTimeOfDayBadge = (timeOfDay?: ChoreTimeOfDay) => {
+    if (!timeOfDay || timeOfDay === 'anytime') {
+      return <span className="text-sm text-muted-foreground">Anytime</span>
+    }
+    
+    switch (timeOfDay) {
+      case 'am':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 w-fit">
+            <SunHorizon className="h-3 w-3" />
+            AM
+          </Badge>
+        )
+      case 'pm':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 w-fit">
+            <MoonStars className="h-3 w-3" />
+            PM
+          </Badge>
+        )
+      case 'both':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 w-fit">
+            <ClockCounterClockwise className="h-3 w-3" />
+            Both
+          </Badge>
+        )
+    }
+  }
+
   // Sorted chores array
   const sortedChores = useMemo(() => {
     if (!choreSortColumn) {
@@ -650,9 +683,8 @@ export function ParentPanel({
           bValue = b.frequency
           break
         case 'timeOfDay':
-          const timeOrder = { 'am': 1, 'pm': 2, 'both': 3, 'anytime': 4 }
-          aValue = a.timeOfDay ? timeOrder[a.timeOfDay] : 5
-          bValue = b.timeOfDay ? timeOrder[b.timeOfDay] : 5
+          aValue = a.timeOfDay ? timeOfDayOrder[a.timeOfDay] : 5
+          bValue = b.timeOfDay ? timeOfDayOrder[b.timeOfDay] : 5
           break
         case 'desiredTime':
           aValue = a.desiredTime || ''
@@ -1226,27 +1258,7 @@ export function ParentPanel({
                               </div>
                             </TableCell>
                             <TableCell>
-                              {chore.timeOfDay === 'am' && (
-                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                                  <SunHorizon className="h-3 w-3" />
-                                  AM
-                                </Badge>
-                              )}
-                              {chore.timeOfDay === 'pm' && (
-                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                                  <MoonStars className="h-3 w-3" />
-                                  PM
-                                </Badge>
-                              )}
-                              {chore.timeOfDay === 'both' && (
-                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                                  <ClockCounterClockwise className="h-3 w-3" />
-                                  Both
-                                </Badge>
-                              )}
-                              {(!chore.timeOfDay || chore.timeOfDay === 'anytime') && (
-                                <span className="text-sm text-muted-foreground">Anytime</span>
-                              )}
+                              {getTimeOfDayBadge(chore.timeOfDay)}
                             </TableCell>
                             <TableCell>
                               {chore.desiredTime ? (
