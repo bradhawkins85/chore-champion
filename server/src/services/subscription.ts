@@ -622,8 +622,9 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
   if (!tenantId && stripeCustomerId && stripe) {
     try {
       const customer = await stripe.customers.retrieve(stripeCustomerId);
-      if (!Array.isArray(customer)) {
-        tenantId = customer.metadata?.tenant_id || customer.metadata?.tenantId || tenantId;
+      if (!Array.isArray(customer) && !('deleted' in customer && customer.deleted)) {
+        const stripeCustomer = customer as Stripe.Customer;
+        tenantId = stripeCustomer.metadata?.tenant_id || stripeCustomer.metadata?.tenantId || tenantId;
       }
     } catch (error: unknown) {
       console.warn('Unable to retrieve Stripe customer metadata for subscription sync:',
