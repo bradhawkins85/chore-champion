@@ -217,7 +217,7 @@ export function AssignChoresView({
                           {assignment?.repeatPattern && (
                             <div className="flex items-center gap-1">
                               <Repeat className="h-3 w-3" />
-                              <span>Every {assignment.repeatPattern.interval}w</span>
+                              <span>Every {assignment.repeatPattern.interval} week{assignment.repeatPattern.interval > 1 ? 's' : ''}</span>
                             </div>
                           )}
                           {assignment?.startDate && (
@@ -265,6 +265,7 @@ export function AssignChoresView({
                             size="sm"
                             className="h-8 px-2"
                             onClick={() => assignment && handleEditAssignment(assignment, chore.name)}
+                            aria-label={`Edit ${chore.name} assignment`}
                           >
                             <PencilSimple className="h-4 w-4" />
                           </Button>
@@ -273,6 +274,7 @@ export function AssignChoresView({
                             size="sm"
                             className="h-8 px-2 text-destructive hover:text-destructive"
                             onClick={() => assignment && onUnassign(assignment.id)}
+                            aria-label={`Remove ${chore.name}`}
                           >
                             Remove
                           </Button>
