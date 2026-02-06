@@ -73,7 +73,7 @@ import { toast } from 'sonner'
 
 const welcomeCardIds = ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
 
-const timeOfDayOrder: Record<string, number> = { 'am': 1, 'pm': 2, 'both': 3, 'anytime': 4 }
+const timeOfDayOrder: Record<string, number> = { 'am': 1, 'pm': 2, 'both': 3, 'anytime': 4, 'undefined': 5 }
 
 const normalizeCardOrder = (order: string[], allIds: string[]) => {
   const unique = order.filter((id, index) => order.indexOf(id) === index && allIds.includes(id))
@@ -656,6 +656,8 @@ export function ParentPanel({
             Both
           </Badge>
         )
+      default:
+        return <span className="text-sm text-muted-foreground">Anytime</span>
     }
   }
 
@@ -683,8 +685,8 @@ export function ParentPanel({
           bValue = b.frequency
           break
         case 'timeOfDay':
-          aValue = a.timeOfDay ? timeOfDayOrder[a.timeOfDay] : 5
-          bValue = b.timeOfDay ? timeOfDayOrder[b.timeOfDay] : 5
+          aValue = a.timeOfDay ? timeOfDayOrder[a.timeOfDay] : timeOfDayOrder['undefined']
+          bValue = b.timeOfDay ? timeOfDayOrder[b.timeOfDay] : timeOfDayOrder['undefined']
           break
         case 'desiredTime':
           aValue = a.desiredTime || ''
