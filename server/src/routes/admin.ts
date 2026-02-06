@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { getTenantSubscription, getSubscriptionPlan } from '../services/subscription.js';
+import { getTenantSubscription, getSubscriptionPlan, syncTenantSubscription } from '../services/subscription.js';
 import {
   clearGlobalPricePerChild,
   clearTenantPricePerChild,
@@ -394,6 +394,40 @@ router.put('/subscriptions/:tenantId', requireAdmin, async (req: Request, res: R
     res.status(500).json({ error: 'Failed to update tenant subscription' });
   } finally {
     connection.release();
+  }
+});
+
+/**
+ * Refresh subscription status for a specific tenant via Stripe
+ * POST /api/admin/subscriptions/:tenantId/refresh
+ */
+router.post('/subscriptions/:tenantId/refresh', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = req.params;
+
+    const [tenantRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM tenants WHERE id = ?',
+      [tenantId]
+    );
+
+    if (tenantRows.length === 0) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const subscription = await syncTenantSubscription(tenantId);
+
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found for this tenant' });
+    }
+
+    res.json({ subscription });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to refresh tenant subscription';
+    console.error('Error refreshing tenant subscription:', message);
+    if (message === 'Stripe is not configured') {
+      return res.status(503).json({ error: message });
+    }
+    res.status(500).json({ error: 'Failed to refresh tenant subscription' });
   }
 });
 

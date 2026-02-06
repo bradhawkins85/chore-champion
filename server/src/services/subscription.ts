@@ -698,6 +698,37 @@ export async function syncSubscriptionByStripeId(stripeSubscriptionId: string): 
   await upsertSubscriptionFromStripe(stripeSubscription);
 }
 
+export async function syncTenantSubscription(tenantId: string): Promise<TenantSubscription | null> {
+  if (!stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
+  const subscription = await getTenantSubscription(tenantId);
+  if (!subscription) {
+    return null;
+  }
+
+  if (subscription.stripe_subscription_id) {
+    await syncSubscriptionByStripeId(subscription.stripe_subscription_id);
+    return await getTenantSubscription(tenantId);
+  }
+
+  if (subscription.stripe_customer_id) {
+    const stripeSubscriptions = await stripe.subscriptions.list({
+      customer: subscription.stripe_customer_id,
+      limit: 1,
+      status: 'all',
+    });
+    const stripeSubscription = stripeSubscriptions.data[0];
+    if (stripeSubscription) {
+      await upsertSubscriptionFromStripe(stripeSubscription);
+      return await getTenantSubscription(tenantId);
+    }
+  }
+
+  return subscription;
+}
+
 export async function upsertInvoiceFromStripe(invoice: Stripe.Invoice): Promise<void> {
   const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription }).subscription;
   const stripeSubscriptionId =
