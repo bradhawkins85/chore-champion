@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, Star, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
 import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OnThisDay } from './OnThisDay'
+import { WallpaperSurface } from './WallpaperSurface'
 
 interface ChildChoreViewProps {
   child: Child
@@ -36,6 +37,9 @@ interface ChildChoreViewProps {
   currentWeather?: WeatherData | null
   schoolHolidays?: SchoolHoliday[]
   childAvailability?: ChildAvailabilityEntry[]
+  wallpaperSettings: WallpaperSettings
+  deviceWallpaperSettings: DeviceWallpaperSettingsMap
+  currentDeviceId: string
 }
 
 export function ChildChoreView({
@@ -61,6 +65,9 @@ export function ChildChoreView({
   currentWeather,
   schoolHolidays = [],
   childAvailability = [],
+  wallpaperSettings,
+  deviceWallpaperSettings,
+  currentDeviceId,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
 
@@ -391,7 +398,13 @@ export function ChildChoreView({
   }, [categoriesWithBonuses, child.id, assignments, chores, completions])
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
+    <WallpaperSurface
+      wallpaperSettings={wallpaperSettings}
+      deviceWallpaperSettings={deviceWallpaperSettings}
+      currentWeather={currentWeather || null}
+      currentDeviceId={currentDeviceId}
+      contentClassName="p-8"
+    >
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -1086,6 +1099,6 @@ export function ChildChoreView({
           />
         )}
       </AnimatePresence>
-    </div>
+    </WallpaperSurface>
   )
 }

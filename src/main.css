@@ -184,3 +184,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes wallpaper-drift {
+  0% {
+    background-position: center, 0 0, 40px 20px;
+  }
+  50% {
+    background-position: center, 120px 80px, -40px 60px;
+  }
+  100% {
+    background-position: center, 0 0, 40px 20px;
+  }
+}
+
+@keyframes wallpaper-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.wallpaper-surface {
+  position: relative;
+  background-repeat: no-repeat, repeat, repeat;
+}
+
+.wallpaper-animate {
+  animation: wallpaper-drift 60s linear infinite;
+}
+
+.wallpaper-overlay {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  mix-blend-mode: soft-light;
+}
+
+.wallpaper-overlay-animate {
+  animation: wallpaper-glow 14s ease-in-out infinite;
+}

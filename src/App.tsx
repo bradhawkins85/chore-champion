@@ -60,6 +60,8 @@ import {
   ChildAvailabilityEntry,
   SchoolHolidayCountdownSettings,
   GettingStartedState,
+  WallpaperSettings,
+  DeviceWallpaperSettingsMap,
 } from '@/lib/types'
 import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
@@ -152,6 +154,14 @@ function App() {
     temperatureUnit: 'auto',
     seasonalThemesEnabled: false,
   })
+  const [wallpaperSettings, setWallpaperSettings] = useKV<WallpaperSettings>('wallpaper-settings', {
+    enabled: true,
+    weatherWallpapersEnabled: true,
+    nonWeatherWallpapersEnabled: true,
+    animationsEnabled: true,
+    defaultMode: 'weather',
+  })
+  const [deviceWallpaperSettings, setDeviceWallpaperSettings] = useKV<DeviceWallpaperSettingsMap>('device-wallpaper-settings', {})
   const [smtpEnabled, setSmtpEnabled] = useState(false)
   const [emailAlertSettings, setEmailAlertSettings] = useKV<EmailAlertSettings>('email-alert-settings', {
     rewardPurchaseAlerts: false,
@@ -2203,6 +2213,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           childAvailability={safeChildAvailability}
           schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
           gettingStartedState={gettingStartedState}
+          wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+          deviceWallpaperSettings={deviceWallpaperSettings || {}}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
           onDeleteChore={handleDeleteChore}
@@ -2245,6 +2257,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
           blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+          onUpdateWallpaperSettings={(settings) => setWallpaperSettings(settings)}
+          onUpdateDeviceWallpaperSettings={(settings) => setDeviceWallpaperSettings(settings)}
           onAddReportTemplate={handleAddReportTemplate}
           onEditReportTemplate={handleEditReportTemplate}
           onDeleteReportTemplate={handleDeleteReportTemplate}
@@ -2331,6 +2345,9 @@ Please log in to ChoreQuest to approve or reject this completion.
             currentWeather={currentWeather}
             schoolHolidays={schoolHolidays || []}
             childAvailability={safeChildAvailability}
+            wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+            deviceWallpaperSettings={deviceWallpaperSettings || {}}
+            currentDeviceId={getDeviceId()}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
             onUndo={(choreId, timeOfDay) => handleUndoChore(selectedChild.id, choreId, timeOfDay)}
             onBack={() => {
@@ -2392,6 +2409,9 @@ Please log in to ChoreQuest to approve or reject this completion.
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               deviceRegistrationComplete={deviceRegistrationComplete}
               pushNotificationSettings={pushNotificationSettings || DEFAULT_PUSH_NOTIFICATION_SETTINGS}
+              wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+              deviceWallpaperSettings={deviceWallpaperSettings || {}}
+              currentWeather={currentWeather}
               onOpenSettings={handleRequestParentMode}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}

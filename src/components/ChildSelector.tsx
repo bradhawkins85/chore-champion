@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/react'
-import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, PushNotificationSettings } from '@/lib/types'
+import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, PushNotificationSettings, WallpaperSettings, DeviceWallpaperSettingsMap, WeatherData } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity, getWeeklyChoreMessage } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
 import { SchoolHolidayCountdownCard } from '@/components/SchoolHolidayCountdownCard'
@@ -15,6 +15,7 @@ import { isStandalone } from '@/lib/pwaHelper'
 import { fetchICSFeed, getICSEventsForToday } from '@/lib/icsHelper'
 import { getDeviceId } from '@/lib/deviceHelper'
 import { isPushNotificationSupported } from '@/lib/pushNotificationHelper'
+import { WallpaperSurface } from '@/components/WallpaperSurface'
 
 const NOTIFICATION_SETUP_DISMISSED_KEY = 'notification-setup-dismissed'
 
@@ -43,6 +44,9 @@ interface ChildSelectorProps {
   deviceRegistrationComplete?: boolean
   pushNotificationSettings?: PushNotificationSettings
   onOpenSettings?: () => void
+  wallpaperSettings: WallpaperSettings
+  deviceWallpaperSettings: DeviceWallpaperSettingsMap
+  currentWeather: WeatherData | null
 }
 
 export function ChildSelector({ 
@@ -70,6 +74,9 @@ export function ChildSelector({
   deviceRegistrationComplete = false,
   pushNotificationSettings,
   onOpenSettings,
+  wallpaperSettings,
+  deviceWallpaperSettings,
+  currentWeather,
 }: ChildSelectorProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null)
@@ -225,7 +232,13 @@ export function ChildSelector({
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/10 via-secondary/20 to-accent/10 p-8">
+    <WallpaperSurface
+      wallpaperSettings={wallpaperSettings}
+      deviceWallpaperSettings={deviceWallpaperSettings}
+      currentWeather={currentWeather || null}
+      currentDeviceId={getDeviceId()}
+      contentClassName="p-8"
+    >
       <div className="max-w-4xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -458,6 +471,6 @@ export function ChildSelector({
           )}
         </div>
       </div>
-    </div>
+    </WallpaperSurface>
   )
 }
