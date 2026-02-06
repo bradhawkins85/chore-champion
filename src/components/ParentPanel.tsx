@@ -13,10 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard } from '@phosphor-icons/react'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard, ImageSquare } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSubscription } from '@/hooks/use-subscription'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
 import {
   DndContext,
   closestCenter,
@@ -65,6 +65,7 @@ import { GettingStartedMenu } from './GettingStartedMenu'
 import { HelpMenu } from './HelpMenu'
 import { DeviceSettings } from './DeviceSettings'
 import { SubscriptionSettings } from './SubscriptionSettings'
+import { WallpaperSettingsPanel } from './WallpaperSettingsPanel'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
 import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -154,6 +155,8 @@ interface ParentPanelProps {
   childAvailability: ChildAvailabilityEntry[]
   schoolHolidayCountdownSettings: SchoolHolidayCountdownSettings
   gettingStartedState: GettingStartedState
+  wallpaperSettings: WallpaperSettings
+  deviceWallpaperSettings: DeviceWallpaperSettingsMap
   onAddChore: (chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onEditChore: (id: string, chore: Omit<Chore, 'id' | 'createdAt'>) => void
   onDeleteChore: (id: string) => void
@@ -203,6 +206,8 @@ interface ParentPanelProps {
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onUpdateBlockParentModeOnLinkedDevices: (value: boolean) => void
+  onUpdateWallpaperSettings: (settings: WallpaperSettings) => void
+  onUpdateDeviceWallpaperSettings: (settings: DeviceWallpaperSettingsMap) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onEditReportTemplate: (id: string, templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
   onDeleteReportTemplate: (id: string) => void
@@ -289,6 +294,8 @@ export function ParentPanel({
   onUpdateHideChildrenWithNoActivity,
   blockParentModeOnLinkedDevices,
   onUpdateBlockParentModeOnLinkedDevices,
+  onUpdateWallpaperSettings,
+  onUpdateDeviceWallpaperSettings,
   onAddReportTemplate,
   onEditReportTemplate,
   onDeleteReportTemplate,
@@ -296,6 +303,8 @@ export function ParentPanel({
   childAvailability,
   schoolHolidayCountdownSettings,
   gettingStartedState,
+  wallpaperSettings,
+  deviceWallpaperSettings,
   onAddSchoolHoliday,
   onEditSchoolHoliday,
   onDeleteSchoolHoliday,
@@ -1132,6 +1141,10 @@ export function ParentPanel({
                 <Gear className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
+              <TabsTrigger value="wallpapers">
+                <ImageSquare className="h-4 w-4 mr-2" />
+                Wallpapers
+              </TabsTrigger>
               <TabsTrigger value="notifications">
                 <Bell className="h-4 w-4 mr-2" />
                 Notifications
@@ -1185,6 +1198,15 @@ export function ParentPanel({
                 onUpdateEmailAlertSettingsMap={onUpdateEmailAlertSettingsMap}
                 onUpdateWeeklyReportSettingsMap={onUpdateWeeklyReportSettingsMap}
                 showOnlyNotifications={true}
+              />
+            </TabsContent>
+
+            <TabsContent value="wallpapers" className="space-y-4">
+              <WallpaperSettingsPanel
+                wallpaperSettings={wallpaperSettings}
+                deviceWallpaperSettings={deviceWallpaperSettings}
+                onUpdateWallpaperSettings={onUpdateWallpaperSettings}
+                onUpdateDeviceWallpaperSettings={onUpdateDeviceWallpaperSettings}
               />
             </TabsContent>
 
