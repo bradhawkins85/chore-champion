@@ -238,7 +238,7 @@ function isAvailabilityEntryActiveAt(entry: ChildAvailabilityEntry, timestamp: n
   }
 
   if (entry.scheduleType === 'one-time' || !entry.repeatPattern) {
-    return timestamp >= entry.startDate && timestamp <= entry.endDate
+    return timestamp >= entry.startDate && timestamp < entry.endDate
   }
 
   const intervalWeeks = Math.max(entry.repeatPattern.interval, 1)
@@ -249,7 +249,7 @@ function isAvailabilityEntryActiveAt(entry: ChildAvailabilityEntry, timestamp: n
 
   const duration = entry.endDate - entry.startDate
   const offset = (timestamp - entry.startDate) % intervalMs
-  return offset >= 0 && offset <= duration
+  return offset >= 0 && offset < duration
 }
 
 export function isChildAvailableAtTimestamp(
