@@ -633,8 +633,8 @@ export function ParentPanel({
     }
 
     return [...chores].sort((a, b) => {
-      let aValue: any = null
-      let bValue: any = null
+      let aValue: string | number = ''
+      let bValue: string | number = ''
 
       switch (choreSortColumn) {
         case 'name':
@@ -1250,7 +1250,7 @@ export function ParentPanel({
                             </TableCell>
                             <TableCell>
                               {chore.desiredTime ? (
-                                <div className="text-sm">{chore.desiredTime}</div>
+                                <div className="text-sm">{formatTime12Hour(chore.desiredTime)}</div>
                               ) : (
                                 <span className="text-sm text-muted-foreground">-</span>
                               )}
