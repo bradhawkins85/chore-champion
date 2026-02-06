@@ -239,16 +239,20 @@ function App() {
   const safeReportTemplates = coerceArray<ReportTemplate>(reportTemplates)
   const safePendingDigestItems = coerceArray<any>(pendingDigestItems)
   const safeChildAvailability = coerceArray<ChildAvailabilityEntry>(childAvailability)
+  const activeChildrenList = useMemo(
+    () => safeChildrenList.filter((child) => child.isActive !== false),
+    [safeChildrenList]
+  )
   
   // Filter children based on device restrictions
   // If deviceAllowedChildrenIds is empty array, all children are allowed (default behavior)
   // If it has specific IDs, only those children are allowed
   const filteredChildrenList = useMemo(() => {
     if (deviceIsLinked && deviceAllowedChildrenIds.length > 0) {
-      return safeChildrenList.filter(child => deviceAllowedChildrenIds.includes(child.id))
+      return activeChildrenList.filter(child => deviceAllowedChildrenIds.includes(child.id))
     }
-    return safeChildrenList
-  }, [safeChildrenList, deviceIsLinked, deviceAllowedChildrenIds])
+    return activeChildrenList
+  }, [activeChildrenList, deviceIsLinked, deviceAllowedChildrenIds])
   
   const hasMigratedRewards = useRef(false)
   const hasInitializedCategories = useRef(false)
@@ -511,6 +515,11 @@ function App() {
     })
   }, [safeChores, safeCategories])
 
+  const activeChores = useMemo(
+    () => (migratedChores || []).filter((chore) => chore.isActive !== false),
+    [migratedChores]
+  )
+
   useEffect(() => {
     if (safeAssignments && safeAssignments.length > 0) {
       const oldChores = safeChores
@@ -571,6 +580,11 @@ function App() {
       }
     })
   }, [safeRewards, safeCategories])
+
+  const activeRewards = useMemo(
+    () => (migratedRewards || []).filter((reward) => reward.isActive !== false),
+    [migratedRewards]
+  )
 
   const migratedPurchases = useMemo(() => {
     if (!safePurchases || safePurchases.length === 0) return safePurchases || []
@@ -2154,12 +2168,12 @@ Please log in to ChoreQuest to approve or reject this completion.
             <ViewOnlyBanner tenantId={viewingTenantId} onExit={exitViewMode} />
           )}
           <ParentPanel
-          chores={migratedChores || []}
-          childrenList={safeChildrenList}
+          chores={activeChores}
+          childrenList={activeChildrenList}
           assignments={safeAssignments}
           completions={safeCompletions}
           childPoints={childPoints}
-          rewards={migratedRewards || []}
+          rewards={activeRewards}
           purchases={migratedPurchases}
           history={safeHistory}
           dismissedMissedChores={safeDismissedMissedChores}
@@ -2253,7 +2267,7 @@ Please log in to ChoreQuest to approve or reject this completion.
         showCalendar ? (
           <CalendarView
             child={selectedChild}
-            chores={migratedChores || []}
+            chores={activeChores}
             assignments={safeAssignments}
             completions={safeCompletions}
             categories={safeCategories}
@@ -2277,8 +2291,8 @@ Please log in to ChoreQuest to approve or reject this completion.
         ) : showRewardShop ? (
           <RewardShop
             child={selectedChild}
-            rewards={migratedRewards || []}
-            chores={migratedChores || []}
+            rewards={activeRewards}
+            chores={activeChores}
             completions={safeCompletions}
             purchases={migratedPurchases}
             trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}
@@ -2304,13 +2318,13 @@ Please log in to ChoreQuest to approve or reject this completion.
         ) : (
           <ChildChoreView
             child={selectedChild}
-            chores={migratedChores || []}
+            chores={activeChores}
             assignments={safeAssignments}
             completions={safeCompletions}
             totalPoints={childPoints.get(selectedChild.id) || 0}
             celebrationSettings={celebrationSettings || { enabled: true, animations: { confetti: true, fireworks: true, sparkles: true, stars: true, bubbles: true, hearts: true }, showUndoButton: true }}
             trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}
-            rewards={safeRewards}
+            rewards={activeRewards}
             categories={safeCategories}
             categoryPoints={childCategoryPoints.get(selectedChild.id)}
             availableCategoryPoints={childAvailableCategoryPoints.get(selectedChild.id)}
@@ -2336,7 +2350,7 @@ Please log in to ChoreQuest to approve or reject this completion.
         )
       ) : (
         <>
-          {safeChildrenList.length === 0 ? (
+          {activeChildrenList.length === 0 ? (
             <div className="h-full flex items-center justify-center p-8">
               <div className="text-center max-w-md">
                 <h1 className="text-4xl font-fredoka font-bold mb-4">
@@ -2361,11 +2375,11 @@ Please log in to ChoreQuest to approve or reject this completion.
               childPoints={childPoints}
               pendingPurchasesCount={pendingPurchasesCount}
               trackedGoals={safeTrackedGoals}
-              rewards={safeRewards}
+              rewards={activeRewards}
               categoryPoints={childCategoryPoints}
               categories={safeCategories}
               assignments={safeAssignments}
-              chores={migratedChores || []}
+              chores={activeChores}
               completions={safeCompletions}
               childAvailability={safeChildAvailability}
               weatherSettings={weatherSettings || { enabled: false, location: '', latitude: null, longitude: null, temperatureUnit: 'auto' }}
