@@ -338,22 +338,33 @@ export async function getOrCreateStripeCustomer(tenantId: string, email: string)
     let existingCustomer = existingCustomers.data.find(
       (customer) => customer.metadata?.tenant_id === tenantId
     );
-    
-    // If no customer with this tenant_id, use the first (most recent) one
+
     if (!existingCustomer) {
-      existingCustomer = existingCustomers.data[0];
+      existingCustomer = existingCustomers.data.find(
+        (customer) => !customer.metadata?.tenant_id
+      );
     }
-    
-    customerId = existingCustomer.id;
-    
-    // Update the customer metadata to include tenant_id if not already set
-    if (!existingCustomer.metadata?.tenant_id) {
-      await stripe.customers.update(customerId, {
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+
+      // Update the customer metadata to include tenant_id if not already set
+      if (!existingCustomer.metadata?.tenant_id) {
+        await stripe.customers.update(customerId, {
+          metadata: {
+            ...existingCustomer.metadata,
+            tenant_id: tenantId,
+          },
+        });
+      }
+    } else {
+      const customer = await stripe.customers.create({
+        email,
         metadata: {
-          ...existingCustomer.metadata,
           tenant_id: tenantId,
         },
       });
+      customerId = customer.id;
     }
   } else {
     // Create new Stripe customer
@@ -606,6 +617,18 @@ export async function upsertSubscriptionFromStripe(stripeSubscription: Stripe.Su
       [stripeCustomerId]
     );
     tenantId = rows[0]?.tenant_id ?? null;
+  }
+
+  if (!tenantId && stripeCustomerId && stripe) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (!Array.isArray(customer)) {
+        tenantId = customer.metadata?.tenant_id || customer.metadata?.tenantId || tenantId;
+      }
+    } catch (error: unknown) {
+      console.warn('Unable to retrieve Stripe customer metadata for subscription sync:',
+        error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 
   if (!tenantId) {
