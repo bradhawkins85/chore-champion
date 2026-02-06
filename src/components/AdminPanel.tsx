@@ -118,6 +118,8 @@ export function AdminPanel() {
   const { token, user, logout } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [syncingTenantId, setSyncingTenantId] = useState<string | null>(null)
+  const [syncingAllSubscriptions, setSyncingAllSubscriptions] = useState(false)
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [parents, setParents] = useState<Parent[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
@@ -434,6 +436,65 @@ export function AdminPanel() {
     } finally {
       setChangingSubscription(null)
     }
+  }
+
+  const refreshSubscriptionStatus = async (tenantId: string, options: { silent?: boolean } = {}) => {
+    setSyncingTenantId(tenantId)
+    try {
+      const response = await fetch(`/api/admin/subscriptions/${tenantId}/refresh`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to refresh subscription status')
+      }
+
+      const data = await response.json()
+      setTenantsWithSubscriptions((prev) =>
+        prev.map((tenant) =>
+          tenant.id === tenantId
+            ? { ...tenant, subscription: data.subscription || tenant.subscription }
+            : tenant
+        )
+      )
+
+      if (!options.silent) {
+        toast.success('Subscription status refreshed')
+      }
+      return true
+    } catch (error: any) {
+      console.error('Error refreshing subscription status:', error)
+      if (!options.silent) {
+        toast.error(error.message || 'Failed to refresh subscription status')
+      }
+      return false
+    } finally {
+      setSyncingTenantId(null)
+    }
+  }
+
+  const refreshAllSubscriptionStatuses = async () => {
+    setSyncingAllSubscriptions(true)
+    let failures = 0
+
+    for (const tenant of tenantsWithSubscriptions) {
+      const success = await refreshSubscriptionStatus(tenant.id, { silent: true })
+      if (!success) {
+        failures += 1
+      }
+    }
+
+    if (failures === 0) {
+      toast.success('All subscriptions refreshed from Stripe')
+    } else {
+      toast.error(`Refreshed with ${failures} failure${failures > 1 ? 's' : ''}`)
+    }
+
+    setSyncingAllSubscriptions(false)
   }
 
   const deleteParent = async (parentId: string, email: string) => {
@@ -1064,10 +1125,26 @@ export function AdminPanel() {
                       <CardTitle className="text-lg">Subscription Management</CardTitle>
                       <CardDescription className="text-xs">View and manage tenant subscriptions</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={fetchSubscriptions} disabled={loading}>
-                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchSubscriptions}
+                        disabled={loading || syncingAllSubscriptions}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={refreshAllSubscriptionStatuses}
+                        disabled={loading || syncingAllSubscriptions || tenantsWithSubscriptions.length === 0}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${syncingAllSubscriptions ? 'animate-spin' : ''}`} />
+                        Refresh from Stripe
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="relative">
@@ -1094,6 +1171,7 @@ export function AdminPanel() {
                             <TableHead>Limits</TableHead>
                             <TableHead>Period</TableHead>
                             <TableHead>Change Plan</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1155,12 +1233,23 @@ export function AdminPanel() {
                                     </SelectContent>
                                   </Select>
                                 </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => refreshSubscriptionStatus(tenant.id)}
+                                    disabled={syncingAllSubscriptions || syncingTenantId === tenant.id}
+                                  >
+                                    <RefreshCw className={`h-3 w-3 mr-2 ${syncingTenantId === tenant.id ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                  </Button>
+                                </TableCell>
                               </TableRow>
                             )
                           })}
                           {filteredSubscriptions.length === 0 && !loading && (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                                 No tenants found
                               </TableCell>
                             </TableRow>
