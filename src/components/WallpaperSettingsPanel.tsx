@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Monitor, ImageSquare } from '@phosphor-icons/react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getLinkedDevices, getDeviceGuid, DeviceInfo } from '@/lib/deviceHelper'
-import type { DeviceWallpaperSettingsMap, WallpaperMode, WallpaperSettings } from '@/lib/types'
+import type { DeviceWallpaperSettingsMap, WallpaperMode, WallpaperSettings, WallpaperAsset } from '@/lib/types'
 import { nonWeatherWallpaperCount, weatherWallpaperCountByType } from '@/lib/wallpaperLibrary'
 import { toast } from 'sonner'
 
@@ -53,6 +53,8 @@ export function WallpaperSettingsPanel({
   const { token } = useAuth()
   const [devices, setDevices] = useState<DeviceSummary[]>([])
   const [loading, setLoading] = useState(false)
+  const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperAsset[]>([])
+  const [galleryLoading, setGalleryLoading] = useState(false)
   const currentDeviceGuid = getDeviceGuid()
 
   useEffect(() => {
@@ -84,6 +86,35 @@ export function WallpaperSettingsPanel({
     loadDevices()
   }, [token])
 
+  useEffect(() => {
+    if (!token) {
+      setGalleryWallpapers([])
+      return
+    }
+
+    const loadGallery = async () => {
+      setGalleryLoading(true)
+      try {
+        const response = await fetch('/api/wallpapers', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) throw new Error('Failed to load wallpaper gallery')
+        const data = await response.json()
+        setGalleryWallpapers(data.wallpapers || [])
+      } catch (error) {
+        console.error('Error loading wallpaper gallery:', error)
+        toast.error('Failed to load wallpaper gallery')
+      } finally {
+        setGalleryLoading(false)
+      }
+    }
+
+    loadGallery()
+  }, [token])
+
   const allDevices = useMemo(() => {
     const currentDevice: DeviceSummary = {
       id: currentDeviceGuid,
@@ -102,6 +133,19 @@ export function WallpaperSettingsPanel({
       [deviceId]: { mode },
     })
   }
+
+  const galleryEnabled = wallpaperSettings.galleryWallpapersEnabled ?? false
+  const selectedGalleryId = wallpaperSettings.galleryWallpaperId
+  const selectedGalleryWallpaper = galleryWallpapers.find((wallpaper) => wallpaper.id === selectedGalleryId)
+
+  useEffect(() => {
+    if (galleryEnabled && !selectedGalleryId && galleryWallpapers.length > 0) {
+      onUpdateWallpaperSettings({
+        ...wallpaperSettings,
+        galleryWallpaperId: galleryWallpapers[0].id,
+      })
+    }
+  }, [galleryEnabled, galleryWallpapers, selectedGalleryId, onUpdateWallpaperSettings, wallpaperSettings])
 
   return (
     <Card>
@@ -168,6 +212,90 @@ export function WallpaperSettingsPanel({
 
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <Label className="text-base">Gallery Wallpapers</Label>
+            <p className="text-sm text-muted-foreground">
+              Allow parents to use admin-uploaded wallpapers from the shared gallery.
+            </p>
+          </div>
+          <Switch
+            checked={galleryEnabled}
+            onCheckedChange={(enabled) =>
+              onUpdateWallpaperSettings({
+                ...wallpaperSettings,
+                galleryWallpapersEnabled: enabled,
+                galleryWallpaperId: enabled
+                  ? selectedGalleryId || galleryWallpapers[0]?.id || null
+                  : null,
+              })
+            }
+          />
+        </div>
+
+        {galleryEnabled && (
+          <div className="space-y-3 rounded-lg border border-border/70 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base">Gallery Wallpaper</Label>
+                <p className="text-sm text-muted-foreground">
+                  Choose the gallery wallpaper that appears when the gallery mode is selected.
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {galleryWallpapers.length} available
+              </span>
+            </div>
+            {galleryWallpapers.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px] md:items-center">
+                <Select
+                  value={selectedGalleryId ?? ''}
+                  onValueChange={(value) =>
+                    onUpdateWallpaperSettings({
+                      ...wallpaperSettings,
+                      galleryWallpaperId: value,
+                    })
+                  }
+                  disabled={galleryLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a gallery wallpaper" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {galleryWallpapers.map((wallpaper) => (
+                      <SelectItem key={wallpaper.id} value={wallpaper.id}>
+                        {wallpaper.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedGalleryWallpaper && (
+                  <div className="relative h-32 w-full overflow-hidden rounded-lg border border-border/70 bg-muted">
+                    {selectedGalleryWallpaper.fileType === 'image' ? (
+                      <img
+                        src={selectedGalleryWallpaper.url}
+                        alt={selectedGalleryWallpaper.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        className="h-full w-full object-cover"
+                        src={selectedGalleryWallpaper.url}
+                        muted
+                        playsInline
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No gallery wallpapers yet. Ask an admin to upload one.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
             <Label className="text-base">Background Animations</Label>
             <p className="text-sm text-muted-foreground">
               Add gentle movement to wallpaper patterns.
@@ -201,6 +329,9 @@ export function WallpaperSettingsPanel({
             <SelectContent>
               <SelectItem value="weather">Weather themed</SelectItem>
               <SelectItem value="non-weather">Non-weather themed</SelectItem>
+              <SelectItem value="gallery" disabled={!galleryEnabled || galleryWallpapers.length === 0}>
+                Gallery wallpapers
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -230,16 +361,19 @@ export function WallpaperSettingsPanel({
                     onValueChange={(value) => handleModeChange(device.deviceGuid, value as WallpaperMode)}
                     disabled={loading}
                   >
-                    <SelectTrigger className="w-full md:w-56">
-                      <SelectValue placeholder="Choose mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weather">Weather themed</SelectItem>
-                      <SelectItem value="non-weather">Non-weather themed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )
+                  <SelectTrigger className="w-full md:w-56">
+                    <SelectValue placeholder="Choose mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weather">Weather themed</SelectItem>
+                    <SelectItem value="non-weather">Non-weather themed</SelectItem>
+                    <SelectItem value="gallery" disabled={!galleryEnabled || galleryWallpapers.length === 0}>
+                      Gallery wallpapers
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )
             })}
             {allDevices.length === 0 && (
               <p className="text-sm text-muted-foreground">No linked devices found.</p>

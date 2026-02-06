@@ -819,6 +819,7 @@ export const getWallpaperSelection = ({
   seedKey: string
 }): WallpaperSelection | null => {
   if (!settings.enabled) return null
+  if (deviceMode === 'gallery') return null
 
   const weatherType = getWeatherWallpaperType(weather?.conditionCode ?? null)
   const weatherWallpapers = weatherType ? weatherWallpaperSets[weatherType] : []

@@ -230,6 +230,23 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Create wallpaper_assets table for admin-managed gallery
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS wallpaper_assets (
+            id VARCHAR(36) PRIMARY KEY,
+            original_name VARCHAR(255) NOT NULL,
+            file_type ENUM('image', 'video') NOT NULL,
+            mime_type VARCHAR(100) NOT NULL,
+            file_path VARCHAR(512) NOT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_file_type (file_type),
+            INDEX idx_is_active (is_active),
+            INDEX idx_created_at (created_at)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // Create subscriptions table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscriptions (

@@ -13,6 +13,8 @@ import configRoutes from './routes/config.js';
 import ipAccessRoutes from './routes/ip-access.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscriptions.js';
+import wallpaperRoutes from './routes/wallpapers.js';
+import path from 'path';
 
 dotenv.config();
 
@@ -44,6 +46,7 @@ app.use(bodyParser.json({
   },
 }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Rate limiting configuration - applied AFTER body parser
 const limiter = rateLimit({
@@ -109,6 +112,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/ip-access', requireDb, ipAccessRoutes);
 app.use('/api/admin', requireDb, adminRoutes);
 app.use('/api/subscriptions', requireDb, subscriptionRoutes);
+app.use('/api/wallpapers', requireDb, wallpaperRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
