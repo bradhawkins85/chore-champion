@@ -35,6 +35,7 @@ pids
 .devcontainer/
 
 .spark-workbench-id
+uploads/
 
 # Docker volumes and data
 data/

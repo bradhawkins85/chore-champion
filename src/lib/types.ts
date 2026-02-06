@@ -536,14 +536,16 @@ export interface ReportSummary {
 
 export type TemperatureUnit = 'auto' | 'celsius' | 'fahrenheit'
 
-export type WallpaperMode = 'weather' | 'non-weather'
+export type WallpaperMode = 'weather' | 'non-weather' | 'gallery'
 
 export interface WallpaperSettings {
   enabled: boolean
   weatherWallpapersEnabled: boolean
   nonWeatherWallpapersEnabled: boolean
+  galleryWallpapersEnabled: boolean
   animationsEnabled: boolean
   defaultMode: WallpaperMode
+  galleryWallpaperId: string | null
 }
 
 export interface DeviceWallpaperSettings {
@@ -552,6 +554,15 @@ export interface DeviceWallpaperSettings {
 
 export interface DeviceWallpaperSettingsMap {
   [deviceId: string]: DeviceWallpaperSettings
+}
+
+export interface WallpaperAsset {
+  id: string
+  name: string
+  fileType: 'image' | 'video'
+  mimeType: string
+  url: string
+  createdAt: string
 }
 
 export interface WeatherSettings {

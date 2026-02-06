@@ -158,8 +158,10 @@ function App() {
     enabled: true,
     weatherWallpapersEnabled: true,
     nonWeatherWallpapersEnabled: true,
+    galleryWallpapersEnabled: false,
     animationsEnabled: true,
     defaultMode: 'weather',
+    galleryWallpaperId: null,
   })
   const [deviceWallpaperSettings, setDeviceWallpaperSettings] = useKV<DeviceWallpaperSettingsMap>('device-wallpaper-settings', {})
   const [smtpEnabled, setSmtpEnabled] = useState(false)
@@ -2213,7 +2215,7 @@ Please log in to ChoreQuest to approve or reject this completion.
           childAvailability={safeChildAvailability}
           schoolHolidayCountdownSettings={schoolHolidayCountdownSettings || { enabled: false, countdownMode: 'calendar-days', showRemainingDays: true }}
           gettingStartedState={gettingStartedState}
-          wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+          wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, galleryWallpapersEnabled: false, animationsEnabled: true, defaultMode: 'weather', galleryWallpaperId: null }}
           deviceWallpaperSettings={deviceWallpaperSettings || {}}
           onAddChore={handleAddChore}
           onEditChore={handleEditChore}
@@ -2345,7 +2347,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             currentWeather={currentWeather}
             schoolHolidays={schoolHolidays || []}
             childAvailability={safeChildAvailability}
-            wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+            wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, galleryWallpapersEnabled: false, animationsEnabled: true, defaultMode: 'weather', galleryWallpaperId: null }}
             deviceWallpaperSettings={deviceWallpaperSettings || {}}
             currentDeviceId={getDeviceId()}
             onComplete={(choreId, timeOfDay) => handleCompleteChore(selectedChild.id, choreId, timeOfDay)}
@@ -2409,7 +2411,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               deviceRegistrationComplete={deviceRegistrationComplete}
               pushNotificationSettings={pushNotificationSettings || DEFAULT_PUSH_NOTIFICATION_SETTINGS}
-              wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, animationsEnabled: true, defaultMode: 'weather' }}
+              wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, galleryWallpapersEnabled: false, animationsEnabled: true, defaultMode: 'weather', galleryWallpaperId: null }}
               deviceWallpaperSettings={deviceWallpaperSettings || {}}
               currentWeather={currentWeather}
               onOpenSettings={handleRequestParentMode}

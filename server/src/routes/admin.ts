@@ -18,8 +18,32 @@ import {
 } from '../services/subscription-pricing.js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import fs from 'fs/promises';
+import path from 'path';
 
 const router = Router();
+const WALLPAPER_UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'wallpapers');
+const WALLPAPER_MAX_BYTES = 9 * 1024 * 1024;
+const wallpaperMimeExtensions: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'video/quicktime': '.mov',
+};
+
+const ensureWallpaperUploadsDir = async () => {
+  await fs.mkdir(WALLPAPER_UPLOADS_DIR, { recursive: true });
+};
+
+const extractBase64 = (payload: string) => {
+  if (payload.includes('base64,')) {
+    return payload.split('base64,')[1];
+  }
+  return payload;
+};
 
 /**
  * Get all tenants with summary information
@@ -666,6 +690,141 @@ router.put('/subscription-pricing/tenant/:tenantId', requireAdmin, async (req: R
   } catch (error) {
     console.error('Error updating tenant pricing:', error);
     res.status(500).json({ error: 'Failed to update tenant pricing' });
+  }
+});
+
+/**
+ * Get admin wallpaper gallery
+ * GET /api/admin/wallpapers
+ */
+router.get('/wallpapers', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT id, original_name, file_type, mime_type, file_path, created_at
+      FROM wallpaper_assets
+      ORDER BY created_at DESC
+    `);
+
+    const wallpapers = rows.map((row) => ({
+      id: row.id,
+      name: row.original_name,
+      fileType: row.file_type,
+      mimeType: row.mime_type,
+      url: `/uploads/${row.file_path}`,
+      createdAt: row.created_at,
+    }));
+
+    res.json({ wallpapers });
+  } catch (error) {
+    console.error('Error fetching admin wallpapers:', error);
+    res.status(500).json({ error: 'Failed to fetch wallpapers' });
+  }
+});
+
+/**
+ * Upload a wallpaper asset
+ * POST /api/admin/wallpapers
+ * Body: { fileName: string, mimeType: string, dataUrl: string }
+ */
+router.post('/wallpapers', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { fileName, mimeType, dataUrl } = req.body as {
+      fileName?: string;
+      mimeType?: string;
+      dataUrl?: string;
+    };
+
+    if (!fileName || !mimeType || !dataUrl) {
+      return res.status(400).json({ error: 'Missing upload payload' });
+    }
+
+    const fileType = mimeType.startsWith('image/')
+      ? 'image'
+      : mimeType.startsWith('video/')
+        ? 'video'
+        : null;
+
+    if (!fileType) {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
+
+    const base64 = extractBase64(dataUrl);
+    const buffer = Buffer.from(base64, 'base64');
+
+    if (!buffer.length) {
+      return res.status(400).json({ error: 'Upload payload is empty' });
+    }
+
+    if (buffer.length > WALLPAPER_MAX_BYTES) {
+      return res.status(413).json({ error: 'File exceeds upload limit' });
+    }
+
+    await ensureWallpaperUploadsDir();
+
+    const extension = wallpaperMimeExtensions[mimeType] || path.extname(fileName) || '';
+    const id = uuidv4();
+    const storedName = `${id}${extension}`;
+    const relativePath = `wallpapers/${storedName}`;
+    const absolutePath = path.join(WALLPAPER_UPLOADS_DIR, storedName);
+
+    await fs.writeFile(absolutePath, buffer);
+
+    await pool.query<ResultSetHeader>(
+      `INSERT INTO wallpaper_assets (id, original_name, file_type, mime_type, file_path)
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, fileName, fileType, mimeType, relativePath]
+    );
+
+    res.status(201).json({
+      wallpaper: {
+        id,
+        name: fileName,
+        fileType,
+        mimeType,
+        url: `/uploads/${relativePath}`,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error uploading wallpaper asset:', error);
+    res.status(500).json({ error: 'Failed to upload wallpaper' });
+  }
+});
+
+/**
+ * Delete a wallpaper asset
+ * DELETE /api/admin/wallpapers/:wallpaperId
+ */
+router.delete('/wallpapers/:wallpaperId', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { wallpaperId } = req.params;
+
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT file_path FROM wallpaper_assets WHERE id = ?',
+      [wallpaperId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Wallpaper not found' });
+    }
+
+    const filePath = path.join(process.cwd(), 'uploads', rows[0].file_path);
+
+    await pool.query<ResultSetHeader>(
+      'DELETE FROM wallpaper_assets WHERE id = ?',
+      [wallpaperId]
+    );
+
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      console.warn('Failed to remove wallpaper file:', error);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting wallpaper asset:', error);
+    res.status(500).json({ error: 'Failed to delete wallpaper' });
   }
 });
 

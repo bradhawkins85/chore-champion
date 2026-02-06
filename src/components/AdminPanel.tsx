@@ -26,7 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film } from 'lucide-react'
+import type { WallpaperAsset } from '@/lib/types'
 import { toast } from 'sonner'
 
 interface Tenant {
@@ -135,6 +136,11 @@ export function AdminPanel() {
   const [selectedOverrideTenant, setSelectedOverrideTenant] = useState('')
   const [overridePriceInput, setOverridePriceInput] = useState('')
   const [overrideEditInputs, setOverrideEditInputs] = useState<Record<string, string>>({})
+  const [wallpapers, setWallpapers] = useState<WallpaperAsset[]>([])
+  const [wallpapersLoading, setWallpapersLoading] = useState(false)
+  const [wallpaperUploading, setWallpaperUploading] = useState(false)
+  const [wallpaperFile, setWallpaperFile] = useState<File | null>(null)
+  const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = useState<string | null>(null)
 
   // Search and filter states
   const [tenantsSearch, setTenantsSearch] = useState('')
@@ -159,6 +165,14 @@ export function AdminPanel() {
       navigate('/')
     }
   }, [user, navigate])
+
+  useEffect(() => {
+    return () => {
+      if (wallpaperPreviewUrl) {
+        URL.revokeObjectURL(wallpaperPreviewUrl)
+      }
+    }
+  }, [wallpaperPreviewUrl])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -241,6 +255,27 @@ export function AdminPanel() {
     }
   }
 
+  const fetchWallpapers = async () => {
+    setWallpapersLoading(true)
+    try {
+      const response = await fetch('/api/admin/wallpapers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Failed to fetch wallpapers')
+
+      const data = await response.json()
+      setWallpapers(data.wallpapers || [])
+    } catch (error) {
+      console.error('Error fetching wallpapers:', error)
+      toast.error('Failed to load wallpaper gallery')
+    } finally {
+      setWallpapersLoading(false)
+    }
+  }
+
   const fetchAvailablePlans = async () => {
     try {
       const response = await fetch('/api/subscriptions/plans', {
@@ -318,6 +353,102 @@ export function AdminPanel() {
     } catch (error: any) {
       console.error('Error updating global pricing:', error)
       toast.error(error.message || 'Failed to update global pricing')
+    }
+  }
+
+  const handleWallpaperFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+
+    if (wallpaperPreviewUrl) {
+      URL.revokeObjectURL(wallpaperPreviewUrl)
+    }
+
+    if (!file) {
+      setWallpaperFile(null)
+      setWallpaperPreviewUrl(null)
+      return
+    }
+
+    setWallpaperFile(file)
+    setWallpaperPreviewUrl(URL.createObjectURL(file))
+  }
+
+  const handleWallpaperUpload = async () => {
+    if (!wallpaperFile) {
+      toast.error('Select an image or video to upload')
+      return
+    }
+
+    if (!wallpaperFile.type.startsWith('image/') && !wallpaperFile.type.startsWith('video/')) {
+      toast.error('Only image or video files are supported')
+      return
+    }
+
+    const maxBytes = 9 * 1024 * 1024
+    if (wallpaperFile.size > maxBytes) {
+      toast.error('Please upload files smaller than 9MB')
+      return
+    }
+
+    setWallpaperUploading(true)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(wallpaperFile)
+      })
+
+      const response = await fetch('/api/admin/wallpapers', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: wallpaperFile.name,
+          mimeType: wallpaperFile.type,
+          dataUrl,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload wallpaper')
+      }
+
+      const data = await response.json()
+      setWallpapers((prev) => [data.wallpaper, ...prev])
+      setWallpaperFile(null)
+      setWallpaperPreviewUrl(null)
+      toast.success('Wallpaper uploaded')
+    } catch (error) {
+      console.error('Error uploading wallpaper:', error)
+      toast.error('Failed to upload wallpaper')
+    } finally {
+      setWallpaperUploading(false)
+    }
+  }
+
+  const handleWallpaperDelete = async (wallpaperId: string) => {
+    try {
+      const response = await fetch(`/api/admin/wallpapers/${wallpaperId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete wallpaper')
+      }
+
+      setWallpapers((prev) => prev.filter((wallpaper) => wallpaper.id !== wallpaperId))
+      toast.success('Wallpaper removed')
+    } catch (error) {
+      console.error('Error deleting wallpaper:', error)
+      toast.error('Failed to delete wallpaper')
     }
   }
 
@@ -776,6 +907,10 @@ export function AdminPanel() {
               <TabsTrigger value="payments" onClick={fetchPayments}>
                 <CreditCard className="h-4 w-4 mr-2" />
                 Payments
+              </TabsTrigger>
+              <TabsTrigger value="wallpapers" onClick={fetchWallpapers}>
+                <Image className="h-4 w-4 mr-2" />
+                Wallpapers
               </TabsTrigger>
             </TabsList>
 
@@ -1341,6 +1476,139 @@ export function AdminPanel() {
                           )}
                         </TableBody>
                       </Table>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Wallpapers Tab */}
+            <TabsContent value="wallpapers" className="flex-1 overflow-hidden flex flex-col space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Wallpaper Gallery</CardTitle>
+                  <CardDescription className="text-xs">
+                    Upload images or videos that parents can use as app wallpapers.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
+                    <div className="space-y-3">
+                      <Input
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={handleWallpaperFileChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Supported: JPG, PNG, GIF, WebP, MP4, WebM. Max size 9MB.
+                      </p>
+                      <Button
+                        onClick={handleWallpaperUpload}
+                        disabled={wallpaperUploading || !wallpaperFile}
+                      >
+                        <Upload className={`h-4 w-4 mr-2 ${wallpaperUploading ? 'animate-spin' : ''}`} />
+                        Upload to Gallery
+                      </Button>
+                    </div>
+                    <div className="relative h-32 w-full overflow-hidden rounded-lg border border-border/70 bg-muted">
+                      {wallpaperPreviewUrl ? (
+                        wallpaperFile?.type.startsWith('video/') ? (
+                          <video
+                            className="h-full w-full object-cover"
+                            src={wallpaperPreviewUrl}
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={wallpaperPreviewUrl}
+                            alt={wallpaperFile?.name || 'Wallpaper preview'}
+                            className="h-full w-full object-cover"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                          Preview
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="flex-1 overflow-hidden flex flex-col">
+                <CardHeader className="flex-none pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Gallery Assets</CardTitle>
+                      <CardDescription className="text-xs">
+                        {wallpapers.length} assets available to parents.
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchWallpapers} disabled={wallpapersLoading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${wallpapersLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-6 pt-0">
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {wallpapers.map((wallpaper) => (
+                          <Card key={wallpaper.id} className="overflow-hidden">
+                            <div className="relative h-36 w-full bg-muted">
+                              {wallpaper.fileType === 'video' ? (
+                                <div className="relative h-full w-full">
+                                  <video
+                                    className="h-full w-full object-cover"
+                                    src={wallpaper.url}
+                                    muted
+                                    playsInline
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <Film className="h-6 w-6 text-white" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <img
+                                  src={wallpaper.url}
+                                  alt={wallpaper.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <CardContent className="space-y-2 p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-medium truncate" title={wallpaper.name}>
+                                  {wallpaper.name}
+                                </p>
+                                <Badge variant="secondary" className="text-xs">
+                                  {wallpaper.fileType === 'video' ? 'Video' : 'Image'}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Added {new Date(wallpaper.createdAt).toLocaleDateString()}
+                              </p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleWallpaperDelete(wallpaper.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                      {wallpapers.length === 0 && !wallpapersLoading && (
+                        <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+                          <Image className="h-8 w-8" />
+                          No wallpapers uploaded yet.
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
