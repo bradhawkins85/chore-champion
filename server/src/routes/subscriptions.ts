@@ -400,6 +400,17 @@ router.post('/webhook', async (req: Request, res: Response) => {
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
     
+    const handleInvoiceEvent = async (invoice: any, context: string) => {
+      await upsertInvoiceFromStripe(invoice);
+      if (invoice.subscription) {
+        const stripeSubscriptionId = typeof invoice.subscription === 'string'
+          ? invoice.subscription
+          : invoice.subscription.id;
+        await syncSubscriptionByStripeId(stripeSubscriptionId);
+      }
+      console.log(`Invoice ${context}:`, invoice.id);
+    };
+
     // Handle the event
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -426,27 +437,53 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
       case 'invoice.paid': {
         const invoice = event.data.object as any;
-        await upsertInvoiceFromStripe(invoice);
-        if (invoice.subscription) {
-          const stripeSubscriptionId = typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : invoice.subscription.id;
-          await syncSubscriptionByStripeId(stripeSubscriptionId);
-        }
-        console.log('Invoice paid:', invoice.id);
+        await handleInvoiceEvent(invoice, 'paid');
         break;
       }
 
       case 'invoice.payment_failed': {
         const failedInvoice = event.data.object as any;
-        await upsertInvoiceFromStripe(failedInvoice);
-        if (failedInvoice.subscription) {
-          const stripeSubscriptionId = typeof failedInvoice.subscription === 'string'
-            ? failedInvoice.subscription
-            : failedInvoice.subscription.id;
-          await syncSubscriptionByStripeId(stripeSubscriptionId);
+        await handleInvoiceEvent(failedInvoice, 'payment failed');
+        break;
+      }
+
+      case 'invoice.created': {
+        const invoice = event.data.object as any;
+        await handleInvoiceEvent(invoice, 'created');
+        break;
+      }
+
+      case 'invoice.finalized': {
+        const invoice = event.data.object as any;
+        await handleInvoiceEvent(invoice, 'finalized');
+        break;
+      }
+
+      case 'payment_intent.created': {
+        const paymentIntent = event.data.object as any;
+        if (paymentIntent.invoice) {
+          const invoiceId = typeof paymentIntent.invoice === 'string'
+            ? paymentIntent.invoice
+            : paymentIntent.invoice.id;
+          const invoice = await stripe.invoices.retrieve(invoiceId);
+          await handleInvoiceEvent(invoice, 'payment intent created');
+        } else {
+          console.log('Payment intent created:', paymentIntent.id);
         }
-        console.log('Invoice payment failed:', failedInvoice.id);
+        break;
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as any;
+        if (paymentIntent.invoice) {
+          const invoiceId = typeof paymentIntent.invoice === 'string'
+            ? paymentIntent.invoice
+            : paymentIntent.invoice.id;
+          const invoice = await stripe.invoices.retrieve(invoiceId);
+          await handleInvoiceEvent(invoice, 'payment intent succeeded');
+        } else {
+          console.log('Payment intent succeeded:', paymentIntent.id);
+        }
         break;
       }
       
