@@ -213,6 +213,7 @@
 }
 
 .wallpaper-animate {
+  background-position: center, 0 0, 40px 20px;
   animation: wallpaper-drift 60s linear infinite;
 }
 
