@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard, ImageSquare } from '@phosphor-icons/react'
+import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard, ImageSquare, Pencil, Trash, CaretUp, CaretDown, SunHorizon, MoonStars, Clock, Calendar } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSubscription } from '@/hooks/use-subscription'
 import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
@@ -37,6 +37,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useApiKV } from '@/hooks/use-api-kv'
 import { ChoreCard } from './ChoreCard'
 import { ChildCard } from './ChildCard'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ChoreDialog } from './ChoreDialog'
 import { ChildDialog } from './ChildDialog'
 import { AssignChoresView } from './AssignChoresView'
@@ -67,7 +68,7 @@ import { DeviceSettings } from './DeviceSettings'
 import { SubscriptionSettings } from './SubscriptionSettings'
 import { WallpaperSettingsPanel } from './WallpaperSettingsPanel'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
-import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay } from '@/lib/helpers'
+import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay, formatTime12Hour } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 const welcomeCardIds = ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
@@ -338,6 +339,8 @@ export function ParentPanel({
   const [activitiesSubTab, setActivitiesSubTab] = useState('approvals')
   const [managementSubTab, setManagementSubTab] = useState('children')
   const [settingsSubTab, setSettingsSubTab] = useState('account')
+  const [choreSortColumn, setChoreSortColumn] = useState<string | null>(null)
+  const [choreSortDirection, setChoreSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // State for welcome card order - save order immediately when changed
   const [welcomeCardOrder, setWelcomeCardOrder] = useApiKV<string[]>(
@@ -610,6 +613,68 @@ export function ParentPanel({
       description: 'Import this file into your calendar app to view chore history',
     })
   }
+
+  // Sort chores function
+  const handleSortColumn = (column: string) => {
+    if (choreSortColumn === column) {
+      // Toggle direction if same column
+      setChoreSortDirection(choreSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to ascending
+      setChoreSortColumn(column)
+      setChoreSortDirection('asc')
+    }
+  }
+
+  // Sorted chores array
+  const sortedChores = useMemo(() => {
+    if (!choreSortColumn) {
+      return chores
+    }
+
+    return [...chores].sort((a, b) => {
+      let aValue: any = null
+      let bValue: any = null
+
+      switch (choreSortColumn) {
+        case 'name':
+          aValue = a.name.toLowerCase()
+          bValue = b.name.toLowerCase()
+          break
+        case 'points':
+          aValue = a.points
+          bValue = b.points
+          break
+        case 'frequency':
+          aValue = a.frequency
+          bValue = b.frequency
+          break
+        case 'timeOfDay':
+          const timeOrder = { 'am': 1, 'pm': 2, 'both': 3, 'anytime': 4 }
+          aValue = a.timeOfDay ? timeOrder[a.timeOfDay] : 5
+          bValue = b.timeOfDay ? timeOrder[b.timeOfDay] : 5
+          break
+        case 'desiredTime':
+          aValue = a.desiredTime || ''
+          bValue = b.desiredTime || ''
+          break
+        case 'timeWindow':
+          aValue = a.timeWindow?.startTime || ''
+          bValue = b.timeWindow?.startTime || ''
+          break
+        default:
+          return 0
+      }
+
+      if (aValue < bValue) {
+        return choreSortDirection === 'asc' ? -1 : 1
+      }
+      if (aValue > bValue) {
+        return choreSortDirection === 'asc' ? 1 : -1
+      }
+      return 0
+    })
+  }, [chores, choreSortColumn, choreSortDirection])
 
   if (selectedChild) {
     return (
@@ -1047,17 +1112,185 @@ export function ParentPanel({
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-4">
-                  {chores.map((chore) => (
-                    <ChoreCard
-                      key={chore.id}
-                      chore={chore}
-                      categories={categories}
-                      onEdit={handleEditChore}
-                      onDelete={setDeleteChoreId}
-                    />
-                  ))}
-                </div>
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('name')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Chore Name
+                              {choreSortColumn === 'name' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('points')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Points
+                              {choreSortColumn === 'points' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('frequency')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Frequency
+                              {choreSortColumn === 'frequency' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('timeOfDay')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Time of Day
+                              {choreSortColumn === 'timeOfDay' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('desiredTime')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Desired Time
+                              {choreSortColumn === 'desiredTime' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-semibold cursor-pointer select-none"
+                            onClick={() => handleSortColumn('timeWindow')}
+                          >
+                            <div className="flex items-center gap-1">
+                              Time Window
+                              {choreSortColumn === 'timeWindow' && (
+                                choreSortDirection === 'asc' ? 
+                                  <CaretUp className="h-3 w-3" /> : 
+                                  <CaretDown className="h-3 w-3" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedChores.map((chore) => (
+                          <TableRow key={chore.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {chore.emoji && <span className="text-xl">{chore.emoji}</span>}
+                                <div>
+                                  <div className="font-fredoka font-semibold">{chore.name}</div>
+                                  {chore.description && (
+                                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs line-clamp-2">
+                                      {chore.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="font-fredoka">
+                                {chore.points} pts
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-sm">
+                                <Calendar className="h-4 w-4" />
+                                <span className="capitalize">{chore.frequency}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {chore.timeOfDay === 'am' && (
+                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                                  <SunHorizon className="h-3 w-3" />
+                                  AM
+                                </Badge>
+                              )}
+                              {chore.timeOfDay === 'pm' && (
+                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                                  <MoonStars className="h-3 w-3" />
+                                  PM
+                                </Badge>
+                              )}
+                              {chore.timeOfDay === 'both' && (
+                                <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                                  <ClockCounterClockwise className="h-3 w-3" />
+                                  Both
+                                </Badge>
+                              )}
+                              {(!chore.timeOfDay || chore.timeOfDay === 'anytime') && (
+                                <span className="text-sm text-muted-foreground">Anytime</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {chore.desiredTime ? (
+                                <div className="text-sm">{chore.desiredTime}</div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {chore.timeWindow ? (
+                                <Badge variant="outline" className="flex items-center gap-1 w-fit whitespace-nowrap">
+                                  <Clock className="h-3 w-3" />
+                                  {formatTime12Hour(chore.timeWindow.startTime)} - {formatTime12Hour(chore.timeWindow.endTime)}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleEditChore(chore)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => setDeleteChoreId(chore.id)}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               )}
             </TabsContent>
 
