@@ -348,8 +348,12 @@ export function ChildChoreView({
   const handleComplete = (chore: Chore, assignment: ChoreAssignment, timeOfDay?: 'am' | 'pm') => {
     if (celebrationSettings.enabled) {
       const animation = getRandomCelebrationAnimation(celebrationSettings)
+      // Calculate total category points for this chore
+      const totalCategoryPoints = chore.categoryIds.reduce((sum, categoryId) => {
+        return sum + getChoreCategoryPointsForChild(chore, assignment, child.id, categoryId)
+      }, 0)
       setCelebrating({ 
-        points: getChorePointsForChild(chore, assignment, child.id),
+        points: totalCategoryPoints,
         animation 
       })
     }
@@ -538,7 +542,6 @@ export function ChildChoreView({
                           </p>
                           {category.completionBonus && targetCategory && (
                             <p className="text-sm font-medium mt-1 flex items-center gap-1">
-                              <Star weight="fill" className="h-4 w-4" style={{ color: category.color }} />
                               Earn {category.completionBonus.bonusPoints} {targetCategory.name} bonus points
                             </p>
                           )}
@@ -738,22 +741,11 @@ export function ChildChoreView({
                                           color: 'white',
                                         }}
                                       >
-                                        <Star weight="fill" className="h-3 w-3 mr-1" />
-                                        {chore.completionType === 'shareable' 
-                                          ? `${categoryPoints} ${category.name}`
-                                          : `${categoryPoints} ${category.name}`}
+                                        {categoryPoints} {category.name}
                                       </Badge>
                                     )
                                   })
-                                ) : (
-                                  <Badge
-                                    variant="secondary"
-                                    className="font-fredoka text-sm px-2 py-0.5"
-                                  >
-                                    <Star weight="fill" className="h-3 w-3 mr-1" />
-                                    {getChorePointsForChild(chore, assignment, child.id)} pts
-                                  </Badge>
-                                )}
+                                ) : null}
                                 {chore.estimatedDuration && (
                                   <div className="flex items-center gap-1 text-muted-foreground text-sm">
                                     <Timer className="h-4 w-4" />
@@ -845,20 +837,11 @@ export function ChildChoreView({
                                           color: 'white',
                                         }}
                                       >
-                                        <Star weight="fill" className="h-3 w-3 mr-1" />
                                         {categoryPoints} {category.name}
                                       </Badge>
                                     )
                                   })
-                                ) : (
-                                  <Badge
-                                    variant="secondary"
-                                    className="font-fredoka text-sm px-2 py-0.5 opacity-60"
-                                  >
-                                    <Star weight="fill" className="h-3 w-3 mr-1" />
-                                    {getChorePointsForChild(chore, assignment, child.id)} pts
-                                  </Badge>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </div>
@@ -945,20 +928,11 @@ export function ChildChoreView({
                                         color: 'white',
                                       }}
                                     >
-                                      <Star weight="fill" className="h-3 w-3 mr-1" />
                                       {categoryPoints} {category.name}
                                     </Badge>
                                   )
                                 })
-                              ) : (
-                                <Badge
-                                  variant="secondary"
-                                  className="font-fredoka text-sm px-2 py-0.5"
-                                >
-                                  <Star weight="fill" className="h-3 w-3 mr-1" />
-                                  {getChorePointsForChild(chore, assignment, child.id)} pts
-                                </Badge>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                           {celebrationSettings.showUndoButton !== false && (
@@ -1051,20 +1025,11 @@ export function ChildChoreView({
                                         color: 'white',
                                       }}
                                     >
-                                      <Star weight="fill" className="h-4 w-4 mr-1" />
                                       {categoryPoints} {category.name} pts
                                     </Badge>
                                   )
                                 })
-                              ) : (
-                                <Badge
-                                  variant="secondary"
-                                  className="font-fredoka text-lg px-3 py-1"
-                                >
-                                  <Star weight="fill" className="h-4 w-4 mr-1" />
-                                  {getChorePointsForChild(chore, assignment, child.id)} pts
-                                </Badge>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </div>

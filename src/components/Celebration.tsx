@@ -297,7 +297,7 @@ export function ChoreCompletionCelebration({
         transition={{ duration: 0.5 }}
         className="text-8xl font-fredoka font-bold text-accent drop-shadow-lg"
       >
-        +{points} ⭐
+        +{points}
       </motion.div>
       <AnimationComponent />
     </motion.div>
