@@ -272,6 +272,85 @@
   }
 }
 
+/* Wallpaper cloud animation - clouds drifting across screen */
+@keyframes wallpaper-cloud-drift {
+  0% { 
+    transform: translateX(-10vw) translateY(0); 
+    opacity: 0.4; 
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translateX(110vw) translateY(calc(-20px + 40px * var(--random, 0.5))); 
+    opacity: 0.4; 
+  }
+}
+
+/* Wallpaper sun animation - rotating sun with gentle movement */
+@keyframes wallpaper-sun-rotate {
+  0% { 
+    transform: rotate(0deg) scale(1); 
+    opacity: 0.7; 
+  }
+  50% { 
+    transform: rotate(180deg) scale(1.05); 
+    opacity: 0.9; 
+  }
+  100% { 
+    transform: rotate(360deg) scale(1); 
+    opacity: 0.7; 
+  }
+}
+
+/* Wallpaper leaf animation - leaves blowing in wind */
+@keyframes wallpaper-leaf-blow {
+  0% { 
+    transform: translateY(-10vh) translateX(0) rotate(0deg); 
+    opacity: 0; 
+  }
+  10% {
+    opacity: 0.8;
+  }
+  25% {
+    transform: translateY(25vh) translateX(calc(20px * var(--random, 0.5))) rotate(90deg);
+  }
+  50% {
+    transform: translateY(50vh) translateX(calc(-20px * var(--random, 0.5))) rotate(180deg);
+  }
+  75% {
+    transform: translateY(75vh) translateX(calc(30px * var(--random, 0.5))) rotate(270deg);
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translateY(110vh) translateX(calc(-40px + 80px * var(--random, 0.5))) rotate(360deg); 
+    opacity: 0; 
+  }
+}
+
+/* Wallpaper raindrop animation - rain falling */
+@keyframes wallpaper-rain-fall {
+  0% { 
+    transform: translateY(-10vh) translateX(0); 
+    opacity: 0.6; 
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translateY(110vh) translateX(calc(-10px + 20px * var(--random, 0.5))); 
+    opacity: 0; 
+  }
+}
+
 @keyframes wallpaper-glow {
   0%,
   100% {
@@ -335,4 +414,24 @@
 .wallpaper-star {
   font-size: 24px;
   animation: wallpaper-star-fall ease-in;
+}
+
+.wallpaper-cloud {
+  font-size: 32px;
+  animation: wallpaper-cloud-drift linear;
+}
+
+.wallpaper-sun {
+  font-size: 48px;
+  animation: wallpaper-sun-rotate ease-in-out infinite;
+}
+
+.wallpaper-leaf {
+  font-size: 20px;
+  animation: wallpaper-leaf-blow ease-in-out;
+}
+
+.wallpaper-raindrop {
+  font-size: 16px;
+  animation: wallpaper-rain-fall linear;
 }
