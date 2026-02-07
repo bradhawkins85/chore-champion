@@ -185,15 +185,90 @@
   }
 }
 
-@keyframes wallpaper-drift {
-  0% {
-    background-position: center, 0 0, 40px 20px;
+/* Wallpaper confetti animation - continuously falling particles */
+@keyframes wallpaper-confetti-fall {
+  0% { 
+    transform: translateY(-10vh) rotate(0deg); 
+    opacity: 0; 
   }
-  50% {
-    background-position: center, 120px 80px, -40px 60px;
+  10% {
+    opacity: 0.6;
   }
-  100% {
-    background-position: center, 0 0, 40px 20px;
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateY(110vh) rotate(720deg); 
+    opacity: 0; 
+  }
+}
+
+/* Wallpaper sparkle animation - twinkling stars */
+@keyframes wallpaper-sparkle {
+  0%, 100% { 
+    transform: scale(0) rotate(0deg); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: scale(1.2) rotate(180deg); 
+    opacity: 0.8; 
+  }
+}
+
+/* Wallpaper bubble animation - continuously rising bubbles */
+@keyframes wallpaper-bubble-rise {
+  0% { 
+    transform: translateY(110vh) translateX(0); 
+    opacity: 0; 
+  }
+  10% {
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% { 
+    transform: translateY(-10vh) translateX(calc(-30px + 60px * var(--random, 0.5))); 
+    opacity: 0; 
+  }
+}
+
+/* Wallpaper heart animation - floating hearts */
+@keyframes wallpaper-heart-float {
+  0% { 
+    transform: translateY(110vh) scale(0.8); 
+    opacity: 0; 
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translateY(55vh) scale(1); 
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateY(-10vh) scale(0.8); 
+    opacity: 0; 
+  }
+}
+
+/* Wallpaper star animation - falling stars */
+@keyframes wallpaper-star-fall {
+  0% { 
+    transform: translateY(-10vh) rotate(0deg); 
+    opacity: 0; 
+  }
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% { 
+    transform: translateY(110vh) rotate(360deg); 
+    opacity: 0; 
   }
 }
 
@@ -215,11 +290,8 @@
 }
 
 .wallpaper-animate {
-  /* Note: background-position includes 3 values (gradient, pattern, accent) 
-     even though not all wallpapers have an accent layer. Extra values are 
-     ignored by browsers when there are fewer background layers. */
-  background-position: center, 0 0, 40px 20px;
-  animation: wallpaper-drift 60s linear infinite;
+  /* Wallpaper animations now use celebration-style particles */
+  position: relative;
 }
 
 .wallpaper-overlay {
@@ -229,4 +301,38 @@
 
 .wallpaper-overlay-animate {
   animation: wallpaper-glow 14s ease-in-out infinite;
+}
+
+/* Wallpaper animation particle styles */
+.wallpaper-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.wallpaper-confetti {
+  width: 8px;
+  height: 8px;
+  animation: wallpaper-confetti-fall linear;
+}
+
+.wallpaper-sparkle {
+  font-size: 16px;
+  animation: wallpaper-sparkle ease-in-out;
+}
+
+.wallpaper-bubble {
+  border-radius: 50%;
+  border: 2px solid oklch(1 0 0 / 0.3);
+  animation: wallpaper-bubble-rise ease-out;
+}
+
+.wallpaper-heart {
+  font-size: 20px;
+  animation: wallpaper-heart-float ease-out;
+}
+
+.wallpaper-star {
+  font-size: 24px;
+  animation: wallpaper-star-fall ease-in;
 }
