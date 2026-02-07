@@ -39,7 +39,10 @@ function WallpaperAnimations() {
       'oklch(0.8 0.2 160 / 0.5)',
     ]
 
+    const leafEmojis = ['🍃', '🍂', '🍁']
+
     const container = containerRef.current
+    // Mix of celebration and weather-themed particles for varied visual appeal
     const particleTypes = ['confetti', 'sparkle', 'bubble', 'heart', 'star', 'cloud', 'sun', 'leaf', 'raindrop']
     const particleCount = 30 // Total number of particles
     
@@ -91,7 +94,6 @@ function WallpaperAnimations() {
           particle.style.top = `${5 + Math.random() * 15}%` // Sun in upper corner
           break
         case 'leaf':
-          const leafEmojis = ['🍃', '🍂', '🍁']
           particle.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)]
           const leafSize = 16 + Math.random() * 24 // 16-40px
           particle.style.fontSize = `${leafSize}px`
