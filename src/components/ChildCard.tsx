@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Star, ListChecks, CalendarBlank } from '@phosphor-icons/react'
+import { Pencil, Trash, ListChecks, CalendarBlank } from '@phosphor-icons/react'
 import { Child, Category } from '@/lib/types'
 import { getInitialsFromName } from '@/lib/helpers'
 
@@ -65,12 +65,6 @@ export function ChildCard({ child, totalPoints, onEdit, onDelete, onClick, onDow
       </CardHeader>
       <CardContent className="pb-3">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Star weight="fill" className="h-5 w-5 text-accent" />
-            <Badge variant="secondary" className="font-fredoka text-base">
-              {totalPoints} total points
-            </Badge>
-          </div>
           {categoryPoints && categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {categories

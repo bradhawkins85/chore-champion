@@ -348,8 +348,12 @@ export function ChildChoreView({
   const handleComplete = (chore: Chore, assignment: ChoreAssignment, timeOfDay?: 'am' | 'pm') => {
     if (celebrationSettings.enabled) {
       const animation = getRandomCelebrationAnimation(celebrationSettings)
+      // Calculate total category points for this chore
+      const totalCategoryPoints = chore.categoryIds.reduce((sum, categoryId) => {
+        return sum + getChoreCategoryPointsForChild(chore, assignment, child.id, categoryId)
+      }, 0)
       setCelebrating({ 
-        points: getChorePointsForChild(chore, assignment, child.id),
+        points: totalCategoryPoints,
         animation 
       })
     }
