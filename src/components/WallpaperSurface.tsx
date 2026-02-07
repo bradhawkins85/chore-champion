@@ -31,6 +31,14 @@ function WallpaperAnimations() {
       'oklch(0.8 0.2 160)',
     ]
 
+    const bubbleColors = [
+      'oklch(0.6 0.22 290 / 0.5)',
+      'oklch(0.72 0.18 45 / 0.5)',
+      'oklch(0.85 0.15 95 / 0.5)',
+      'oklch(0.65 0.12 240 / 0.5)',
+      'oklch(0.8 0.2 160 / 0.5)',
+    ]
+
     const container = containerRef.current
     const particleTypes = ['confetti', 'sparkle', 'bubble', 'heart', 'star']
     const particleCount = 30 // Total number of particles
@@ -62,7 +70,7 @@ function WallpaperAnimations() {
           const size = 20 + Math.random() * 30
           particle.style.width = `${size}px`
           particle.style.height = `${size}px`
-          particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)].replace(')', ' / 0.5)') // Add alpha using OKLCH syntax
+          particle.style.backgroundColor = bubbleColors[Math.floor(Math.random() * bubbleColors.length)]
           break
         case 'heart':
           particle.textContent = '💖'
@@ -76,7 +84,7 @@ function WallpaperAnimations() {
       
       // Remove particle after animation completes
       setTimeout(() => {
-        if (particle.parentNode === container) {
+        if (particle.isConnected) {
           particle.remove()
         }
       }, (duration + delay) * 1000)
