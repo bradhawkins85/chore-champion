@@ -313,26 +313,26 @@
 .wallpaper-confetti {
   width: 8px;
   height: 8px;
-  animation: wallpaper-confetti-fall linear infinite;
+  animation: wallpaper-confetti-fall linear;
 }
 
 .wallpaper-sparkle {
   font-size: 16px;
-  animation: wallpaper-sparkle ease-in-out infinite;
+  animation: wallpaper-sparkle ease-in-out;
 }
 
 .wallpaper-bubble {
   border-radius: 50%;
   border: 2px solid oklch(1 0 0 / 0.3);
-  animation: wallpaper-bubble-rise ease-out infinite;
+  animation: wallpaper-bubble-rise ease-out;
 }
 
 .wallpaper-heart {
   font-size: 20px;
-  animation: wallpaper-heart-float ease-out infinite;
+  animation: wallpaper-heart-float ease-out;
 }
 
 .wallpaper-star {
   font-size: 24px;
-  animation: wallpaper-star-fall ease-in infinite;
+  animation: wallpaper-star-fall ease-in;
 }

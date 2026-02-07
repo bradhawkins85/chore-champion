@@ -62,7 +62,7 @@ function WallpaperAnimations() {
           const size = 20 + Math.random() * 30
           particle.style.width = `${size}px`
           particle.style.height = `${size}px`
-          particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)] + '80' // Add alpha
+          particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)].replace(')', ' / 0.5)') // Add alpha using OKLCH syntax
           break
         case 'heart':
           particle.textContent = '💖'
