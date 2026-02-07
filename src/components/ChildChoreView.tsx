@@ -741,9 +741,7 @@ export function ChildChoreView({
                                           color: 'white',
                                         }}
                                       >
-                                        {chore.completionType === 'shareable' 
-                                          ? `${categoryPoints} ${category.name}`
-                                          : `${categoryPoints} ${category.name}`}
+                                        {categoryPoints} {category.name}
                                       </Badge>
                                     )
                                   })
