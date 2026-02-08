@@ -16,7 +16,7 @@ interface WallpaperSurfaceProps {
   fallbackClassName?: string
 }
 
-// Celebration-style animation component for wallpapers
+// Enhanced background animation component with weather effects
 function WallpaperAnimations() {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -39,8 +39,11 @@ function WallpaperAnimations() {
       'oklch(0.8 0.2 160 / 0.5)',
     ]
 
+    const leafEmojis = ['🍃', '🍂', '🍁']
+
     const container = containerRef.current
-    const particleTypes = ['confetti', 'sparkle', 'bubble', 'heart', 'star']
+    // Mix of celebration and weather-themed particles for varied visual appeal
+    const particleTypes = ['confetti', 'sparkle', 'bubble', 'heart', 'star', 'cloud', 'sun', 'leaf', 'raindrop']
     const particleCount = 30 // Total number of particles
     
     // Create particles continuously
@@ -77,6 +80,28 @@ function WallpaperAnimations() {
           break
         case 'star':
           particle.textContent = '⭐'
+          break
+        case 'cloud':
+          particle.textContent = '☁️'
+          const cloudSize = 24 + Math.random() * 48 // 24-72px
+          particle.style.fontSize = `${cloudSize}px`
+          particle.style.top = `${Math.random() * 40}%` // Clouds in upper 40% of screen
+          break
+        case 'sun':
+          particle.textContent = '☀️'
+          const sunSize = 32 + Math.random() * 32 // 32-64px
+          particle.style.fontSize = `${sunSize}px`
+          particle.style.top = `${5 + Math.random() * 15}%` // Sun in upper corner
+          break
+        case 'leaf':
+          particle.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)]
+          const leafSize = 16 + Math.random() * 24 // 16-40px
+          particle.style.fontSize = `${leafSize}px`
+          break
+        case 'raindrop':
+          particle.textContent = '💧'
+          const dropSize = 12 + Math.random() * 16 // 12-28px
+          particle.style.fontSize = `${dropSize}px`
           break
       }
       
