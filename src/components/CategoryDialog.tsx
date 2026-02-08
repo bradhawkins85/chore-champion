@@ -75,14 +75,9 @@ export function CategoryDialog({
       const prerequisite = category.prerequisiteCategoryId || ''
       const prerequisiteExists = prerequisite && allCategories.some(c => c.id === prerequisite)
       if (prerequisite && !prerequisiteExists) {
-        console.warn('CategoryDialog: Prerequisite category no longer exists, clearing it:', prerequisite)
         setPrerequisiteCategoryId('')
       } else {
         setPrerequisiteCategoryId(prerequisite)
-        // Debug logging to trace prerequisite loading
-        if (prerequisite) {
-          console.log('CategoryDialog: Loading category with prerequisite:', prerequisite)
-        }
       }
     } else {
       setName('')
@@ -142,9 +137,6 @@ export function CategoryDialog({
   const handleSave = () => {
     if (!name.trim()) return
 
-    // Debug logging to trace prerequisite saving
-    console.log('CategoryDialog handleSave: prerequisiteCategoryId state =', prerequisiteCategoryId)
-
     // Check for circular prerequisite dependency
     if (prerequisiteCategoryId && wouldCreateCircularDependency(prerequisiteCategoryId)) {
       const prerequisiteCategory = allCategories.find(c => c.id === prerequisiteCategoryId)
@@ -167,18 +159,14 @@ export function CategoryDialog({
     const prerequisiteValue = hasPrerequisite ? prerequisiteCategoryId.trim() : undefined
 
     if (prerequisiteValue) {
-      console.log('CategoryDialog: Saving category with prerequisite:', prerequisiteValue)
       // Validate that the prerequisite category exists
       const prerequisiteExists = allCategories.some(c => c.id === prerequisiteValue)
       if (!prerequisiteExists) {
-        console.error('CategoryDialog: Prerequisite category does not exist:', prerequisiteValue)
         toast.error('Invalid prerequisite', {
           description: 'The selected prerequisite category does not exist. Please select a different one.',
         })
         return
       }
-    } else {
-      console.log('CategoryDialog: Saving category without prerequisite')
     }
 
     const categoryData: Omit<Category, 'id' | 'createdAt'> = {
@@ -200,8 +188,6 @@ export function CategoryDialog({
     if (prerequisiteValue) {
       categoryData.prerequisiteCategoryId = prerequisiteValue
     }
-
-    console.log('CategoryDialog: Final categoryData to save:', JSON.stringify(categoryData))
 
     onSave(categoryData)
     onClose()
@@ -504,7 +490,6 @@ export function CategoryDialog({
                 onValueChange={(value) => {
                   const newValue = value === NONE_VALUE ? '' : value
                   setPrerequisiteCategoryId(newValue)
-                  console.log('CategoryDialog: Prerequisite changed to:', newValue || '(none)')
                 }}
               >
                 <SelectTrigger id="prerequisite-category">

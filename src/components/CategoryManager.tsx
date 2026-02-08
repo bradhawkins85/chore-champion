@@ -241,7 +241,7 @@ export function CategoryManager({
                       {category.prerequisiteCategoryId && (
                         <Badge variant="secondary" className="text-xs">
                           <Lock className="h-3 w-3 mr-1" />
-                          Requires {sortedCategories.find(c => c.id === category.prerequisiteCategoryId)?.name || 'prerequisite'}
+                          Requires {sortedCategories.find(c => c.id === category.prerequisiteCategoryId)?.name || 'Unknown Category'}
                         </Badge>
                       )}
                     </div>
