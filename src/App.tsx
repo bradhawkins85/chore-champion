@@ -1370,6 +1370,14 @@ function App() {
     id: string,
     categoryData: Omit<Category, 'id' | 'createdAt'>
   ) => {
+    // Debug logging to trace prerequisite updates
+    console.log('App.tsx handleEditCategory: Updating category', id, 'with data:', categoryData)
+    if (categoryData.prerequisiteCategoryId) {
+      console.log('App.tsx handleEditCategory: Setting prerequisite to:', categoryData.prerequisiteCategoryId)
+    } else {
+      console.log('App.tsx handleEditCategory: No prerequisite or clearing prerequisite')
+    }
+
     setCategories((current) =>
       (current || []).map((c) =>
         c.id === id ? { ...c, ...categoryData } : c

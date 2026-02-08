@@ -71,6 +71,10 @@ export function CategoryDialog({
       setShowInUpNext(category.showInUpNext !== false)
       setShowInCalendar(category.showInCalendar !== false)
       setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
+      // Debug logging to trace prerequisite loading
+      if (category.prerequisiteCategoryId) {
+        console.log('CategoryDialog: Loading category with prerequisite:', category.prerequisiteCategoryId)
+      }
     } else {
       setName('')
       setDescription('')
@@ -145,6 +149,14 @@ export function CategoryDialog({
         }
       : undefined
 
+    // Debug logging to trace prerequisite saving
+    const prerequisiteValue = prerequisiteCategoryId || undefined
+    if (prerequisiteValue) {
+      console.log('CategoryDialog: Saving category with prerequisite:', prerequisiteValue)
+    } else {
+      console.log('CategoryDialog: Saving category without prerequisite')
+    }
+
     onSave({
       name: name.trim(),
       description: description.trim(),
@@ -157,7 +169,7 @@ export function CategoryDialog({
       },
       showInUpNext,
       showInCalendar,
-      prerequisiteCategoryId: prerequisiteCategoryId || undefined,
+      prerequisiteCategoryId: prerequisiteValue,
     })
     onClose()
   }
