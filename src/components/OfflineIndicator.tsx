@@ -1,32 +1,52 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { WifiSlash, WifiHigh } from '@phosphor-icons/react'
+import { WifiSlash, WifiHigh, ArrowsClockwise, Warning } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import { useServerStatus } from '@/hooks/use-server-status'
+import { Button } from '@/components/ui/button'
 
 export function OfflineIndicator() {
-  const [isOnline, setIsOnline] = useState(true)
-  const [wasOffline, setWasOffline] = useState(false)
+  const [isNetworkOnline, setIsNetworkOnline] = useState(true)
+  const [wasNetworkOffline, setWasNetworkOffline] = useState(false)
   const [showReconnected, setShowReconnected] = useState(false)
+  const [displayedOfflineDuration, setDisplayedOfflineDuration] = useState(0)
+  
+  const { isServerOnline, offlineDuration, manualRefresh } = useServerStatus()
+
+  // Update displayed offline duration every second for smooth countdown
+  useEffect(() => {
+    if (!isServerOnline && offlineDuration > 0) {
+      setDisplayedOfflineDuration(offlineDuration)
+      
+      const interval = setInterval(() => {
+        setDisplayedOfflineDuration(prev => prev + 1000)
+      }, 1000)
+      
+      return () => clearInterval(interval)
+    } else {
+      setDisplayedOfflineDuration(0)
+    }
+  }, [isServerOnline, offlineDuration])
 
   useEffect(() => {
     const handleOnline = () => {
-      setIsOnline(true)
-      if (wasOffline) {
+      setIsNetworkOnline(true)
+      if (wasNetworkOffline) {
         setShowReconnected(true)
         setTimeout(() => {
           setShowReconnected(false)
-          setWasOffline(false)
+          setWasNetworkOffline(false)
         }, 3000)
       }
     }
 
     const handleOffline = () => {
-      setIsOnline(false)
-      setWasOffline(true)
+      setIsNetworkOnline(false)
+      setWasNetworkOffline(true)
       setShowReconnected(false)
     }
 
-    setIsOnline(navigator.onLine)
+    setIsNetworkOnline(navigator.onLine)
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -35,10 +55,26 @@ export function OfflineIndicator() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [wasOffline])
+  }, [wasNetworkOffline])
 
-  if (isOnline && !showReconnected) {
+  // Determine what to show
+  const showNetworkReconnected = isNetworkOnline && showReconnected
+  const showNetworkOffline = !isNetworkOnline
+  const showServerOffline = isNetworkOnline && !isServerOnline
+
+  // Don't show anything if everything is online and no reconnection message
+  if (isNetworkOnline && isServerOnline && !showReconnected) {
     return null
+  }
+
+  // Format offline duration for display
+  const formatDuration = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000)
+    const minutes = Math.floor(seconds / 60)
+    if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`
+    }
+    return `${seconds}s`
   }
 
   return (
@@ -49,13 +85,13 @@ export function OfflineIndicator() {
       <Card
         className={cn(
           'border-2 shadow-lg',
-          showReconnected
+          showNetworkReconnected
             ? 'border-primary/50 bg-primary/10'
             : 'border-destructive/50 bg-destructive/10'
         )}
       >
         <CardContent className="p-3 px-4 flex items-center gap-3">
-          {showReconnected ? (
+          {showNetworkReconnected ? (
             <>
               <WifiHigh className="h-5 w-5 text-primary animate-pulse" />
               <div className="text-sm">
@@ -65,7 +101,7 @@ export function OfflineIndicator() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : showNetworkOffline ? (
             <>
               <WifiSlash className="h-5 w-5 text-destructive animate-pulse" />
               <div className="text-sm">
@@ -77,7 +113,32 @@ export function OfflineIndicator() {
                 </div>
               </div>
             </>
-          )}
+          ) : showServerOffline ? (
+            <>
+              <Warning className="h-5 w-5 text-yellow-600 animate-pulse" />
+              <div className="text-sm flex-1">
+                <div className="font-semibold text-yellow-700">
+                  Server Temporarily Unavailable
+                </div>
+                <div className="text-xs text-yellow-600/90">
+                  {displayedOfflineDuration > 0 && `Offline for ${formatDuration(displayedOfflineDuration)} • `}
+                  Changes will not be saved until reconnected
+                </div>
+                <div className="text-xs text-yellow-600/80 mt-1">
+                  Page will auto-refresh when server is back online
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={manualRefresh}
+                className="ml-2"
+              >
+                <ArrowsClockwise className="h-4 w-4 mr-1" />
+                Refresh Now
+              </Button>
+            </>
+          ) : null}
         </CardContent>
       </Card>
     </div>

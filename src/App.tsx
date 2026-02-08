@@ -2130,7 +2130,12 @@ Please log in to ChoreQuest to approve or reject this completion.
 
   // Show auth page if not authenticated
   if (!user) {
-    return <AuthPage />
+    return (
+      <>
+        <AuthPage />
+        <OfflineIndicator />
+      </>
+    )
   }
 
   // Handle admin route (after authentication check)
