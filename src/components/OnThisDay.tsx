@@ -261,8 +261,8 @@ export function OnThisDay({
 
   const currentEvent = events[currentEventIndex]
   
-  // If we have no events at all (and no ICS URL), don't render
-  if (!currentEvent && !child.icsUrl) return null
+  // If we have no events at all, don't render
+  if (!currentEvent) return null
   
   const today = new Date()
   const yearsAgo = currentEvent.year ? today.getFullYear() - currentEvent.year : undefined
