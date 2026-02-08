@@ -29,6 +29,7 @@ export function useServerStatus() {
 
   const [shouldAutoRefresh, setShouldAutoRefresh] = useState(true)
   const wasOfflineRef = useRef(false)
+  const refreshTimeoutRef = useRef<number | null>(null)
 
   const checkServerHealth = useCallback(async (): Promise<boolean> => {
     try {
@@ -57,12 +58,7 @@ export function useServerStatus() {
 
   const handleServerReconnect = useCallback(async () => {
     try {
-      // Clear service worker caches to ensure fresh content
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations()
-        await Promise.all(registrations.map(reg => reg.unregister()))
-      }
-
+      // Only clear caches, don't unregister service workers to avoid disrupting other features
       if ('caches' in window) {
         const cacheNames = await caches.keys()
         await Promise.all(cacheNames.map(name => caches.delete(name)))
@@ -104,8 +100,15 @@ export function useServerStatus() {
       // Trigger auto-refresh if server just came back online
       if (justCameBackOnline && shouldAutoRefresh) {
         console.log('Server is back online. Triggering auto-refresh...')
+        // Clear any existing refresh timeout to prevent multiple refreshes
+        if (refreshTimeoutRef.current !== null) {
+          clearTimeout(refreshTimeoutRef.current)
+        }
         // Use a small delay to ensure the UI updates before refresh
-        setTimeout(() => handleServerReconnect(), 1000)
+        refreshTimeoutRef.current = window.setTimeout(() => {
+          refreshTimeoutRef.current = null
+          handleServerReconnect()
+        }, 1000)
       }
 
       return {
@@ -128,6 +131,11 @@ export function useServerStatus() {
 
     return () => {
       clearInterval(intervalId)
+      // Clean up any pending refresh timeout
+      if (refreshTimeoutRef.current !== null) {
+        clearTimeout(refreshTimeoutRef.current)
+        refreshTimeoutRef.current = null
+      }
     }
   }, [performHealthCheck])
 

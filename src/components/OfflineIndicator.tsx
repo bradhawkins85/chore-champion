@@ -9,8 +9,24 @@ export function OfflineIndicator() {
   const [isNetworkOnline, setIsNetworkOnline] = useState(true)
   const [wasNetworkOffline, setWasNetworkOffline] = useState(false)
   const [showReconnected, setShowReconnected] = useState(false)
+  const [displayedOfflineDuration, setDisplayedOfflineDuration] = useState(0)
   
   const { isServerOnline, offlineDuration, manualRefresh } = useServerStatus()
+
+  // Update displayed offline duration every second for smooth countdown
+  useEffect(() => {
+    if (!isServerOnline && offlineDuration > 0) {
+      setDisplayedOfflineDuration(offlineDuration)
+      
+      const interval = setInterval(() => {
+        setDisplayedOfflineDuration(prev => prev + 1000)
+      }, 1000)
+      
+      return () => clearInterval(interval)
+    } else {
+      setDisplayedOfflineDuration(0)
+    }
+  }, [isServerOnline, offlineDuration])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -105,7 +121,7 @@ export function OfflineIndicator() {
                   Server Temporarily Unavailable
                 </div>
                 <div className="text-xs text-yellow-600/90">
-                  {offlineDuration > 0 && `Offline for ${formatDuration(offlineDuration)} • `}
+                  {displayedOfflineDuration > 0 && `Offline for ${formatDuration(displayedOfflineDuration)} • `}
                   Changes will not be saved until reconnected
                 </div>
                 <div className="text-xs text-yellow-600/80 mt-1">
