@@ -27,7 +27,7 @@ export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
     // Use backend proxy to avoid CORS issues and 403 errors
     // The backend will fetch the ICS feed with proper User-Agent headers
     const apiUrl = import.meta.env.VITE_API_URL || '/api'
-    const proxyUrl = `${apiUrl}/ics-proxy?url=${encodeURIComponent(url)}`
+    const proxyUrl = `${apiUrl}/ics/ics-proxy?url=${encodeURIComponent(url)}`
     
     const response = await fetch(proxyUrl, {
       headers: {
