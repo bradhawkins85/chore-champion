@@ -70,7 +70,14 @@ export function CategoryDialog({
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
       setShowInUpNext(category.showInUpNext !== false)
       setShowInCalendar(category.showInCalendar !== false)
-      setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
+      
+      // Handle prerequisite: check if the category still exists, otherwise clear it
+      const prerequisite = category.prerequisiteCategoryId || ''
+      if (prerequisite && !prerequisiteExists(prerequisite)) {
+        setPrerequisiteCategoryId('')
+      } else {
+        setPrerequisiteCategoryId(prerequisite)
+      }
     } else {
       setName('')
       setDescription('')
@@ -85,7 +92,7 @@ export function CategoryDialog({
       setShowInCalendar(true)
       setPrerequisiteCategoryId('')
     }
-  }, [category, open])
+  }, [category, open, allCategories])
 
   useEffect(() => {
     if (enableBonus && !bonusTargetCategoryId && allCategories.length > 0) {
@@ -95,6 +102,11 @@ export function CategoryDialog({
       }
     }
   }, [enableBonus, bonusTargetCategoryId, allCategories, category])
+
+  // Helper to validate that a prerequisite category exists in the available categories
+  const prerequisiteExists = (categoryId: string): boolean => {
+    return allCategories.some(c => c.id === categoryId)
+  }
 
   // Memoize prerequisite category name lookup
   const prerequisiteCategoryName = useMemo(() => {
@@ -145,7 +157,21 @@ export function CategoryDialog({
         }
       : undefined
 
-    onSave({
+    // Only use prerequisiteCategoryId if it's a non-empty string
+    // This ensures we don't save undefined or empty string values
+    const prerequisiteValue = prerequisiteCategoryId?.trim() || undefined
+
+    if (prerequisiteValue) {
+      // Validate that the prerequisite category exists
+      if (!prerequisiteExists(prerequisiteValue)) {
+        toast.error('Invalid prerequisite', {
+          description: 'The selected prerequisite category does not exist. Please select a different one.',
+        })
+        return
+      }
+    }
+
+    const categoryData: Omit<Category, 'id' | 'createdAt'> = {
       name: name.trim(),
       description: description.trim(),
       color,
@@ -157,8 +183,15 @@ export function CategoryDialog({
       },
       showInUpNext,
       showInCalendar,
-      prerequisiteCategoryId: prerequisiteCategoryId || undefined,
-    })
+    }
+
+    // Only add prerequisiteCategoryId if it has a value
+    // This prevents undefined from being spread into the saved object
+    if (prerequisiteValue) {
+      categoryData.prerequisiteCategoryId = prerequisiteValue
+    }
+
+    onSave(categoryData)
     onClose()
   }
 
@@ -456,7 +489,10 @@ export function CategoryDialog({
               <Label htmlFor="prerequisite-category">Required Category (Optional)</Label>
               <Select
                 value={prerequisiteCategoryId || NONE_VALUE}
-                onValueChange={(value) => setPrerequisiteCategoryId(value === NONE_VALUE ? '' : value)}
+                onValueChange={(value) => {
+                  const newValue = value === NONE_VALUE ? '' : value
+                  setPrerequisiteCategoryId(newValue)
+                }}
               >
                 <SelectTrigger id="prerequisite-category">
                   <SelectValue placeholder="None - No prerequisite required" />
@@ -472,7 +508,12 @@ export function CategoryDialog({
                     ))}
                 </SelectContent>
               </Select>
-              {prerequisiteCategoryId && (
+              {prerequisiteCategoryId && !prerequisiteExists(prerequisiteCategoryId) && (
+                <p className="text-xs text-destructive mt-2">
+                  Warning: The previously selected prerequisite category no longer exists. Please select a new one or choose "None".
+                </p>
+              )}
+              {prerequisiteCategoryId && prerequisiteExists(prerequisiteCategoryId) && (
                 <p className="text-xs text-muted-foreground mt-2">
                   Chores in {name || 'this category'} cannot be completed until all{' '}
                   {prerequisiteCategoryName} chores are complete.

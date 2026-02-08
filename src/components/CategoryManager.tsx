@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye, EyeSlash, Calendar as CalendarIcon, CaretUp, CaretDown, DotsSixVertical } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, HourglassHigh, ArrowsLeftRight, Trophy, Eye, EyeSlash, Calendar as CalendarIcon, CaretUp, CaretDown, DotsSixVertical, Lock } from '@phosphor-icons/react'
 import { Category } from '@/lib/types'
 import { CategoryDialog } from './CategoryDialog'
 import {
@@ -236,6 +236,12 @@ export function CategoryManager({
                         <Badge variant="secondary" className="text-xs">
                           <CalendarIcon className="h-3 w-3 mr-1" />
                           Hidden from calendar
+                        </Badge>
+                      )}
+                      {category.prerequisiteCategoryId && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Requires {sortedCategories.find(c => c.id === category.prerequisiteCategoryId)?.name || 'Unknown Category'}
                         </Badge>
                       )}
                     </div>
