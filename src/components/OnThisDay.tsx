@@ -197,7 +197,8 @@ export function OnThisDay({
     return `${diffDays} days ago`
   }
 
-  if (events.length === 0 && !isLoadingICS) return null
+  // If no ICS URL is configured and no events, don't render anything
+  if (!child.icsUrl && events.length === 0 && !isLoadingICS) return null
 
   if (isLoadingICS && !isRefreshing) {
     return (
@@ -217,9 +218,51 @@ export function OnThisDay({
     )
   }
 
+  // If ICS URL is configured but no events, show a message with refresh option
+  if (child.icsUrl && events.length === 0 && !isLoadingICS) {
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-fredoka font-bold flex items-center gap-2">
+            <Sparkle className="h-5 w-5 text-accent" weight="fill" />
+            On This Day
+          </h2>
+          <div className="flex items-center gap-2">
+            {lastRefreshTime && (
+              <span className="text-xs text-muted-foreground">
+                Updated {formatLastRefreshTime()}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="gap-1 h-7 px-2 text-xs"
+            >
+              <ArrowClockwise 
+                className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
+                weight="bold" 
+              />
+              Refresh
+            </Button>
+          </div>
+        </div>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
+          <CardContent className="p-4">
+            <div className="text-center text-sm text-muted-foreground">
+              No events found for today
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   const currentEvent = events[currentEventIndex]
   
-  if (!currentEvent) return null
+  // If we have no events at all (and no ICS URL), don't render
+  if (!currentEvent && !child.icsUrl) return null
   
   const today = new Date()
   const yearsAgo = currentEvent.year ? today.getFullYear() - currentEvent.year : undefined
