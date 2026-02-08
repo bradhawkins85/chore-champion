@@ -70,10 +70,19 @@ export function CategoryDialog({
       setExpiryInterval(category.pointsExpiry?.interval || 'daily')
       setShowInUpNext(category.showInUpNext !== false)
       setShowInCalendar(category.showInCalendar !== false)
-      setPrerequisiteCategoryId(category.prerequisiteCategoryId || '')
-      // Debug logging to trace prerequisite loading
-      if (category.prerequisiteCategoryId) {
-        console.log('CategoryDialog: Loading category with prerequisite:', category.prerequisiteCategoryId)
+      
+      // Handle prerequisite: check if the category still exists, otherwise clear it
+      const prerequisite = category.prerequisiteCategoryId || ''
+      const prerequisiteExists = prerequisite && allCategories.some(c => c.id === prerequisite)
+      if (prerequisite && !prerequisiteExists) {
+        console.warn('CategoryDialog: Prerequisite category no longer exists, clearing it:', prerequisite)
+        setPrerequisiteCategoryId('')
+      } else {
+        setPrerequisiteCategoryId(prerequisite)
+        // Debug logging to trace prerequisite loading
+        if (prerequisite) {
+          console.log('CategoryDialog: Loading category with prerequisite:', prerequisite)
+        }
       }
     } else {
       setName('')
@@ -89,7 +98,7 @@ export function CategoryDialog({
       setShowInCalendar(true)
       setPrerequisiteCategoryId('')
     }
-  }, [category, open])
+  }, [category, open, allCategories])
 
   useEffect(() => {
     if (enableBonus && !bonusTargetCategoryId && allCategories.length > 0) {
