@@ -73,8 +73,7 @@ export function CategoryDialog({
       
       // Handle prerequisite: check if the category still exists, otherwise clear it
       const prerequisite = category.prerequisiteCategoryId || ''
-      const prerequisiteExists = prerequisite && allCategories.some(c => c.id === prerequisite)
-      if (prerequisite && !prerequisiteExists) {
+      if (prerequisite && !prerequisiteExists(prerequisite)) {
         setPrerequisiteCategoryId('')
       } else {
         setPrerequisiteCategoryId(prerequisite)
@@ -103,6 +102,11 @@ export function CategoryDialog({
       }
     }
   }, [enableBonus, bonusTargetCategoryId, allCategories, category])
+
+  // Helper to validate that a prerequisite category exists in the available categories
+  const prerequisiteExists = (categoryId: string): boolean => {
+    return allCategories.some(c => c.id === categoryId)
+  }
 
   // Memoize prerequisite category name lookup
   const prerequisiteCategoryName = useMemo(() => {
@@ -155,13 +159,11 @@ export function CategoryDialog({
 
     // Only use prerequisiteCategoryId if it's a non-empty string
     // This ensures we don't save undefined or empty string values
-    const hasPrerequisite = prerequisiteCategoryId && prerequisiteCategoryId.trim() !== ''
-    const prerequisiteValue = hasPrerequisite ? prerequisiteCategoryId.trim() : undefined
+    const prerequisiteValue = prerequisiteCategoryId?.trim() || undefined
 
     if (prerequisiteValue) {
       // Validate that the prerequisite category exists
-      const prerequisiteExists = allCategories.some(c => c.id === prerequisiteValue)
-      if (!prerequisiteExists) {
+      if (!prerequisiteExists(prerequisiteValue)) {
         toast.error('Invalid prerequisite', {
           description: 'The selected prerequisite category does not exist. Please select a different one.',
         })
@@ -506,12 +508,12 @@ export function CategoryDialog({
                     ))}
                 </SelectContent>
               </Select>
-              {prerequisiteCategoryId && !allCategories.find(c => c.id === prerequisiteCategoryId) && (
+              {prerequisiteCategoryId && !prerequisiteExists(prerequisiteCategoryId) && (
                 <p className="text-xs text-destructive mt-2">
                   Warning: The previously selected prerequisite category no longer exists. Please select a new one or choose "None".
                 </p>
               )}
-              {prerequisiteCategoryId && allCategories.find(c => c.id === prerequisiteCategoryId) && (
+              {prerequisiteCategoryId && prerequisiteExists(prerequisiteCategoryId) && (
                 <p className="text-xs text-muted-foreground mt-2">
                   Chores in {name || 'this category'} cannot be completed until all{' '}
                   {prerequisiteCategoryName} chores are complete.
