@@ -1371,18 +1371,26 @@ function App() {
     categoryData: Omit<Category, 'id' | 'createdAt'>
   ) => {
     // Debug logging to trace prerequisite updates
-    console.log('App.tsx handleEditCategory: Updating category', id, 'with data:', categoryData)
+    console.log('App.tsx handleEditCategory: Updating category', id, 'with data:', JSON.stringify(categoryData))
     if (categoryData.prerequisiteCategoryId) {
       console.log('App.tsx handleEditCategory: Setting prerequisite to:', categoryData.prerequisiteCategoryId)
     } else {
       console.log('App.tsx handleEditCategory: No prerequisite or clearing prerequisite')
     }
 
-    setCategories((current) =>
-      (current || []).map((c) =>
-        c.id === id ? { ...c, ...categoryData } : c
-      )
-    )
+    setCategories((current) => {
+      const updated = (current || []).map((c) => {
+        if (c.id === id) {
+          // Merge the category data, but handle undefined values properly
+          const merged = { ...c, ...categoryData }
+          console.log('App.tsx handleEditCategory: Merged category:', JSON.stringify(merged))
+          return merged
+        }
+        return c
+      })
+      console.log('App.tsx handleEditCategory: Updated categories array, count:', updated.length)
+      return updated
+    })
     toast.success('Category updated!')
   }
 
