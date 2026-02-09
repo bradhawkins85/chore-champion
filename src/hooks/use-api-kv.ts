@@ -15,6 +15,11 @@ const authTokenListeners = new Set<() => void>();
 let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
 const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
+const BACKGROUND_SYNC_INTERVAL_MS = 30000; // Keep data fresh across long-lived dashboard sessions
+const FOCUS_SYNC_THROTTLE_MS = 5000; // Prevent a request burst when multiple hooks react to focus
+
+// Track the most recent focus/visibility refresh by key to throttle concurrent hooks
+const lastVisibilitySyncByKey = new Map<string, number>();
 
 function resetApiAvailability() {
   apiAvailable = null;
@@ -215,12 +220,17 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
   const defaultValueRef = useRef(defaultValue);
+  const useApiRef = useRef(useApi);
   // Track auth token to re-fetch data when it changes (e.g., after login)
   const [authToken, setAuthToken] = useState<string | null>(getAuthToken());
 
   useEffect(() => {
     defaultValueRef.current = defaultValue;
   }, [defaultValue]);
+
+  useEffect(() => {
+    useApiRef.current = useApi;
+  }, [useApi]);
 
   // Listen for auth token changes
   useEffect(() => {
@@ -239,82 +249,116 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   useEffect(() => {
     let mounted = true;
 
-    async function init() {
-      const available = await checkApiAvailability();
-      if (!mounted) return;
-      
-      setUseApi(available);
+    async function loadValueFromStorage() {
+      const stored = localStorage.getItem(key);
+      if (!stored || !mounted) {
+        if (mounted) {
+          setValue(defaultValueRef.current);
+        }
+        return;
+      }
 
-      if (available) {
-        // Load from API using queue to prevent rate limiting
-        await queueRequest(async () => {
-          try {
-            const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
-              method: 'GET',
-              headers: getAuthHeaders(),
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              if (mounted) {
-                // validateLoadedValue handles null values by returning defaultValue
-                setValue(validateLoadedValue(data.value, defaultValueRef.current));
-              }
-            } else if (isAuthFailure(response.status)) {
-              apiAvailable = false;
-              apiCheckTimestamp = Date.now();
-              if (mounted) {
-                setUseApi(false);
-                const stored = localStorage.getItem(key);
-                if (stored) {
-                  try {
-                    const parsedValue = JSON.parse(stored);
-                    setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
-                  } catch {
-                    setValue(defaultValueRef.current);
-                  }
-                } else {
-                  setValue(defaultValueRef.current);
-                }
-              }
-            } else if (response.status === 404) {
-              // Legacy: Key not found (older API versions returned 404)
-              if (mounted) {
-                setValue(defaultValueRef.current);
-              }
-            }
-          } catch (error) {
-            console.error('Error loading from API:', error);
-            // Fallback to localStorage
-            const stored = localStorage.getItem(key);
-            if (stored && mounted) {
-              try {
-                const parsedValue = JSON.parse(stored);
-                setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
-              } catch {
-                setValue(defaultValueRef.current);
-              }
-            }
-          }
-        });
-      } else {
-        // Load from localStorage
-        const stored = localStorage.getItem(key);
-        if (stored && mounted) {
-          try {
-            const parsedValue = JSON.parse(stored);
-            setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
-          } catch {
-            setValue(defaultValueRef.current);
-          }
+      try {
+        const parsedValue = JSON.parse(stored);
+        if (mounted) {
+          setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
+        }
+      } catch {
+        if (mounted) {
+          setValue(defaultValueRef.current);
         }
       }
     }
 
-    init();
+    async function loadValueFromApi() {
+      await queueRequest(async () => {
+        try {
+          const response = await fetch(`${API_URL}/kv/${encodeURIComponent(key)}`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (mounted) {
+              // validateLoadedValue handles null values by returning defaultValue
+              setValue(validateLoadedValue(data.value, defaultValueRef.current));
+            }
+          } else if (isAuthFailure(response.status)) {
+            apiAvailable = false;
+            apiCheckTimestamp = Date.now();
+            if (mounted) {
+              setUseApi(false);
+            }
+            await loadValueFromStorage();
+          } else if (response.status === 404) {
+            // Legacy: Key not found (older API versions returned 404)
+            if (mounted) {
+              setValue(defaultValueRef.current);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading from API:', error);
+          await loadValueFromStorage();
+        }
+      });
+    }
+
+    async function syncValue(forceApiCheck = false) {
+      const available = await checkApiAvailability(forceApiCheck);
+      if (!mounted) return;
+
+      setUseApi(available);
+
+      if (available) {
+        await loadValueFromApi();
+      } else {
+        await loadValueFromStorage();
+      }
+    }
+
+    syncValue();
+
+    const backgroundSyncId = window.setInterval(() => {
+      syncValue();
+    }, BACKGROUND_SYNC_INTERVAL_MS);
+
+    const handleFocusOrVisible = () => {
+      const now = Date.now();
+      const lastSync = lastVisibilitySyncByKey.get(key) ?? 0;
+      if (now - lastSync < FOCUS_SYNC_THROTTLE_MS) {
+        return;
+      }
+      lastVisibilitySyncByKey.set(key, now);
+      syncValue(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocusOrVisible();
+      }
+    };
+
+    const handleStorageUpdate = (event: StorageEvent) => {
+      if (event.key === key && !useApiRef.current) {
+        syncValue();
+      }
+
+      if (event.key === 'auth_token') {
+        notifyAuthTokenChange();
+      }
+    };
+
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageUpdate);
 
     return () => {
       mounted = false;
+      clearInterval(backgroundSyncId);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageUpdate);
     };
   }, [key, authToken]);
 
