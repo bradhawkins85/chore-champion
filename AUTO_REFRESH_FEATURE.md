@@ -177,9 +177,6 @@ The feature distinguishes between two types of offline states:
 4. **Smooth Upgrades** - Software updates don't disrupt user workflow
 5. **Works Everywhere** - Active on all pages, even before login
 6. **Non-Disruptive** - No automatic page reloads that reset scroll position or form state
-7. **Manual Control** - Users can refresh when convenient
-6. **Non-Intrusive** - Only appears when needed
-7. **Manual Control** - Users can force refresh if desired
 
 ## Maintenance
 
