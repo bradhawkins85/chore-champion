@@ -146,20 +146,17 @@ router.post('/approve-access', async (req: Request, res: Response) => {
 
     // Search for the token across all tenants
     const [allRequests] = await pool.query<RowDataPacket[]>(
-      'SELECT tenant_id, value_data FROM tenant_ip_access_requests'
+      'SELECT tenant_id, CAST(payload_json AS CHAR) AS payload_json FROM tenant_ip_access_requests_v2'
     );
 
     let foundTenantId: string | null = null;
     let foundRequest: IPAccessRequest | null = null;
-    let allTenantRequests: IPAccessRequest[] = [];
 
     for (const row of allRequests) {
-      const requests: IPAccessRequest[] = JSON.parse(row.value_data);
-      const request = requests.find((r: IPAccessRequest) => r.token === token);
-      if (request) {
+      const request = JSON.parse(String((row as RowDataPacket & { payload_json: string }).payload_json)) as IPAccessRequest;
+      if (request.token === token) {
         foundTenantId = row.tenant_id;
         foundRequest = request;
-        allTenantRequests = requests;
         break;
       }
     }
@@ -183,7 +180,12 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     foundRequest.approvedAt = Date.now();
 
     // Update the requests in the database
-    await setTenantData('ip-access-requests', foundTenantId!, allTenantRequests);
+    const existingRequests = await getTenantData('ip-access-requests', foundTenantId!);
+    const allTenantRequests = Array.isArray(existingRequests) ? (existingRequests as IPAccessRequest[]) : [];
+    const updatedRequests = allTenantRequests.map((request) =>
+      request.id === foundRequest!.id ? foundRequest! : request
+    );
+    await setTenantData('ip-access-requests', foundTenantId!, updatedRequests);
 
     // Add the IP to the allowed list
     const ipRestrictions = await getTenantData('ip-restrictions', foundTenantId!);

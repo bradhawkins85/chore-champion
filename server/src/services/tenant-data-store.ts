@@ -1,29 +1,68 @@
 import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { pool } from '../config/database.js';
-import { KEY_TABLE_MAP, getTableForKey } from './tenant-data-schema.js';
+import { getLegacyTableForKey, getTableForKey, getTableModeForKey, isTenantKeyMigrated, KEY_TABLE_MAP } from './tenant-data-schema.js';
 
-interface ValueRow extends RowDataPacket {
-  value_data: string;
+interface JsonRow extends RowDataPacket {
+  payload_json?: string;
+  value_data?: string;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
+async function getNormalizedTenantData(key: string, tenantId: string): Promise<unknown | null> {
+  const table = getTableForKey(key);
+  const mode = getTableModeForKey(key);
+  if (!table || !mode) return null;
+
+  if (mode === 'singleton') {
+    const [rows] = await pool.query<JsonRow[]>(`SELECT CAST(payload_json AS CHAR) AS payload_json FROM ${table} WHERE tenant_id = ?`, [tenantId]);
+    if (!rows.length || !rows[0].payload_json) return null;
+    return JSON.parse(rows[0].payload_json);
+  }
+
+  const [rows] = await pool.query<JsonRow[]>(
+    `SELECT CAST(payload_json AS CHAR) AS payload_json FROM ${table} WHERE tenant_id = ? ORDER BY created_at ASC`,
+    [tenantId]
+  );
+  return rows.map((row) => (row.payload_json ? JSON.parse(row.payload_json) : null)).filter((row) => row !== null);
+}
+
+async function getLegacyTenantData(key: string, tenantId: string): Promise<unknown | null> {
+  const legacyTable = getLegacyTableForKey(key);
+  if (!legacyTable) {
+    const [rows] = await pool.query<JsonRow[]>(
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      [key, tenantId]
+    );
+    if (!rows.length || !rows[0].value_data) return null;
+    return JSON.parse(rows[0].value_data);
+  }
+
+  const [rows] = await pool.query<JsonRow[]>(`SELECT value_data FROM ${legacyTable} WHERE tenant_id = ?`, [tenantId]);
+  if (!rows.length || !rows[0].value_data) return null;
+  return JSON.parse(rows[0].value_data);
+}
+
 export async function getTenantData(key: string, tenantId: string): Promise<unknown | null> {
   const table = getTableForKey(key);
-  const query = table
-    ? `SELECT value_data FROM ${table} WHERE tenant_id = ?`
-    : 'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?';
-  const params = table ? [tenantId] : [key, tenantId];
+  if (!table) {
+    return getLegacyTenantData(key, tenantId);
+  }
 
-  const [rows] = await pool.query<ValueRow[]>(query, params);
-  if (rows.length === 0) return null;
+  const connection = await pool.getConnection();
+  try {
+    const migrated = await isTenantKeyMigrated(connection, tenantId, key);
+    if (migrated) {
+      const normalized = await getNormalizedTenantData(key, tenantId);
+      if (normalized !== null) return normalized;
+    }
+  } finally {
+    connection.release();
+  }
 
-  const valueData = rows[0]?.value_data;
-  if (valueData === null || valueData === undefined) return null;
-
-  return JSON.parse(valueData);
+  return getLegacyTenantData(key, tenantId);
 }
 
 export async function setTenantData(
@@ -33,12 +72,41 @@ export async function setTenantData(
   connection?: PoolConnection
 ): Promise<void> {
   const table = getTableForKey(key);
+  const mode = getTableModeForKey(key);
   const executor = getExecutor(connection);
 
-  if (table) {
+  if (table && mode) {
+    if (mode === 'singleton') {
+      await executor.query(
+        `INSERT INTO ${table} (tenant_id, payload_json) VALUES (?, CAST(? AS JSON)) ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json)`,
+        [tenantId, JSON.stringify(value)]
+      );
+    } else {
+      const list = Array.isArray(value) ? value : [];
+      await executor.query(`DELETE FROM ${table} WHERE tenant_id = ?`, [tenantId]);
+      for (let index = 0; index < list.length; index += 1) {
+        const item = list[index] as Record<string, unknown>;
+        const itemId = String(item?.id ?? item?.requestId ?? `${key}-${index}`);
+        await executor.query(
+          `INSERT INTO ${table} (tenant_id, id, payload_json) VALUES (?, ?, CAST(? AS JSON))
+           ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json)`,
+          [tenantId, itemId, JSON.stringify(item)]
+        );
+      }
+    }
+
     await executor.query(
-      `INSERT INTO ${table} (tenant_id, value_data) VALUES (?, ?) ON DUPLICATE KEY UPDATE value_data = VALUES(value_data)`,
-      [tenantId, JSON.stringify(value)]
+      `INSERT INTO tenant_data_migration_state
+       (tenant_id, key_name, table_name, source_row_count, backfilled_row_count, migration_status, last_error)
+       VALUES (?, ?, ?, ?, ?, 'success', NULL)
+       ON DUPLICATE KEY UPDATE
+        table_name = VALUES(table_name),
+        source_row_count = VALUES(source_row_count),
+        backfilled_row_count = VALUES(backfilled_row_count),
+        migration_status = 'success',
+        last_error = NULL,
+        migrated_at = CURRENT_TIMESTAMP`,
+      [tenantId, key, table, Array.isArray(value) ? value.length : 1, Array.isArray(value) ? value.length : 1]
     );
     return;
   }
@@ -54,6 +122,7 @@ export async function deleteTenantData(key: string, tenantId: string): Promise<v
 
   if (table) {
     await pool.query(`DELETE FROM ${table} WHERE tenant_id = ?`, [tenantId]);
+    await pool.query('DELETE FROM tenant_data_migration_state WHERE tenant_id = ? AND key_name = ?', [tenantId, key]);
     return;
   }
 
@@ -63,16 +132,14 @@ export async function deleteTenantData(key: string, tenantId: string): Promise<v
 export async function getAllTenantData(tenantId: string): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = {};
 
-  for (const [key, table] of Object.entries(KEY_TABLE_MAP)) {
-    const [rows] = await pool.query<ValueRow[]>(`SELECT value_data FROM ${table} WHERE tenant_id = ?`, [tenantId]);
-    if (rows.length === 0 || rows[0].value_data === null || rows[0].value_data === undefined) {
-      continue;
-    }
-
+  for (const key of Object.keys(KEY_TABLE_MAP)) {
     try {
-      data[key] = JSON.parse(rows[0].value_data);
+      const value = await getTenantData(key, tenantId);
+      if (value !== null && value !== undefined) {
+        data[key] = value;
+      }
     } catch (error) {
-      console.error(`Error parsing data for key "${key}" from ${table}:`, error);
+      console.error(`Error loading tenant data for key "${key}":`, error);
     }
   }
 
