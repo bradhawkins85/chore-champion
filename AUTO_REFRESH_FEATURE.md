@@ -42,16 +42,17 @@ When the server becomes unavailable, users see a yellow warning banner at the to
 - **Title**: "Server Temporarily Unavailable"
 - **Duration**: How long the server has been offline (updates every second)
 - **Warning**: "Changes will not be saved until reconnected"
-- **Notice**: "Page will auto-refresh when server is back online"
-- **Action**: Manual "Refresh Now" button
+- **Notice**: "Click 'Refresh' when server is back to load updates"
+- **Action**: Manual "Refresh" button
 
-### Automatic Refresh
+### Manual Refresh on Reconnect
 
 When the server comes back online:
 1. The system detects the server is available again
-2. Browser caches are cleared (service worker remains active)
-3. After a 1-second delay, the page automatically refreshes
-4. Users are reconnected to the updated server
+2. A green notification banner appears: "Server Back Online"
+3. Users can click the "Refresh" button to reload the page with latest updates
+4. This prevents disruptive automatic refreshes during user activity
+5. The notification stays visible for 5 seconds if not clicked
 
 ### Supported Pages
 
@@ -120,15 +121,16 @@ const OFFLINE_THRESHOLD = 2         // Consider offline after 2 failures
 
 ### When Server Comes Back Online
 1. Health check succeeds
-2. Warning banner may briefly show "reconnecting"
-3. Page automatically refreshes after 1 second
-4. User sees the updated application
-5. Normal operation resumes
+2. Green notification banner appears: "Server Back Online"
+3. Users can click "Refresh" button to reload with updates when ready
+4. Notification auto-dismisses after 5 seconds if not clicked
+5. No disruptive automatic page refresh
 
 ### Manual Refresh Option
-- Users can click "Refresh Now" to immediately reload
-- Useful if they don't want to wait for auto-refresh
-- Same cache-clearing behavior as auto-refresh
+- Users click "Refresh" button to reload the page
+- Available both during offline state and after server reconnects
+- Clears browser caches before refreshing
+- Gives users control over when to refresh
 
 ## Differences from Network Offline
 
@@ -138,13 +140,13 @@ The feature distinguishes between two types of offline states:
 - Red banner
 - "No Internet Connection"
 - "Working in offline mode"
-- No auto-refresh (can't connect anyway)
+- No refresh option (can't connect anyway)
 
 ### Server Offline (Network OK, but server unavailable)
 - Yellow/orange banner
 - "Server Temporarily Unavailable"
 - Shows offline duration
-- Auto-refreshes when server returns
+- Manual refresh option available
 
 ## Software Upgrade Workflow
 
@@ -156,24 +158,26 @@ The feature distinguishes between two types of offline states:
 5. Changes are lost (not saved to server)
 6. Users confused about missing data
 
-### With This Feature
+### With This Feature (Updated)
 1. Admin triggers software upgrade
 2. Server goes down for 1-3 minutes
 3. After 20 seconds, yellow warning appears
 4. Users see clear message: "Changes will not be saved"
 5. Users wait or view data only
 6. Server comes back online
-7. Page auto-refreshes
-8. Users resume normal operation with new version
-9. No data loss, no confusion
+7. Green "Server Back Online" notification appears
+8. Users click "Refresh" when ready to load new version
+9. No data loss, no disruptive automatic refreshes, users have control
 
 ## Benefits
 
 1. **Prevents Data Loss** - Users know when their actions won't be saved
-2. **Automatic Recovery** - No manual action needed to reconnect
+2. **User Control** - Users decide when to refresh, preventing disruption during active work
 3. **Clear Communication** - Visual indicator with helpful messages
-4. **Smooth Upgrades** - Software updates don't confuse users
+4. **Smooth Upgrades** - Software updates don't disrupt user workflow
 5. **Works Everywhere** - Active on all pages, even before login
+6. **Non-Disruptive** - No automatic page reloads that reset scroll position or form state
+7. **Manual Control** - Users can refresh when convenient
 6. **Non-Intrusive** - Only appears when needed
 7. **Manual Control** - Users can force refresh if desired
 
@@ -227,16 +231,17 @@ Considerations:
 4. **Observe the behavior**
    - After ~20 seconds, yellow warning banner appears
    - Offline duration counter increases every second
-   - "Refresh Now" button is available
+   - "Refresh" button is available
 
 5. **Restart the backend server**
    - In Docker: `docker compose start api`
    - In development: Restart `npm run dev` in `server` directory
 
-6. **Observe auto-refresh**
-   - Page should automatically reload after detecting server is back
-   - Fresh content is loaded
-   - Warning banner disappears
+6. **Observe reconnect notification**
+   - Green "Server Back Online" banner appears
+   - "Refresh" button is prominently displayed
+   - Users can click to reload at their convenience
+   - Banner auto-dismisses after 5 seconds if not clicked
 
 ### Automated Testing
 
@@ -253,11 +258,11 @@ Currently, this feature is tested manually. Future improvements could include:
 - Check browser console for health check errors
 - Ensure network connectivity
 
-### Auto-Refresh Not Working
-- Check browser console for errors
-- Verify JavaScript execution is allowed
-- Ensure browser supports necessary APIs
-- Try manual "Refresh Now" button
+### Reconnect Notification Not Appearing
+- Verify server is actually back online
+- Check browser console for errors in useServerStatus hook
+- Ensure OfflineIndicator component is mounted
+- Verify state management is working correctly
 
 ### Offline Duration Not Updating
 - Check if component is rendering
@@ -267,7 +272,7 @@ Currently, this feature is tested manually. Future improvements could include:
 ## Future Enhancements
 
 Potential improvements:
-1. User preference to disable auto-refresh
+1. ~~User preference to disable auto-refresh~~ (Already implemented - auto-refresh is now opt-in via manual button)
 2. Configurable check intervals via settings
 3. Different strategies for mobile vs desktop
 4. Progressive backoff for health checks
