@@ -75,8 +75,6 @@ export function useServerStatus() {
 
   // Perform health check and update status
   const performHealthCheck = useCallback(async () => {
-    setStatus(prev => ({ ...prev, isChecking: true }))
-
     const isServerOnline = await checkServerHealth()
     const now = Date.now()
 
@@ -92,6 +90,22 @@ export function useServerStatus() {
         offlineDuration = now - prev.lastOnlineTime
       } else if (!isNowOffline) {
         offlineDuration = 0
+      }
+
+      // Check if anything actually changed to avoid unnecessary re-renders
+      const isOnline = !isNowOffline
+      const lastOnlineTime = isOnline ? now : prev.lastOnlineTime
+      
+      // Only update if status actually changed
+      if (
+        prev.isOnline === isOnline &&
+        prev.consecutiveFailures === newConsecutiveFailures &&
+        prev.offlineDuration === offlineDuration &&
+        prev.lastOnlineTime === lastOnlineTime &&
+        prev.isChecking === false
+      ) {
+        // Nothing changed, return previous state to prevent re-render
+        return prev
       }
 
       // Update ref to track offline state
@@ -112,9 +126,9 @@ export function useServerStatus() {
       }
 
       return {
-        isOnline: !isNowOffline,
+        isOnline,
         isChecking: false,
-        lastOnlineTime: isServerOnline ? now : prev.lastOnlineTime,
+        lastOnlineTime,
         offlineDuration,
         consecutiveFailures: newConsecutiveFailures,
       }

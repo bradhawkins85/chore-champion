@@ -43,15 +43,16 @@ When the server becomes unavailable, users see a yellow warning banner at the to
 - **Duration**: How long the server has been offline (updates every second)
 - **Warning**: "Changes will not be saved until reconnected"
 - **Notice**: "Page will auto-refresh when server is back online"
-- **Action**: Manual "Refresh Now" button
+- **Action**: Manual "Refresh Now" button (for immediate refresh)
 
-### Automatic Refresh
+### Automatic Refresh on Reconnect
 
 When the server comes back online:
 1. The system detects the server is available again
-2. Browser caches are cleared (service worker remains active)
-3. After a 1-second delay, the page automatically refreshes
-4. Users are reconnected to the updated server
+2. A green notification banner appears: "Server Back Online"
+3. After 1 second, the page automatically refreshes to load the latest updates
+4. Users can also click "Refresh Now" to refresh immediately
+5. The notification stays visible until the auto-refresh occurs
 
 ### Supported Pages
 
@@ -120,15 +121,16 @@ const OFFLINE_THRESHOLD = 2         // Consider offline after 2 failures
 
 ### When Server Comes Back Online
 1. Health check succeeds
-2. Warning banner may briefly show "reconnecting"
-3. Page automatically refreshes after 1 second
+2. Green notification banner appears: "Server Back Online"
+3. After 1 second, page automatically refreshes
 4. User sees the updated application
 5. Normal operation resumes
 
 ### Manual Refresh Option
 - Users can click "Refresh Now" to immediately reload
+- Available both during offline state and after server reconnects
 - Useful if they don't want to wait for auto-refresh
-- Same cache-clearing behavior as auto-refresh
+- Clears browser caches before refreshing
 
 ## Differences from Network Offline
 
@@ -163,19 +165,19 @@ The feature distinguishes between two types of offline states:
 4. Users see clear message: "Changes will not be saved"
 5. Users wait or view data only
 6. Server comes back online
-7. Page auto-refreshes
-8. Users resume normal operation with new version
-9. No data loss, no confusion
+7. Green "Server Back Online" notification appears
+8. Page auto-refreshes after 1 second
+9. Users resume normal operation with new version
+10. No data loss, no confusion
 
 ## Benefits
 
 1. **Prevents Data Loss** - Users know when their actions won't be saved
-2. **Automatic Recovery** - No manual action needed to reconnect
+2. **Automatic Recovery** - Page refreshes automatically when server returns
 3. **Clear Communication** - Visual indicator with helpful messages
-4. **Smooth Upgrades** - Software updates don't confuse users
+4. **Smooth Upgrades** - Software updates handled gracefully
 5. **Works Everywhere** - Active on all pages, even before login
-6. **Non-Intrusive** - Only appears when needed
-7. **Manual Control** - Users can force refresh if desired
+6. **Optimized Performance** - Health checks don't cause unnecessary re-renders
 
 ## Maintenance
 
@@ -227,16 +229,17 @@ Considerations:
 4. **Observe the behavior**
    - After ~20 seconds, yellow warning banner appears
    - Offline duration counter increases every second
-   - "Refresh Now" button is available
+   - "Refresh" button is available
 
 5. **Restart the backend server**
    - In Docker: `docker compose start api`
    - In development: Restart `npm run dev` in `server` directory
 
 6. **Observe auto-refresh**
-   - Page should automatically reload after detecting server is back
+   - Green "Server Back Online" banner appears
+   - Page automatically reloads after 1 second
    - Fresh content is loaded
-   - Warning banner disappears
+   - Banner disappears after refresh
 
 ### Automated Testing
 
@@ -263,6 +266,12 @@ Currently, this feature is tested manually. Future improvements could include:
 - Check if component is rendering
 - Verify useEffect dependencies
 - Look for React strict mode issues in development
+
+### Constant Re-renders Every 10 Seconds (Fixed in v1.1)
+- This was caused by inefficient state management
+- Health check always triggered state updates even when nothing changed
+- Fixed by only updating state when values actually change
+- See REFRESH_OPTIMIZATION_SUMMARY.md for details
 
 ## Future Enhancements
 
