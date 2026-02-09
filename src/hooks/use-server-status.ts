@@ -94,7 +94,7 @@ export function useServerStatus() {
 
       // Check if anything actually changed to avoid unnecessary re-renders
       const isOnline = !isNowOffline
-      const lastOnlineTime = isServerOnline ? now : prev.lastOnlineTime
+      const lastOnlineTime = isOnline ? now : prev.lastOnlineTime
       
       // Only update if status actually changed
       if (
@@ -102,7 +102,7 @@ export function useServerStatus() {
         prev.consecutiveFailures === newConsecutiveFailures &&
         prev.offlineDuration === offlineDuration &&
         prev.lastOnlineTime === lastOnlineTime &&
-        !prev.isChecking
+        prev.isChecking === false
       ) {
         // Nothing changed, return previous state to prevent re-render
         return prev
