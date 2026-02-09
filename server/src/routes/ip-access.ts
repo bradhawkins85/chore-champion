@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../config/database.js';
 import type { RowDataPacket } from 'mysql2';
+import { getTenantData, setTenantData } from '../services/tenant-data-store.js';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 
@@ -45,17 +46,11 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
       return res.status(400).json({ error: 'tenantId, ip, and parentPin are required' });
     }
 
-    // Get the tenant's KV store to verify the parent PIN
-    const [kvRows] = await pool.query<RowDataPacket[]>(
-      'SELECT value FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-      [tenantId, 'parent-pin']
-    );
+    const storedPin = await getTenantData('parent-pin', tenantId);
 
-    if (kvRows.length === 0) {
+    if (!storedPin) {
       return res.status(400).json({ error: 'Parent PIN not configured' });
     }
-
-    const storedPin = JSON.parse(kvRows[0].value);
     
     // Verify the parent PIN matches
     if (storedPin !== parentPin) {
@@ -63,14 +58,11 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
     }
 
     // Check for existing active requests from this IP
-    const [existingRequests] = await pool.query<RowDataPacket[]>(
-      'SELECT value FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-      [tenantId, 'ip-access-requests']
-    );
+    const existingRequests = await getTenantData('ip-access-requests', tenantId);
 
     let requests: IPAccessRequest[] = [];
-    if (existingRequests.length > 0) {
-      requests = JSON.parse(existingRequests[0].value);
+    if (Array.isArray(existingRequests)) {
+      requests = existingRequests as IPAccessRequest[];
     }
 
     // Clean up expired requests
@@ -100,17 +92,7 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
     requests.push(newRequest);
 
     // Save the updated requests
-    if (existingRequests.length > 0) {
-      await pool.query(
-        'UPDATE kv_store SET value = ?, updated_at = NOW() WHERE tenant_id = ? AND key_name = ?',
-        [JSON.stringify(requests), tenantId, 'ip-access-requests']
-      );
-    } else {
-      await pool.query(
-        'INSERT INTO kv_store (tenant_id, key_name, value, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-        [tenantId, 'ip-access-requests', JSON.stringify(requests)]
-      );
-    }
+    await setTenantData('ip-access-requests', tenantId, requests);
 
     // Get the primary parent's email to send the approval link
     const [users] = await pool.query<RowDataPacket[]>(
@@ -164,8 +146,7 @@ router.post('/approve-access', async (req: Request, res: Response) => {
 
     // Search for the token across all tenants
     const [allRequests] = await pool.query<RowDataPacket[]>(
-      'SELECT tenant_id, value FROM kv_store WHERE key_name = ?',
-      ['ip-access-requests']
+      'SELECT tenant_id, value_data FROM tenant_ip_access_requests'
     );
 
     let foundTenantId: string | null = null;
@@ -173,7 +154,7 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     let allTenantRequests: IPAccessRequest[] = [];
 
     for (const row of allRequests) {
-      const requests: IPAccessRequest[] = JSON.parse(row.value);
+      const requests: IPAccessRequest[] = JSON.parse(row.value_data);
       const request = requests.find((r: IPAccessRequest) => r.token === token);
       if (request) {
         foundTenantId = row.tenant_id;
@@ -202,26 +183,18 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     foundRequest.approvedAt = Date.now();
 
     // Update the requests in the database
-    await pool.query(
-      'UPDATE kv_store SET value = ?, updated_at = NOW() WHERE tenant_id = ? AND key_name = ?',
-      [JSON.stringify(allTenantRequests), foundTenantId, 'ip-access-requests']
-    );
+    await setTenantData('ip-access-requests', foundTenantId!, allTenantRequests);
 
     // Add the IP to the allowed list
-    const [ipRestrictions] = await pool.query<RowDataPacket[]>(
-      'SELECT value FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-      [foundTenantId, 'ip-restrictions']
-    );
+    const ipRestrictions = await getTenantData('ip-restrictions', foundTenantId!);
 
-    if (ipRestrictions.length > 0) {
-      const settings = JSON.parse(ipRestrictions[0].value);
+    if (ipRestrictions && typeof ipRestrictions === 'object') {
+      const settings = ipRestrictions as { allowedIPs?: string[] };
+      settings.allowedIPs = settings.allowedIPs || [];
       if (!settings.allowedIPs.includes(foundRequest.ip)) {
         settings.allowedIPs.push(foundRequest.ip);
         
-        await pool.query(
-          'UPDATE kv_store SET value = ?, updated_at = NOW() WHERE tenant_id = ? AND key_name = ?',
-          [JSON.stringify(settings), foundTenantId, 'ip-restrictions']
-        );
+        await setTenantData('ip-restrictions', foundTenantId!, settings);
       }
     }
 
@@ -241,16 +214,13 @@ router.get('/pending-requests/:tenantId', async (req: Request, res: Response) =>
   try {
     const { tenantId } = req.params;
 
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT value FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-      [tenantId, 'ip-access-requests']
-    );
+    const pending = await getTenantData('ip-access-requests', tenantId);
 
-    if (rows.length === 0) {
+    if (!Array.isArray(pending)) {
       return res.json({ success: true, requests: [] });
     }
 
-    const requests: IPAccessRequest[] = JSON.parse(rows[0].value);
+    const requests: IPAccessRequest[] = pending as IPAccessRequest[];
     const now = Date.now();
 
     // Filter to only active (not expired, not approved) requests

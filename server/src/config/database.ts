@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import type { RowDataPacket } from 'mysql2';
+import { createTenantDataTables, migrateKvStoreToTenantTables } from '../services/tenant-data-schema.js';
 
 // Validate required environment variables in production
 if (process.env.NODE_ENV === 'production') {
@@ -192,6 +193,10 @@ export async function initDatabase() {
             console.log('Note: Existing data has been assigned to "legacy" tenant');
           }
         }
+
+
+        await createTenantDataTables(connection);
+        await migrateKvStoreToTenantTables(connection);
 
         // Create subscription_plans table
         await connection.query(`
