@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { getAllTenantData, getTenantData } from '../services/tenant-data-store.js';
 import {
   applyFreePlanDeactivations,
   getTenantSubscription,
@@ -489,29 +490,7 @@ router.get('/tenants/:tenantId/kv/:key', requireAdmin, async (req: Request, res:
       return res.status(404).json({ error: 'Tenant not found' });
     }
 
-    // Get the KV value for this tenant
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
-      [key, tenantId]
-    );
-
-    if (rows.length === 0) {
-      return res.json({ value: null });
-    }
-
-    const valueData = rows[0].value_data;
-    if (valueData === null || valueData === undefined) {
-      return res.json({ value: null });
-    }
-
-    let parsedValue;
-    try {
-      parsedValue = JSON.parse(valueData);
-    } catch (parseError) {
-      console.error(`Error parsing value for key "${key}":`, parseError);
-      return res.status(500).json({ error: 'Invalid data format' });
-    }
-
+    const parsedValue = await getTenantData(key, tenantId);
     res.json({ value: parsedValue });
   } catch (error) {
     console.error('Error fetching tenant KV data:', error);
@@ -537,24 +516,7 @@ router.get('/tenants/:tenantId/kv', requireAdmin, async (req: Request, res: Resp
       return res.status(404).json({ error: 'Tenant not found' });
     }
 
-    // Get all KV data for this tenant
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
-      [tenantId]
-    );
-
-    const data: Record<string, any> = {};
-    rows.forEach(row => {
-      if (row.value_data !== null && row.value_data !== undefined) {
-        try {
-          data[row.key_name] = JSON.parse(row.value_data);
-        } catch (parseError) {
-          console.error(`Error parsing value for key "${row.key_name}":`, parseError);
-          // Skip corrupted entries
-        }
-      }
-    });
-
+    const data = await getAllTenantData(tenantId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching all tenant KV data:', error);

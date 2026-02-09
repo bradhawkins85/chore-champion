@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../config/database.js';
-import type { RowDataPacket } from 'mysql2';
+import { deleteTenantData, getAllTenantData, getTenantData, setTenantData } from '../services/tenant-data-store.js';
 import { optionalAuth, AuthRequest } from '../middleware/auth.js';
 import { checkPlanLimits, updateSubscriptionQuantity } from '../services/subscription.js';
 
@@ -64,30 +64,16 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
     
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
-      [key, tenantId]
-    );
-    
-    // Return null for non-existent keys (standard KV store behavior)
-    // This prevents 404 errors in the browser console during initial page load
-    if (rows.length === 0) {
-      return sendNullResponse(req, res);
-    }
-    
-    // Handle null values from database
-    const valueData = rows[0].value_data;
-    if (valueData === null || valueData === undefined) {
-      return sendNullResponse(req, res);
-    }
-    
     let parsedValue;
     try {
-      parsedValue = JSON.parse(valueData);
+      parsedValue = await getTenantData(key, tenantId);
     } catch (parseError) {
       console.error(`Error parsing value for key "${key}":`, parseError);
-      console.error('Raw value_data:', valueData);
       return res.status(500).json({ error: 'Invalid data format' });
+    }
+
+    if (parsedValue === null || parsedValue === undefined) {
+      return sendNullResponse(req, res);
     }
     
     // Ensure array-like keys return arrays, not other types
@@ -170,12 +156,7 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
       }
     }
     
-    await pool.query(
-      `INSERT INTO kv_store (key_name, value_data, tenant_id) 
-       VALUES (?, ?, ?) 
-       ON DUPLICATE KEY UPDATE value_data = ?`,
-      [key, JSON.stringify(value), tenantId, JSON.stringify(value)]
-    );
+    await setTenantData(key, tenantId, value);
 
     if (key === 'children' && Array.isArray(value)) {
       try {
@@ -202,7 +183,7 @@ router.delete('/:key', optionalAuth, async (req: AuthRequest, res: Response) => 
 
     const { key } = req.params;
     const tenantId = req.tenantId || 'legacy';
-    await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
+    await deleteTenantData(key, tenantId);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting value:', error);
@@ -214,29 +195,12 @@ router.delete('/:key', optionalAuth, async (req: AuthRequest, res: Response) => 
 router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.tenantId || 'legacy';
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
-      [tenantId]
-    );
-    
-    const data: Record<string, any> = {};
-    rows.forEach(row => {
-      // Skip null or undefined values
-      if (row.value_data !== null && row.value_data !== undefined) {
-        try {
-          const parsedValue = JSON.parse(row.value_data);
-          
-          // Ensure array keys return arrays
-          if (ARRAY_KEYS.includes(row.key_name) && !Array.isArray(parsedValue)) {
-            console.warn(`Bulk GET: Key "${row.key_name}" should be an array but got:`, typeof parsedValue, parsedValue);
-            data[row.key_name] = [];
-          } else {
-            data[row.key_name] = parsedValue;
-          }
-        } catch (parseError) {
-          console.error(`Bulk GET: Error parsing value for key "${row.key_name}":`, parseError);
-          // Skip corrupted entries
-        }
+    const data = await getAllTenantData(tenantId) as Record<string, any>;
+
+    Object.entries(data).forEach(([entryKey, parsedValue]) => {
+      if (ARRAY_KEYS.includes(entryKey) && !Array.isArray(parsedValue)) {
+        console.warn(`Bulk GET: Key "${entryKey}" should be an array but got:`, typeof parsedValue, parsedValue);
+        data[entryKey] = [];
       }
     });
     
@@ -304,12 +268,7 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
       await connection.beginTransaction();
       
       for (const [key, value] of Object.entries(data)) {
-        await connection.query(
-          `INSERT INTO kv_store (key_name, value_data, tenant_id) 
-           VALUES (?, ?, ?) 
-           ON DUPLICATE KEY UPDATE value_data = ?`,
-          [key, JSON.stringify(value), tenantId, JSON.stringify(value)]
-        );
+        await setTenantData(key, tenantId, value, connection);
       }
       
       await connection.commit();

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { pool } from '../config/database.js';
+import { getTenantData, setTenantData } from './tenant-data-store.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { v4 as uuidv4 } from 'uuid';
 import { getEffectivePricePerChild } from './subscription-pricing.js';
@@ -184,22 +185,14 @@ async function updatePlanLimitedItems(
   if (maxAllowed === null && !isActive) {
     return;
   }
-  const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-    [tenantId, keyName]
-  );
-  if (rows.length === 0) {
-    return;
-  }
-  const valueData = rows[0]?.value_data;
-  if (!valueData) {
-    return;
-  }
   let items: unknown;
   try {
-    items = JSON.parse(valueData);
+    items = await getTenantData(keyName, tenantId);
   } catch (error) {
-    console.error(`Unable to parse kv_store for ${keyName}:`, error);
+    console.error(`Unable to parse tenant data for ${keyName}:`, error);
+    return;
+  }
+  if (items === null || items === undefined) {
     return;
   }
   if (!Array.isArray(items)) {
@@ -229,10 +222,7 @@ async function updatePlanLimitedItems(
   if (!hasChanges) {
     return;
   }
-  await pool.query(
-    'UPDATE kv_store SET value_data = ? WHERE tenant_id = ? AND key_name = ?',
-    [JSON.stringify(updatedItems), tenantId, keyName]
-  );
+  await setTenantData(keyName, tenantId, updatedItems);
 }
 
 export async function applyFreePlanDeactivations(tenantId: string): Promise<void> {
@@ -1067,30 +1057,18 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     throw new Error('Plan not found');
   }
   
-  // Get current counts from kv_store
-  const [childrenRows] = await pool.query<RowDataPacket[]>(
-    'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-    [tenantId, 'children']
-  );
-  const children = childrenRows.length > 0 ? JSON.parse(childrenRows[0].value_data) : [];
+  // Get current counts from tenant data tables
+  const children = (await getTenantData('children', tenantId)) ?? [];
   const childrenCount = Array.isArray(children)
     ? children.filter((child) => child?.isActive !== false).length
     : 0;
   
-  const [choresRows] = await pool.query<RowDataPacket[]>(
-    'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-    [tenantId, 'chores']
-  );
-  const chores = choresRows.length > 0 ? JSON.parse(choresRows[0].value_data) : [];
+  const chores = (await getTenantData('chores', tenantId)) ?? [];
   const choresCount = Array.isArray(chores)
     ? chores.filter((chore) => chore?.isActive !== false).length
     : 0;
   
-  const [rewardsRows] = await pool.query<RowDataPacket[]>(
-    'SELECT value_data FROM kv_store WHERE tenant_id = ? AND key_name = ?',
-    [tenantId, 'rewards']
-  );
-  const rewards = rewardsRows.length > 0 ? JSON.parse(rewardsRows[0].value_data) : [];
+  const rewards = (await getTenantData('rewards', tenantId)) ?? [];
   const rewardsCount = Array.isArray(rewards)
     ? rewards.filter((reward) => reward?.isActive !== false).length
     : 0;
