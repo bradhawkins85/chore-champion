@@ -941,7 +941,7 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1053,7 +1053,7 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1294,7 +1294,7 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1429,7 +1429,7 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1552,7 +1552,7 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {wallpapers.map((wallpaper) => (
