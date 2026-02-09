@@ -145,20 +145,40 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     }
 
     // Search for the token across all tenants
-    const [allRequests] = await pool.query<RowDataPacket[]>(
-      'SELECT tenant_id, CAST(payload_json AS CHAR) AS payload_json FROM tenant_ip_access_requests_v2'
+    const [matchingRequests] = await pool.query<RowDataPacket[]>(
+      `SELECT tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at
+       FROM tenant_ip_access_requests_v2
+       WHERE token = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [token]
     );
 
     let foundTenantId: string | null = null;
     let foundRequest: IPAccessRequest | null = null;
 
-    for (const row of allRequests) {
-      const request = JSON.parse(String((row as RowDataPacket & { payload_json: string }).payload_json)) as IPAccessRequest;
-      if (request.token === token) {
-        foundTenantId = row.tenant_id;
-        foundRequest = request;
-        break;
-      }
+    if (matchingRequests.length > 0) {
+      const row = matchingRequests[0] as RowDataPacket & {
+        tenant_id: string;
+        id: string;
+        ip: string;
+        token: string;
+        approved: boolean | number;
+        requested_at: number;
+        approved_at?: number;
+        expires_at: number;
+      };
+
+      foundTenantId = row.tenant_id;
+      foundRequest = {
+        id: row.id,
+        ip: row.ip,
+        token: row.token,
+        approved: Boolean(row.approved),
+        requestedAt: row.requested_at,
+        approvedAt: row.approved_at,
+        expiresAt: row.expires_at,
+      };
     }
 
     if (!foundRequest) {
