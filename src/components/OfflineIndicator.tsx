@@ -10,6 +10,8 @@ export function OfflineIndicator() {
   const [wasNetworkOffline, setWasNetworkOffline] = useState(false)
   const [showReconnected, setShowReconnected] = useState(false)
   const [displayedOfflineDuration, setDisplayedOfflineDuration] = useState(0)
+  const [wasServerOffline, setWasServerOffline] = useState(false)
+  const [showServerReconnected, setShowServerReconnected] = useState(false)
   
   const { isServerOnline, offlineDuration, manualRefresh } = useServerStatus()
 
@@ -17,6 +19,7 @@ export function OfflineIndicator() {
   useEffect(() => {
     if (!isServerOnline && offlineDuration > 0) {
       setDisplayedOfflineDuration(offlineDuration)
+      setWasServerOffline(true)
       
       const interval = setInterval(() => {
         setDisplayedOfflineDuration(prev => prev + 1000)
@@ -25,8 +28,17 @@ export function OfflineIndicator() {
       return () => clearInterval(interval)
     } else {
       setDisplayedOfflineDuration(0)
+      
+      // Server came back online
+      if (wasServerOffline && isServerOnline) {
+        setShowServerReconnected(true)
+        setTimeout(() => {
+          setShowServerReconnected(false)
+          setWasServerOffline(false)
+        }, 5000) // Show for 5 seconds
+      }
     }
-  }, [isServerOnline, offlineDuration])
+  }, [isServerOnline, offlineDuration, wasServerOffline])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -63,7 +75,7 @@ export function OfflineIndicator() {
   const showServerOffline = isNetworkOnline && !isServerOnline
 
   // Don't show anything if everything is online and no reconnection message
-  if (isNetworkOnline && isServerOnline && !showReconnected) {
+  if (isNetworkOnline && isServerOnline && !showReconnected && !showServerReconnected) {
     return null
   }
 
@@ -85,7 +97,7 @@ export function OfflineIndicator() {
       <Card
         className={cn(
           'border-2 shadow-lg',
-          showNetworkReconnected
+          showNetworkReconnected || showServerReconnected
             ? 'border-primary/50 bg-primary/10'
             : 'border-destructive/50 bg-destructive/10'
         )}
@@ -100,6 +112,25 @@ export function OfflineIndicator() {
                   Connection restored
                 </div>
               </div>
+            </>
+          ) : showServerReconnected ? (
+            <>
+              <WifiHigh className="h-5 w-5 text-primary animate-pulse" />
+              <div className="text-sm flex-1">
+                <div className="font-semibold text-primary">Server Back Online</div>
+                <div className="text-xs text-primary/80">
+                  Refresh the page to load the latest updates
+                </div>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={manualRefresh}
+                className="ml-2 bg-primary"
+              >
+                <ArrowsClockwise className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
             </>
           ) : showNetworkOffline ? (
             <>
@@ -125,7 +156,7 @@ export function OfflineIndicator() {
                   Changes will not be saved until reconnected
                 </div>
                 <div className="text-xs text-yellow-600/80 mt-1">
-                  Page will auto-refresh when server is back online
+                  Click "Refresh" when server is back to load updates
                 </div>
               </div>
               <Button
@@ -135,7 +166,7 @@ export function OfflineIndicator() {
                 className="ml-2"
               >
                 <ArrowsClockwise className="h-4 w-4 mr-1" />
-                Refresh Now
+                Refresh
               </Button>
             </>
           ) : null}

@@ -97,18 +97,11 @@ export function useServerStatus() {
       // Update ref to track offline state
       wasOfflineRef.current = isNowOffline
 
-      // Trigger auto-refresh if server just came back online
-      if (justCameBackOnline && shouldAutoRefresh) {
-        console.log('Server is back online. Triggering auto-refresh...')
-        // Clear any existing refresh timeout to prevent multiple refreshes
-        if (refreshTimeoutRef.current !== null) {
-          clearTimeout(refreshTimeoutRef.current)
-        }
-        // Use a small delay to ensure the UI updates before refresh
-        refreshTimeoutRef.current = window.setTimeout(() => {
-          refreshTimeoutRef.current = null
-          handleServerReconnect()
-        }, 1000)
+      // Log when server comes back online but don't auto-refresh
+      // This prevents disruptive full page reloads every time health check succeeds
+      if (justCameBackOnline) {
+        console.log('Server is back online. Auto-refresh disabled to prevent disruption.')
+        // Users can manually refresh using the "Refresh Now" button if needed
       }
 
       return {
