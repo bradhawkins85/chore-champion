@@ -404,6 +404,7 @@ export function isChoreCompletedForTimeOfDay(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
+      !c.undoneAt &&
       c.completedAt >= today.getTime() &&
       c.timeOfDay === timeOfDay &&
       isCompletionApproved(c)
@@ -421,6 +422,7 @@ export function isChoreCompletedByAnyChildToday(
   return completions.some(
     (c) =>
       c.choreId === choreId &&
+      !c.undoneAt &&
       c.completedAt >= today.getTime() &&
       (!timeOfDay || c.timeOfDay === timeOfDay) &&
       isCompletionApproved(c)
@@ -534,6 +536,7 @@ export function getShareableChoreCompletionCount(
   completions.forEach((c) => {
     if (
       c.choreId === choreId &&
+      !c.undoneAt &&
       c.completedAt >= periodStart &&
       (!timeOfDay || c.timeOfDay === timeOfDay) &&
       isCompletionApproved(c)
@@ -568,6 +571,7 @@ export function hasChildCompletedShareableChore(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
+      !c.undoneAt &&
       c.completedAt >= periodStart &&
       (!timeOfDay || c.timeOfDay === timeOfDay) &&
       isCompletionApproved(c)
@@ -597,6 +601,7 @@ export function isChoreCompletedToday(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
+      !c.undoneAt &&
       c.completedAt >= today.getTime() &&
       isCompletionApproved(c)
   )
@@ -618,6 +623,7 @@ export function isChoreCompletedThisWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfWeek.getTime() &&
         c.timeOfDay === 'am' &&
         isCompletionApproved(c)
@@ -626,6 +632,7 @@ export function isChoreCompletedThisWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfWeek.getTime() &&
         c.timeOfDay === 'pm' &&
         isCompletionApproved(c)
@@ -638,6 +645,7 @@ export function isChoreCompletedThisWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfWeek.getTime() &&
         c.timeOfDay === choreTimeOfDay &&
         isCompletionApproved(c)
@@ -648,6 +656,7 @@ export function isChoreCompletedThisWeek(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
+      !c.undoneAt &&
       c.completedAt >= startOfWeek.getTime() &&
       isCompletionApproved(c)
   )
@@ -676,6 +685,7 @@ export function isChoreCompletedThisBiWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfBiWeek.getTime() &&
         c.timeOfDay === 'am' &&
         isCompletionApproved(c)
@@ -684,6 +694,7 @@ export function isChoreCompletedThisBiWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfBiWeek.getTime() &&
         c.timeOfDay === 'pm' &&
         isCompletionApproved(c)
@@ -696,6 +707,7 @@ export function isChoreCompletedThisBiWeek(
       (c) =>
         c.choreId === choreId &&
         c.childId === childId &&
+        !c.undoneAt &&
         c.completedAt >= startOfBiWeek.getTime() &&
         c.timeOfDay === choreTimeOfDay &&
         isCompletionApproved(c)
@@ -706,6 +718,7 @@ export function isChoreCompletedThisBiWeek(
     (c) =>
       c.choreId === choreId &&
       c.childId === childId &&
+      !c.undoneAt &&
       c.completedAt >= startOfBiWeek.getTime() &&
       isCompletionApproved(c)
   )
