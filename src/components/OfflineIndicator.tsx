@@ -119,7 +119,7 @@ export function OfflineIndicator() {
               <div className="text-sm flex-1">
                 <div className="font-semibold text-primary">Server Back Online</div>
                 <div className="text-xs text-primary/80">
-                  Refresh the page to load the latest updates
+                  Page will auto-refresh to load the latest updates
                 </div>
               </div>
               <Button
@@ -129,7 +129,7 @@ export function OfflineIndicator() {
                 className="ml-2 bg-primary"
               >
                 <ArrowsClockwise className="h-4 w-4 mr-1" />
-                Refresh
+                Refresh Now
               </Button>
             </>
           ) : showNetworkOffline ? (
@@ -156,7 +156,7 @@ export function OfflineIndicator() {
                   Changes will not be saved until reconnected
                 </div>
                 <div className="text-xs text-yellow-600/80 mt-1">
-                  Click "Refresh" when server is back to load updates
+                  Page will auto-refresh when server is back online
                 </div>
               </div>
               <Button
@@ -166,7 +166,7 @@ export function OfflineIndicator() {
                 className="ml-2"
               >
                 <ArrowsClockwise className="h-4 w-4 mr-1" />
-                Refresh
+                Refresh Now
               </Button>
             </>
           ) : null}

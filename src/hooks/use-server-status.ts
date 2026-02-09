@@ -75,8 +75,6 @@ export function useServerStatus() {
 
   // Perform health check and update status
   const performHealthCheck = useCallback(async () => {
-    setStatus(prev => ({ ...prev, isChecking: true }))
-
     const isServerOnline = await checkServerHealth()
     const now = Date.now()
 
@@ -94,20 +92,43 @@ export function useServerStatus() {
         offlineDuration = 0
       }
 
+      // Check if anything actually changed to avoid unnecessary re-renders
+      const isOnline = !isNowOffline
+      const lastOnlineTime = isServerOnline ? now : prev.lastOnlineTime
+      
+      // Only update if status actually changed
+      if (
+        prev.isOnline === isOnline &&
+        prev.consecutiveFailures === newConsecutiveFailures &&
+        prev.offlineDuration === offlineDuration &&
+        prev.lastOnlineTime === lastOnlineTime &&
+        !prev.isChecking
+      ) {
+        // Nothing changed, return previous state to prevent re-render
+        return prev
+      }
+
       // Update ref to track offline state
       wasOfflineRef.current = isNowOffline
 
-      // Log when server comes back online but don't auto-refresh
-      // This prevents disruptive full page reloads every time health check succeeds
-      if (justCameBackOnline) {
-        console.log('Server is back online. Auto-refresh disabled to prevent disruption.')
-        // Users can manually refresh using the "Refresh Now" button if needed
+      // Trigger auto-refresh if server just came back online
+      if (justCameBackOnline && shouldAutoRefresh) {
+        console.log('Server is back online. Triggering auto-refresh...')
+        // Clear any existing refresh timeout to prevent multiple refreshes
+        if (refreshTimeoutRef.current !== null) {
+          clearTimeout(refreshTimeoutRef.current)
+        }
+        // Use a small delay to ensure the UI updates before refresh
+        refreshTimeoutRef.current = window.setTimeout(() => {
+          refreshTimeoutRef.current = null
+          handleServerReconnect()
+        }, 1000)
       }
 
       return {
-        isOnline: !isNowOffline,
+        isOnline,
         isChecking: false,
-        lastOnlineTime: isServerOnline ? now : prev.lastOnlineTime,
+        lastOnlineTime,
         offlineDuration,
         consecutiveFailures: newConsecutiveFailures,
       }
