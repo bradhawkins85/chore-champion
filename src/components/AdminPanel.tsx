@@ -809,7 +809,7 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       <div className="flex-none p-6 border-b">
         {/* Header */}
         <div className="max-w-7xl mx-auto">
@@ -882,9 +882,9 @@ export function AdminPanel() {
       </div>
 
       {/* Main Content Tabs - Scrollable */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full max-w-7xl mx-auto px-6">
-          <Tabs defaultValue="tenants" className="h-full flex flex-col">
+      <div className="flex-1">
+        <div className="max-w-7xl mx-auto px-6 pb-6">
+          <Tabs defaultValue="tenants" className="flex flex-col">
             <TabsList className="flex-none mt-4">
               <TabsTrigger value="tenants" onClick={fetchTenants}>
                 <Database className="h-4 w-4 mr-2" />
@@ -915,8 +915,8 @@ export function AdminPanel() {
             </TabsList>
 
             {/* Tenants Tab */}
-            <TabsContent value="tenants" className="flex-1 overflow-hidden flex flex-col space-y-4">
-              <Card className="flex-1 overflow-hidden flex flex-col">
+            <TabsContent value="tenants" className="space-y-4">
+              <Card className="flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -940,8 +940,8 @@ export function AdminPanel() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-full">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1027,8 +1027,8 @@ export function AdminPanel() {
             </TabsContent>
 
             {/* Parents Tab */}
-            <TabsContent value="parents" className="flex-1 overflow-hidden flex flex-col space-y-4">
-              <Card className="flex-1 overflow-hidden flex flex-col">
+            <TabsContent value="parents" className="space-y-4">
+              <Card className="flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1052,8 +1052,8 @@ export function AdminPanel() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-full">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1118,7 +1118,7 @@ export function AdminPanel() {
             </TabsContent>
 
             {/* Subscriptions Tab */}
-            <TabsContent value="subscriptions" className="flex-1 overflow-hidden flex flex-col space-y-4">
+            <TabsContent value="subscriptions" className="space-y-4">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -1253,7 +1253,7 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="flex-1 overflow-hidden flex flex-col">
+              <Card className="flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1293,8 +1293,8 @@ export function AdminPanel() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-full">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1398,8 +1398,8 @@ export function AdminPanel() {
             </TabsContent>
 
             {/* Payments Tab */}
-            <TabsContent value="payments" className="flex-1 overflow-hidden flex flex-col space-y-4">
-              <Card className="flex-1 overflow-hidden flex flex-col">
+            <TabsContent value="payments" className="space-y-4">
+              <Card className="flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1428,8 +1428,8 @@ export function AdminPanel() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-full">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <Table>
                         <TableHeader>
@@ -1483,7 +1483,7 @@ export function AdminPanel() {
             </TabsContent>
 
             {/* Wallpapers Tab */}
-            <TabsContent value="wallpapers" className="flex-1 overflow-hidden flex flex-col space-y-4">
+            <TabsContent value="wallpapers" className="space-y-4">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Wallpaper Gallery</CardTitle>
@@ -1536,7 +1536,7 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="flex-1 overflow-hidden flex flex-col">
+              <Card className="flex flex-col">
                 <CardHeader className="flex-none pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1551,8 +1551,8 @@ export function AdminPanel() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-full">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
                     <div className="p-6 pt-0">
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {wallpapers.map((wallpaper) => (
