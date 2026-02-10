@@ -55,7 +55,7 @@ export async function listRewards(tenantId: string, connection?: PoolConnection)
         return JSON.parse(row.payload_json);
       } catch (e) {
         // Fall back to mapping from columns if JSON parsing fails
-        console.error('Failed to parse reward payload_json:', e);
+        console.error('Failed to parse reward payload_json for reward ID:', row.id, e);
       }
     }
     
@@ -82,7 +82,7 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
   
   // Map frontend Reward object to backend structure
   const title = reward.title ?? reward.name ?? null;
-  const active = reward.active ?? (reward.disabled === false || reward.disabled === undefined) ?? true;
+  const active = reward.active ?? (reward.disabled !== true);
   const sortOrder = reward.sortOrder ?? 0;
   
   await executor.query(
@@ -120,7 +120,7 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
     // Frontend uses 'name' but backend expects 'title'
     // Frontend uses 'isActive'/'disabled' but backend expects 'active'
     const title = reward.title ?? reward.name ?? null;
-    const active = reward.active ?? (reward.disabled === false || reward.disabled === undefined) ?? true;
+    const active = reward.active ?? (reward.disabled !== true);
     const sortOrder = reward.sortOrder ?? index;
     
     await executor.query(
