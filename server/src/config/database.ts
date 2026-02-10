@@ -192,7 +192,8 @@ export async function initDatabase() {
 
         for (const migration of childColumnMigrations) {
           const [cols] = await connection.query<RowDataPacket[]>(
-            `SHOW COLUMNS FROM tenant_children_v2 LIKE '${migration.name}'`
+            'SHOW COLUMNS FROM tenant_children_v2 LIKE ?',
+            [migration.name]
           );
           if (cols.length === 0) {
             await connection.query(migration.sql);
@@ -224,7 +225,8 @@ export async function initDatabase() {
 
         for (const migration of choreColumnMigrations) {
           const [cols] = await connection.query<RowDataPacket[]>(
-            `SHOW COLUMNS FROM tenant_chores_v2 LIKE '${migration.name}'`
+            'SHOW COLUMNS FROM tenant_chores_v2 LIKE ?',
+            [migration.name]
           );
           if (cols.length === 0) {
             await connection.query(migration.sql);

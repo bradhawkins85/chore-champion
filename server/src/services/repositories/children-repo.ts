@@ -56,7 +56,7 @@ function mapRow(row: ChildRow): ChildRecord {
     avatarColor: row.avatar_color,
     icsUrl: row.ics_url,
     calendarLastRefresh: row.calendar_last_refresh,
-    calendarAutoRefresh: row.calendar_auto_refresh ? Boolean(row.calendar_auto_refresh) : null,
+    calendarAutoRefresh: row.calendar_auto_refresh !== null ? Boolean(row.calendar_auto_refresh) : null,
     calendarRefreshInterval: row.calendar_refresh_interval,
     calendarShowTimes: row.calendar_show_times !== null ? Boolean(row.calendar_show_times) : null,
     totalPoints: row.total_points,

@@ -69,6 +69,12 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
+// Helper function to get chore name value with fallback to title
+// This maintains backward compatibility where 'name' and 'title' are used interchangeably
+function getChoreNameValue(chore: ChoreRecord): string | null {
+  return chore.name ?? chore.title ?? null;
+}
+
 function mapRow(row: ChoreRow): ChoreRecord {
   // Helper function to safely parse JSON fields
   const parseJson = (value: string | null | undefined) => {
@@ -200,7 +206,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
     [
       chore.id,
       tenantId,
-      chore.name ?? chore.title ?? null,
+      getChoreNameValue(chore),
       chore.title ?? null,
       chore.description ?? null,
       chore.emoji ?? null,
@@ -256,7 +262,7 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
       [
         chore.id,
         tenantId,
-        chore.name ?? chore.title ?? null,
+        getChoreNameValue(chore),
         chore.title ?? null,
         chore.description ?? null,
         chore.emoji ?? null,
