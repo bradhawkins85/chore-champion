@@ -6,6 +6,9 @@ import { checkPlanLimits, updateSubscriptionQuantity } from '../services/subscri
 
 const router = Router();
 
+// Only expose error details in development mode
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 // Keys that should always be arrays
 // Centralized list to prevent "forEach is not a function" errors
 const ARRAY_KEYS = [
@@ -70,7 +73,10 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     } catch (parseError) {
       console.error(`Error getting tenant data for key "${key}" (tenantId: ${tenantId}):`, parseError);
       console.error('Stack trace:', parseError instanceof Error ? parseError.stack : 'No stack trace available');
-      return res.status(500).json({ error: 'Failed to retrieve data', details: parseError instanceof Error ? parseError.message : String(parseError) });
+      return res.status(500).json({ 
+        error: 'Failed to retrieve data',
+        ...(isDevelopment && { details: parseError instanceof Error ? parseError.message : String(parseError) })
+      });
     }
 
     if (parsedValue === null || parsedValue === undefined) {
@@ -96,7 +102,10 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error(`Unexpected error in GET /kv/${req.params.key}:`, error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+    });
   }
 });
 
@@ -164,7 +173,10 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
       console.error(`Error setting tenant data for key "${key}" (tenantId: ${tenantId}):`, setError);
       console.error('Stack trace:', setError instanceof Error ? setError.stack : 'No stack trace available');
       console.error('Value type:', typeof value, 'Is array:', Array.isArray(value));
-      return res.status(500).json({ error: 'Failed to save data', details: setError instanceof Error ? setError.message : String(setError) });
+      return res.status(500).json({ 
+        error: 'Failed to save data',
+        ...(isDevelopment && { details: setError instanceof Error ? setError.message : String(setError) })
+      });
     }
 
     if (key === 'children' && Array.isArray(value)) {
@@ -180,7 +192,10 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error(`Unexpected error in POST /kv/${req.params.key}:`, error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+    });
   }
 });
 
@@ -213,7 +228,10 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     } catch (getAllError) {
       console.error(`Error getting all tenant data (tenantId: ${tenantId}):`, getAllError);
       console.error('Stack trace:', getAllError instanceof Error ? getAllError.stack : 'No stack trace available');
-      return res.status(500).json({ error: 'Failed to retrieve data', details: getAllError instanceof Error ? getAllError.message : String(getAllError) });
+      return res.status(500).json({ 
+        error: 'Failed to retrieve data',
+        ...(isDevelopment && { details: getAllError instanceof Error ? getAllError.message : String(getAllError) })
+      });
     }
 
     Object.entries(data).forEach(([entryKey, parsedValue]) => {
@@ -227,7 +245,10 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Unexpected error in GET /kv/:', error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+    });
   }
 });
 
@@ -289,7 +310,10 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     } catch (connError) {
       console.error('Error getting database connection:', connError);
       console.error('Stack trace:', connError instanceof Error ? connError.stack : 'No stack trace available');
-      return res.status(500).json({ error: 'Database connection failed', details: connError instanceof Error ? connError.message : String(connError) });
+      return res.status(500).json({ 
+        error: 'Database connection failed',
+        ...(isDevelopment && { details: connError instanceof Error ? connError.message : String(connError) })
+      });
     }
     
     try {
@@ -318,7 +342,10 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Unexpected error in bulk POST /kv/:', error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+    });
   }
 });
 
