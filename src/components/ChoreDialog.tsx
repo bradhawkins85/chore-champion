@@ -57,7 +57,7 @@ export function ChoreDialog({
   categories,
   canAddChore = true,
 }: ChoreDialogProps) {
-  const [name, setName] = useState(editChore?.name || '')
+  const [name, setName] = useState(editChore?.name || (editChore as any)?.title || '')
   const [description, setDescription] = useState(editChore?.description || '')
   const [points, setPoints] = useState((editChore?.points ?? 10).toString())
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
@@ -98,8 +98,8 @@ export function ChoreDialog({
 
   useEffect(() => {
     if (editChore) {
-      setName(editChore.name)
-      setDescription(editChore.description)
+      setName(editChore.name || (editChore as any)?.title || '')
+      setDescription(editChore.description || '')
       setPoints(editChore.points.toString())
       setFrequency(editChore.frequency)
       setTimeOfDay(editChore.timeOfDay || 'anytime')
@@ -246,11 +246,11 @@ export function ChoreDialog({
   }
 
   const handleSave = () => {
-    if (!name.trim()) return
+    if (!name || !name.trim()) return
 
     const choreData: Omit<Chore, 'id' | 'createdAt'> = {
       name: name.trim(),
-      description: description.trim(),
+      description: (description || '').trim(),
       points: parseInt(points) || 10,
       frequency,
       timeOfDay,
@@ -1767,7 +1767,7 @@ export function ChoreDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>
+          <Button onClick={handleSave} disabled={!name || !name.trim()}>
             {editChore ? 'Save Changes' : 'Add Chore'}
           </Button>
         </DialogFooter>
