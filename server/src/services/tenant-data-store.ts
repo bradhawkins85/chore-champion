@@ -85,7 +85,7 @@ async function setNormalizedTenantData(
       return;
     case 'ip-access-requests':
       await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
-      await setMigrationState(connection, tenantId, key, 'tenant_ip_access_requests', Array.isArray(value) ? value.length : 0);
+      await setMigrationState(connection, tenantId, key, 'tenant_ip_access_requests_v2', Array.isArray(value) ? value.length : 0);
       return;
   }
 }

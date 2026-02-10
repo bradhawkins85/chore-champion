@@ -197,22 +197,22 @@ export async function initDatabase() {
 
         await createTenantDataTables(connection);
 
-        // One-time migration from legacy normalized v2 access-request rows into dedicated table.
-        const [ipAccessV2Table] = await connection.query<RowDataPacket[]>("SHOW TABLES LIKE 'tenant_ip_access_requests_v2'");
-        if (ipAccessV2Table.length > 0) {
+        // One-time migration from legacy non-v2 access-request table to _v2 table.
+        const [ipAccessLegacyTable] = await connection.query<RowDataPacket[]>("SHOW TABLES LIKE 'tenant_ip_access_requests'");
+        if (ipAccessLegacyTable.length > 0) {
           await connection.query(
-            `INSERT INTO tenant_ip_access_requests
+            `INSERT INTO tenant_ip_access_requests_v2
              (tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at)
-             SELECT v2.tenant_id,
-                    v2.id,
-                    v2.ip,
-                    v2.token,
-                    COALESCE(v2.approved, FALSE),
-                    COALESCE(v2.requested_at, 0),
-                    v2.approved_at,
-                    COALESCE(v2.expires_at, COALESCE(v2.requested_at, 0))
-             FROM tenant_ip_access_requests_v2 v2
-             WHERE v2.token IS NOT NULL
+             SELECT legacy.tenant_id,
+                    legacy.id,
+                    legacy.ip,
+                    legacy.token,
+                    COALESCE(legacy.approved, FALSE),
+                    COALESCE(legacy.requested_at, 0),
+                    legacy.approved_at,
+                    COALESCE(legacy.expires_at, COALESCE(legacy.requested_at, 0))
+             FROM tenant_ip_access_requests legacy
+             WHERE legacy.token IS NOT NULL
              ON DUPLICATE KEY UPDATE
               ip = VALUES(ip),
               token = VALUES(token),
