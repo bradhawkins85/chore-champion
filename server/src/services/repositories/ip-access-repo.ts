@@ -101,7 +101,7 @@ export async function getIpAccessRequestById(tenantId: string, requestId: string
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests
+     FROM tenant_ip_access_requests_v2
      WHERE tenant_id = ? AND id = ?
      LIMIT 1`,
     [tenantId, requestId]
@@ -128,7 +128,7 @@ export async function upsertIpAccessRequest(
 ): Promise<void> {
   const executor = getExecutor(connection);
   await executor.query(
-    `INSERT INTO tenant_ip_access_requests
+    `INSERT INTO tenant_ip_access_requests_v2
     (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
@@ -158,7 +158,7 @@ export async function getIpAccessRequestByToken(
   const executor = getExecutor(connection);
   const [rows] = await executor.query<TokenLookupRow[]>(
     `SELECT tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests
+     FROM tenant_ip_access_requests_v2
      WHERE token = ?
      LIMIT 1`,
     [token]
@@ -188,7 +188,7 @@ export async function findPendingIpAccessRequestForIp(
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests
+     FROM tenant_ip_access_requests_v2
      WHERE tenant_id = ?
        AND ip = ?
        AND approved = FALSE
@@ -220,7 +220,7 @@ export async function approveIpAccessRequestById(
 ): Promise<void> {
   const executor = getExecutor(connection);
   await executor.query(
-    `UPDATE tenant_ip_access_requests
+    `UPDATE tenant_ip_access_requests_v2
      SET approved = TRUE,
          approved_at = ?
      WHERE tenant_id = ? AND id = ?`,
@@ -236,7 +236,7 @@ export async function listPendingIpAccessRequests(
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests
+     FROM tenant_ip_access_requests_v2
      WHERE tenant_id = ?
        AND approved = FALSE
        AND expires_at > ?
@@ -259,7 +259,7 @@ export async function listIpAccessRequests(tenantId: string, connection?: PoolCo
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests WHERE tenant_id = ?
+     FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?
      ORDER BY requested_at ASC`,
     [tenantId]
   );
@@ -281,11 +281,11 @@ export async function replaceIpAccessRequests(
   connection?: PoolConnection
 ): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ?', [tenantId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?', [tenantId]);
 
   for (const request of requests) {
     await executor.query(
-      `INSERT INTO tenant_ip_access_requests
+      `INSERT INTO tenant_ip_access_requests_v2
       (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -304,10 +304,10 @@ export async function replaceIpAccessRequests(
 
 export async function deleteIpAccessRequests(tenantId: string, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ?', [tenantId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?', [tenantId]);
 }
 
 export async function deleteIpAccessRequestById(tenantId: string, requestId: string, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ? AND id = ?', [tenantId, requestId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ? AND id = ?', [tenantId, requestId]);
 }

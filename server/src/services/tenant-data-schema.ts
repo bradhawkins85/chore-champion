@@ -25,7 +25,7 @@ export const KEY_TABLE_MAP: Record<string, string> = {
   'child-availability': 'tenant_child_availability_v2',
   'parent-pin': 'tenant_parent_pin_v2',
   'ip-restrictions': 'tenant_ip_restrictions_v2',
-  'ip-access-requests': 'tenant_ip_access_requests',
+  'ip-access-requests': 'tenant_ip_access_requests_v2',
 };
 
 const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
@@ -345,10 +345,10 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
   'ip-access-requests': {
-    tableName: 'tenant_ip_access_requests',
+    tableName: 'tenant_ip_access_requests_v2',
     legacyTableName: 'tenant_ip_access_requests',
     mode: 'collection',
-    createSql: `CREATE TABLE IF NOT EXISTS tenant_ip_access_requests (
+    createSql: `CREATE TABLE IF NOT EXISTS tenant_ip_access_requests_v2 (
       id VARCHAR(64) NOT NULL,
       tenant_id VARCHAR(36) NOT NULL,
       ip VARCHAR(64),
