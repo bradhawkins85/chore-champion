@@ -12,7 +12,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const dbConfig = {
-  host: process.env.MYSQL_HOST || 'mysql',
+  host: process.env.MYSQL_HOST || 'localhost',
   port: parseInt(process.env.MYSQL_PORT || '3306'),
   user: process.env.MYSQL_USER || 'chorequest',
   password: process.env.MYSQL_PASSWORD || 'chorequest',
