@@ -90,7 +90,14 @@ export async function getTenantData(key: string, tenantId: string): Promise<unkn
       if (!rows.length) return null;
       const value = rows[0].value_data;
       if (!value) return null;
-      return JSON.parse(value);
+      
+      try {
+        return JSON.parse(value);
+      } catch (parseError) {
+        console.error(`JSON parsing error for key "${key}" (tenantId: ${tenantId}):`, parseError);
+        console.error('Invalid JSON value:', value);
+        throw new Error(`Failed to parse JSON for key "${key}"`);
+      }
     }
 
     return await getNormalizedTenantData(key, tenantId);
@@ -166,7 +173,7 @@ export async function getAllTenantData(tenantId: string): Promise<Record<string,
       try {
         data[row.key_name] = JSON.parse(row.value_data);
       } catch (error) {
-        console.error(`Error parsing kv_store value for key "${row.key_name}":`, error);
+        console.error(`Error parsing kv_store value for key "${row.key_name}" (tenantId: ${tenantId}):`, error);
       }
     }
   } catch (error) {

@@ -6,8 +6,9 @@ import { checkPlanLimits, updateSubscriptionQuantity } from '../services/subscri
 
 const router = Router();
 
-// Only expose error details in development mode
-const isDevelopment = process.env.NODE_ENV !== 'production';
+// Only expose error details to clients in non-production environments (development, test, staging, etc.)
+// In production, detailed errors are logged server-side but clients receive generic messages
+const shouldExposeErrorDetails = process.env.NODE_ENV !== 'production';
 
 // Keys that should always be arrays
 // Centralized list to prevent "forEach is not a function" errors
@@ -75,7 +76,7 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
       console.error('Stack trace:', parseError instanceof Error ? parseError.stack : 'No stack trace available');
       return res.status(500).json({ 
         error: 'Failed to retrieve data',
-        ...(isDevelopment && { details: parseError instanceof Error ? parseError.message : String(parseError) })
+        ...(shouldExposeErrorDetails && { details: parseError instanceof Error ? parseError.message : String(parseError) })
       });
     }
 
@@ -104,7 +105,7 @@ router.get('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     res.status(500).json({ 
       error: 'Internal server error',
-      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+      ...(shouldExposeErrorDetails && { details: error instanceof Error ? error.message : String(error) })
     });
   }
 });
@@ -175,7 +176,7 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
       console.error('Value type:', typeof value, 'Is array:', Array.isArray(value));
       return res.status(500).json({ 
         error: 'Failed to save data',
-        ...(isDevelopment && { details: setError instanceof Error ? setError.message : String(setError) })
+        ...(shouldExposeErrorDetails && { details: setError instanceof Error ? setError.message : String(setError) })
       });
     }
 
@@ -194,7 +195,7 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     res.status(500).json({ 
       error: 'Internal server error',
-      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+      ...(shouldExposeErrorDetails && { details: error instanceof Error ? error.message : String(error) })
     });
   }
 });
@@ -230,7 +231,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
       console.error('Stack trace:', getAllError instanceof Error ? getAllError.stack : 'No stack trace available');
       return res.status(500).json({ 
         error: 'Failed to retrieve data',
-        ...(isDevelopment && { details: getAllError instanceof Error ? getAllError.message : String(getAllError) })
+        ...(shouldExposeErrorDetails && { details: getAllError instanceof Error ? getAllError.message : String(getAllError) })
       });
     }
 
@@ -247,7 +248,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     res.status(500).json({ 
       error: 'Internal server error',
-      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+      ...(shouldExposeErrorDetails && { details: error instanceof Error ? error.message : String(error) })
     });
   }
 });
@@ -312,7 +313,7 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
       console.error('Stack trace:', connError instanceof Error ? connError.stack : 'No stack trace available');
       return res.status(500).json({ 
         error: 'Database connection failed',
-        ...(isDevelopment && { details: connError instanceof Error ? connError.message : String(connError) })
+        ...(shouldExposeErrorDetails && { details: connError instanceof Error ? connError.message : String(connError) })
       });
     }
     
@@ -344,7 +345,7 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     res.status(500).json({ 
       error: 'Internal server error',
-      ...(isDevelopment && { details: error instanceof Error ? error.message : String(error) })
+      ...(shouldExposeErrorDetails && { details: error instanceof Error ? error.message : String(error) })
     });
   }
 });
