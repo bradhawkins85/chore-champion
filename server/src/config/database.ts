@@ -196,6 +196,33 @@ export async function initDatabase() {
 
 
         await createTenantDataTables(connection);
+
+        // One-time migration from legacy normalized v2 access-request rows into dedicated table.
+        const [ipAccessV2Table] = await connection.query<RowDataPacket[]>("SHOW TABLES LIKE 'tenant_ip_access_requests_v2'");
+        if (ipAccessV2Table.length > 0) {
+          await connection.query(
+            `INSERT INTO tenant_ip_access_requests
+             (tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at)
+             SELECT v2.tenant_id,
+                    v2.id,
+                    v2.ip,
+                    v2.token,
+                    COALESCE(v2.approved, FALSE),
+                    COALESCE(v2.requested_at, 0),
+                    v2.approved_at,
+                    COALESCE(v2.expires_at, COALESCE(v2.requested_at, 0))
+             FROM tenant_ip_access_requests_v2 v2
+             WHERE v2.token IS NOT NULL
+             ON DUPLICATE KEY UPDATE
+              ip = VALUES(ip),
+              token = VALUES(token),
+              approved = VALUES(approved),
+              requested_at = VALUES(requested_at),
+              approved_at = VALUES(approved_at),
+              expires_at = VALUES(expires_at)`
+          );
+        }
+
         await migrateKvStoreToTenantTables(connection);
 
         // Create subscription_plans table

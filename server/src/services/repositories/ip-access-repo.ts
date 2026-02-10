@@ -41,6 +41,10 @@ interface IpAccessRequestRow extends RowDataPacket {
   expires_at: number | null;
 }
 
+interface TokenLookupRow extends IpAccessRequestRow {
+  tenant_id: string;
+}
+
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
@@ -97,7 +101,7 @@ export async function getIpAccessRequestById(tenantId: string, requestId: string
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests_v2
+     FROM tenant_ip_access_requests
      WHERE tenant_id = ? AND id = ?
      LIMIT 1`,
     [tenantId, requestId]
@@ -124,35 +128,19 @@ export async function upsertIpAccessRequest(
 ): Promise<void> {
   const executor = getExecutor(connection);
   await executor.query(
-    `INSERT INTO tenant_ip_access_requests_v2
-    (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at, payload_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-      'id', ?,
-      'ip', ?,
-      'token', ?,
-      'approved', ?,
-      'requestedAt', ?,
-      'approvedAt', ?,
-      'expiresAt', ?
-    ))
+    `INSERT INTO tenant_ip_access_requests
+    (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       ip = VALUES(ip),
       token = VALUES(token),
       approved = VALUES(approved),
       requested_at = VALUES(requested_at),
       approved_at = VALUES(approved_at),
-      expires_at = VALUES(expires_at),
-      payload_json = VALUES(payload_json)`,
+      expires_at = VALUES(expires_at)`,
     [
       request.id,
       tenantId,
-      request.ip ?? null,
-      request.token ?? null,
-      request.approved,
-      request.requestedAt ?? null,
-      request.approvedAt ?? null,
-      request.expiresAt ?? null,
-      request.id,
       request.ip ?? null,
       request.token ?? null,
       request.approved,
@@ -163,12 +151,116 @@ export async function upsertIpAccessRequest(
   );
 }
 
+export async function getIpAccessRequestByToken(
+  token: string,
+  connection?: PoolConnection
+): Promise<(IpAccessRequestRecord & { tenantId: string }) | null> {
+  const executor = getExecutor(connection);
+  const [rows] = await executor.query<TokenLookupRow[]>(
+    `SELECT tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at
+     FROM tenant_ip_access_requests
+     WHERE token = ?
+     LIMIT 1`,
+    [token]
+  );
+
+  if (!rows.length) return null;
+
+  const row = rows[0];
+  return {
+    tenantId: row.tenant_id,
+    id: row.id,
+    ip: row.ip,
+    token: row.token,
+    approved: Boolean(row.approved),
+    requestedAt: row.requested_at,
+    approvedAt: row.approved_at,
+    expiresAt: row.expires_at,
+  };
+}
+
+export async function findPendingIpAccessRequestForIp(
+  tenantId: string,
+  ip: string,
+  now: number,
+  connection?: PoolConnection
+): Promise<IpAccessRequestRecord | null> {
+  const executor = getExecutor(connection);
+  const [rows] = await executor.query<IpAccessRequestRow[]>(
+    `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
+     FROM tenant_ip_access_requests
+     WHERE tenant_id = ?
+       AND ip = ?
+       AND approved = FALSE
+       AND expires_at > ?
+     ORDER BY requested_at DESC
+     LIMIT 1`,
+    [tenantId, ip, now]
+  );
+
+  if (!rows.length) return null;
+
+  const row = rows[0];
+  return {
+    id: row.id,
+    ip: row.ip,
+    token: row.token,
+    approved: Boolean(row.approved),
+    requestedAt: row.requested_at,
+    approvedAt: row.approved_at,
+    expiresAt: row.expires_at,
+  };
+}
+
+export async function approveIpAccessRequestById(
+  tenantId: string,
+  requestId: string,
+  approvedAt: number,
+  connection?: PoolConnection
+): Promise<void> {
+  const executor = getExecutor(connection);
+  await executor.query(
+    `UPDATE tenant_ip_access_requests
+     SET approved = TRUE,
+         approved_at = ?
+     WHERE tenant_id = ? AND id = ?`,
+    [approvedAt, tenantId, requestId]
+  );
+}
+
+export async function listPendingIpAccessRequests(
+  tenantId: string,
+  now: number,
+  connection?: PoolConnection
+): Promise<IpAccessRequestRecord[]> {
+  const executor = getExecutor(connection);
+  const [rows] = await executor.query<IpAccessRequestRow[]>(
+    `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
+     FROM tenant_ip_access_requests
+     WHERE tenant_id = ?
+       AND approved = FALSE
+       AND expires_at > ?
+     ORDER BY requested_at DESC`,
+    [tenantId, now]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    ip: row.ip,
+    token: row.token,
+    approved: Boolean(row.approved),
+    requestedAt: row.requested_at,
+    approvedAt: row.approved_at,
+    expiresAt: row.expires_at,
+  }));
+}
+
 export async function listIpAccessRequests(tenantId: string, connection?: PoolConnection): Promise<IpAccessRequestRecord[]> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<IpAccessRequestRow[]>(
     `SELECT id, ip, token, approved, requested_at, approved_at, expires_at
-     FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?
-     ORDER BY created_at ASC`,
+     FROM tenant_ip_access_requests WHERE tenant_id = ?
+     ORDER BY requested_at ASC`,
     [tenantId]
   );
 
@@ -189,31 +281,16 @@ export async function replaceIpAccessRequests(
   connection?: PoolConnection
 ): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?', [tenantId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ?', [tenantId]);
 
   for (const request of requests) {
     await executor.query(
-      `INSERT INTO tenant_ip_access_requests_v2
-      (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at, payload_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-        'id', ?,
-        'ip', ?,
-        'token', ?,
-        'approved', ?,
-        'requestedAt', ?,
-        'approvedAt', ?,
-        'expiresAt', ?
-      ))`,
+      `INSERT INTO tenant_ip_access_requests
+      (id, tenant_id, ip, token, approved, requested_at, approved_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         request.id,
         tenantId,
-        request.ip ?? null,
-        request.token ?? null,
-        request.approved,
-        request.requestedAt ?? null,
-        request.approvedAt ?? null,
-        request.expiresAt ?? null,
-        request.id,
         request.ip ?? null,
         request.token ?? null,
         request.approved,
@@ -227,10 +304,10 @@ export async function replaceIpAccessRequests(
 
 export async function deleteIpAccessRequests(tenantId: string, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ?', [tenantId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ?', [tenantId]);
 }
 
 export async function deleteIpAccessRequestById(tenantId: string, requestId: string, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
-  await executor.query('DELETE FROM tenant_ip_access_requests_v2 WHERE tenant_id = ? AND id = ?', [tenantId, requestId]);
+  await executor.query('DELETE FROM tenant_ip_access_requests WHERE tenant_id = ? AND id = ?', [tenantId, requestId]);
 }
