@@ -19,7 +19,14 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
       case 'children':
         return listChildren(tenantId);
       case 'chores':
-        return listChores(tenantId);
+        const chores = await listChores(tenantId);
+        // Transform 'title' to 'name' for backward compatibility with frontend
+        return chores.map((chore: any) => {
+          if (chore.title && !chore.name) {
+            return { ...chore, name: chore.title };
+          }
+          return chore;
+        });
       case 'rewards':
         return listRewards(tenantId);
       case 'ip-access-requests':
@@ -44,7 +51,14 @@ async function setNormalizedTenantData(
         await replaceChildren(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
       case 'chores':
-        await replaceChores(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        // Transform 'name' to 'title' for backward compatibility with frontend
+        const chores = Array.isArray(value) ? (value as any[]).map((chore: any) => {
+          if (chore.name && !chore.title) {
+            return { ...chore, title: chore.name };
+          }
+          return chore;
+        }) : [];
+        await replaceChores(tenantId, chores, connection);
         return;
       case 'rewards':
         await replaceRewards(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
