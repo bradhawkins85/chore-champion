@@ -32,6 +32,14 @@ import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
+// Helper function to handle chore name property that might be stored as 'name' or 'title'
+// Backend stores it as 'title', but frontend type uses 'name'
+function getChoreName(chore: Chore | undefined): string {
+  if (!chore) return ''
+  // Try 'name' first (frontend property), then 'title' (backend property)
+  return chore.name || (chore as any).title || ''
+}
+
 interface ChoreDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -57,7 +65,7 @@ export function ChoreDialog({
   categories,
   canAddChore = true,
 }: ChoreDialogProps) {
-  const [name, setName] = useState(editChore?.name || (editChore as any)?.title || '')
+  const [name, setName] = useState(getChoreName(editChore))
   const [description, setDescription] = useState(editChore?.description || '')
   const [points, setPoints] = useState((editChore?.points ?? 10).toString())
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
@@ -98,7 +106,7 @@ export function ChoreDialog({
 
   useEffect(() => {
     if (editChore) {
-      setName(editChore.name || (editChore as any)?.title || '')
+      setName(getChoreName(editChore))
       setDescription(editChore.description || '')
       setPoints(editChore.points.toString())
       setFrequency(editChore.frequency)
