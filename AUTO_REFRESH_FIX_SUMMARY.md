@@ -20,8 +20,8 @@ const justCameBackOnline = wasOffline && !isNowOffline
 3. Health check 3: **Success** → `consecutiveFailures = 0` (resets to 0, considered "online")
 4. **Auto-refresh triggers** because:
    - Previous state: `prev.consecutiveFailures = 2` (≥ OFFLINE_THRESHOLD, so `wasOffline = true`)
-   - Current state: `newConsecutiveFailures = 0` (< OFFLINE_THRESHOLD, so `isNowOffline = false`)
-   - Result: `justCameBackOnline = true && false = true` ✗ **FALSE POSITIVE**
+   - Current state: `newConsecutiveFailures = 0` (< OFFLINE_THRESHOLD, so `isNowOffline = false`, thus `!isNowOffline = true`)
+   - Result: `justCameBackOnline = true && true = true` ✗ **FALSE POSITIVE**
 
 The server never actually went offline - it was just two transient failures followed by success.
 
@@ -47,16 +47,16 @@ const justCameBackOnline = wasOfflineRef.current && !isNowOffline
 3. Health check 3: **Success** → `consecutiveFailures = 0`, `wasOfflineRef.current = false` (back online)
 4. **Auto-refresh triggers** because:
    - `wasOfflineRef.current = true` (was in confirmed offline state)
-   - `isNowOffline = false` (now online)
-   - Result: `justCameBackOnline = true && false = true` ✓ **CORRECT**
+   - `isNowOffline = false` (now online, thus `!isNowOffline = true`)
+   - Result: `justCameBackOnline = true && true = true` ✓ **CORRECT**
 
 **Prevented False Positive Scenario:**
 1. Health check 1: **Fails** → `consecutiveFailures = 1`, `wasOfflineRef.current = false`
 2. Health check 2: **Success** → `consecutiveFailures = 0`, `wasOfflineRef.current = false`
 3. **No auto-refresh** because:
    - `wasOfflineRef.current = false` (was never in confirmed offline state)
-   - `isNowOffline = false` (now online)
-   - Result: `justCameBackOnline = false && false = false` ✓ **CORRECT - No refresh**
+   - `isNowOffline = false` (now online, thus `!isNowOffline = true`)
+   - Result: `justCameBackOnline = false && true = false` ✓ **CORRECT - No refresh**
 
 ## Key Changes
 
