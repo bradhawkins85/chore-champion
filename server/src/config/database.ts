@@ -34,9 +34,11 @@ export async function initDatabase() {
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      console.log(`Database initialization attempt ${attempt}/${maxRetries}...`);
       const connection = await pool.getConnection();
       try {
         // Create tenants table
+        console.log('Creating tenants table...');
         await connection.query(`
           CREATE TABLE IF NOT EXISTS tenants (
             id VARCHAR(36) PRIMARY KEY,
@@ -194,12 +196,13 @@ export async function initDatabase() {
           }
         }
 
-
         await createTenantDataTables(connection);
+        console.log('Created tenant data tables successfully');
 
         // One-time migration from legacy non-v2 access-request table to _v2 table.
         const [ipAccessLegacyTable] = await connection.query<RowDataPacket[]>("SHOW TABLES LIKE 'tenant_ip_access_requests'");
         if (ipAccessLegacyTable.length > 0) {
+          console.log('Migrating legacy IP access requests table...');
           await connection.query(
             `INSERT INTO tenant_ip_access_requests_v2
              (tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at)
@@ -221,9 +224,12 @@ export async function initDatabase() {
               approved_at = VALUES(approved_at),
               expires_at = VALUES(expires_at)`
           );
+          console.log('Legacy IP access requests migrated successfully');
         }
 
+        console.log('Running kv_store migration to tenant tables...');
         await migrateKvStoreToTenantTables(connection);
+        console.log('kv_store migration completed successfully');
 
         // Create subscription_plans table
         await connection.query(`
@@ -366,6 +372,10 @@ export async function initDatabase() {
         
         console.log('Database initialized successfully');
         return; // Success, exit the function
+      } catch (initError) {
+        console.error('Error during database table initialization:', initError);
+        console.error('Stack trace:', initError instanceof Error ? initError.stack : 'No stack trace available');
+        throw initError;
       } finally {
         connection.release();
       }
@@ -374,6 +384,14 @@ export async function initDatabase() {
       
       if (isLastAttempt) {
         console.error(`Failed to initialize database after ${maxRetries} attempts:`, error);
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+        console.error('Database config:', {
+          host: dbConfig.host,
+          port: dbConfig.port,
+          user: dbConfig.user,
+          database: dbConfig.database,
+          // Don't log password
+        });
         throw error;
       }
       
