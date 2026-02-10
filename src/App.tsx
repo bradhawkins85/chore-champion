@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
 import { useApiKV as useKV } from '@/hooks/use-api-kv'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -691,7 +692,7 @@ function App() {
     }
     const newChore: Chore = {
       ...choreData,
-      id: `chore_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       createdAt: Date.now(),
     }
     await setChores((current) => [...(current || []), newChore])
@@ -729,7 +730,7 @@ function App() {
   ) => {
     const newChild: Child = {
       ...childData,
-      id: `child_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       totalPoints: 0,
       createdAt: Date.now(),
     }
@@ -785,7 +786,7 @@ function App() {
   ) => {
     const newEntry: ChildAvailabilityEntry = {
       ...entryData,
-      id: `availability_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
     }
     setChildAvailability((current) => [...(current || []), newEntry])
     toast.success('Availability added')
@@ -811,7 +812,7 @@ function App() {
   const handleAssignChore = (childId: string, choreId: string) => {
     const chore = (migratedChores || []).find((c) => c.id === choreId)
     const newAssignment: ChoreAssignment = {
-      id: `assignment_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       childId,
       choreId,
       assignedAt: Date.now(),
@@ -918,7 +919,7 @@ function App() {
     
     const requiresApproval = chore ? chore.approvalConfigs?.find(c => c.childId === childId)?.requiresApproval : false
     
-    const completionId = `completion_${Date.now()}_${Math.random()}`
+    const completionId = uuidv4()
     const newCompletion: ChoreCompletion = {
       id: completionId,
       childId,
@@ -930,7 +931,7 @@ function App() {
     setCompletions((current) => [...(current || []), newCompletion])
     
     const historyEvent: ChoreHistoryEvent = {
-      id: `history_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       type: 'complete',
       childId,
       choreId,
@@ -1000,7 +1001,7 @@ function App() {
 
       if (allCompleted) {
         const bonusCompletion: CategoryBonusCompletion = {
-          id: `bonus_${Date.now()}_${Math.random()}`,
+          id: uuidv4(),
           childId,
           categoryId: category.id,
           completedAt: Date.now(),
@@ -1035,7 +1036,7 @@ function App() {
         toast.info('Chore completion undone')
         
         const historyEvent: ChoreHistoryEvent = {
-          id: `history_${Date.now()}_${Math.random()}`,
+          id: uuidv4(),
           type: 'undo',
           childId,
           choreId,
@@ -1057,7 +1058,7 @@ function App() {
     
     const newReward: Reward = {
       ...rewardData,
-      id: `reward_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       createdAt: Date.now(),
       categoryIds: categoryIdsArray,
     }
@@ -1162,7 +1163,7 @@ function App() {
     }
 
     const newPurchase: RewardPurchase = {
-      id: `purchase_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       childId,
       rewardId,
       purchasedAt: Date.now(),
@@ -1240,7 +1241,7 @@ function App() {
     
     const child = safeChildrenList.find((c) => c.id === childId)
     
-    const completionId = `completion_${Date.now()}_${Math.random()}`
+    const completionId = uuidv4()
     const newCompletion: ChoreCompletion = {
       id: completionId,
       childId,
@@ -1252,7 +1253,7 @@ function App() {
     setCompletions((current) => [...(current || []), newCompletion])
     
     const historyEvent: ChoreHistoryEvent = {
-      id: `history_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       type: 'override-complete',
       childId,
       choreId,
@@ -1281,7 +1282,7 @@ function App() {
     setDismissedMissedChores((current) => [...(current || []), dismissedChore])
     
     const historyEvent: ChoreHistoryEvent = {
-      id: `history_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       type: 'override-dismiss',
       childId,
       choreId,
@@ -1312,7 +1313,7 @@ function App() {
     
     // Add history event for the undo action
     const historyEvent: ChoreHistoryEvent = {
-      id: `history_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       type: 'undo-dismiss',
       childId,
       choreId,
@@ -1358,7 +1359,7 @@ function App() {
     
     const newCategory: Category = {
       ...categoryData,
-      id: `category_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       createdAt: Date.now(),
       order: maxOrder + 1,
     }
@@ -1418,7 +1419,7 @@ function App() {
     }
 
     const newSwap: PointSwap = {
-      id: `swap_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       childId,
       fromCategoryId,
       toCategoryId,
@@ -1453,7 +1454,7 @@ function App() {
     )
     
     const historyEvent: ChoreHistoryEvent = {
-      id: `history_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       type: 'approve',
       childId: completion.childId,
       choreId: completion.choreId,
@@ -1483,7 +1484,7 @@ function App() {
     const completion = safeCompletions.find((c) => c.id === completionId)
     if (completion) {
       const historyEvent: ChoreHistoryEvent = {
-        id: `history_${Date.now()}_${Math.random()}`,
+        id: uuidv4(),
         type: 'reject',
         childId: completion.childId,
         choreId: completion.choreId,
@@ -1505,7 +1506,7 @@ function App() {
       setCompletions((current) => (current || []).filter((c) => c.id !== completionId))
       
       const historyEvent: ChoreHistoryEvent = {
-        id: `history_${Date.now()}_${Math.random()}`,
+        id: uuidv4(),
         type: 'undo',
         childId: completion.childId,
         choreId: completion.choreId,
@@ -1992,7 +1993,7 @@ Please log in to ChoreQuest to approve or reject this completion.
   const handleAddReportTemplate = (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => {
     const newTemplate: ReportTemplate = {
       ...templateData,
-      id: `template_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       createdAt: Date.now(),
     }
     setReportTemplates((current) => [...(current || []), newTemplate])
@@ -2019,7 +2020,7 @@ Please log in to ChoreQuest to approve or reject this completion.
   const handleAddSchoolHoliday = (holidayData: Omit<SchoolHoliday, 'id' | 'createdAt'>) => {
     const newHoliday: SchoolHoliday = {
       ...holidayData,
-      id: `holiday_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       createdAt: Date.now(),
     }
     setSchoolHolidays((current) => [...(current || []), newHoliday])

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -131,7 +132,7 @@ export function ReportTemplatesManager({
     )
 
     const generatedReport: GeneratedReport = {
-      id: `report_${Date.now()}_${Math.random()}`,
+      id: uuidv4(),
       templateId: template.id,
       templateName: template.name,
       generatedAt: Date.now(),
