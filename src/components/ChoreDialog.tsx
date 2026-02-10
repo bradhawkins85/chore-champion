@@ -59,7 +59,7 @@ export function ChoreDialog({
 }: ChoreDialogProps) {
   const [name, setName] = useState(editChore?.name || '')
   const [description, setDescription] = useState(editChore?.description || '')
-  const [points, setPoints] = useState(editChore?.points.toString() || '10')
+  const [points, setPoints] = useState((editChore?.points ?? 10).toString())
   const [frequency, setFrequency] = useState<ChoreFrequency>(editChore?.frequency || 'daily')
   const [completionType, setCompletionType] = useState<ChoreCompletionType>(editChore?.completionType || 'individual')
   const [categoryIds, setCategoryIds] = useState<string[]>(editChore?.categoryIds || [])

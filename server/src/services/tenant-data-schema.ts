@@ -63,6 +63,7 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
       tenant_id VARCHAR(36) NOT NULL,
       title VARCHAR(255),
       description TEXT,
+      emoji VARCHAR(10),
       frequency VARCHAR(50),
       schedule_type VARCHAR(50),
       day_of_week TINYINT NULL,

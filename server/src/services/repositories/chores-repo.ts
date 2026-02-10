@@ -5,6 +5,7 @@ export interface ChoreRecord {
   id: string;
   title: string | null;
   description: string | null;
+  emoji: string | null;
   frequency: string | null;
   scheduleType: string | null;
   dayOfWeek: number | null;
@@ -19,6 +20,7 @@ interface ChoreRow extends RowDataPacket {
   id: string;
   title: string | null;
   description: string | null;
+  emoji: string | null;
   frequency: string | null;
   schedule_type: string | null;
   day_of_week: number | null;
@@ -38,6 +40,7 @@ function mapRow(row: ChoreRow): ChoreRecord {
     id: row.id,
     title: row.title,
     description: row.description,
+    emoji: row.emoji,
     frequency: row.frequency,
     scheduleType: row.schedule_type,
     dayOfWeek: row.day_of_week,
@@ -52,7 +55,7 @@ function mapRow(row: ChoreRow): ChoreRecord {
 export async function listChores(tenantId: string, connection?: PoolConnection): Promise<ChoreRecord[]> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
+    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
      FROM tenant_chores_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -66,7 +69,7 @@ export async function listChores(tenantId: string, connection?: PoolConnection):
 export async function getChoreById(tenantId: string, choreId: string, connection?: PoolConnection): Promise<ChoreRecord | null> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
+    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
      FROM tenant_chores_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, choreId]
@@ -80,11 +83,12 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
   const sortOrder = chore.sortOrder ?? 0;
   await executor.query(
     `INSERT INTO tenant_chores_v2
-    (id, tenant_id, title, description, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
+    (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
       'id', ?,
       'title', ?,
       'description', ?,
+      'emoji', ?,
       'frequency', ?,
       'scheduleType', ?,
       'dayOfWeek', ?,
@@ -97,6 +101,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
     ON DUPLICATE KEY UPDATE
       title = VALUES(title),
       description = VALUES(description),
+      emoji = VALUES(emoji),
       frequency = VALUES(frequency),
       schedule_type = VALUES(schedule_type),
       day_of_week = VALUES(day_of_week),
@@ -111,6 +116,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       tenantId,
       chore.title ?? null,
       chore.description ?? null,
+      chore.emoji ?? null,
       chore.frequency ?? null,
       chore.scheduleType ?? null,
       chore.dayOfWeek ?? null,
@@ -122,6 +128,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       chore.id,
       chore.title ?? null,
       chore.description ?? null,
+      chore.emoji ?? null,
       chore.frequency ?? null,
       chore.scheduleType ?? null,
       chore.dayOfWeek ?? null,
@@ -142,11 +149,12 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
     const sortOrder = chore.sortOrder ?? index;
     await executor.query(
       `INSERT INTO tenant_chores_v2
-      (id, tenant_id, title, description, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
+      (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
         'id', ?,
         'title', ?,
         'description', ?,
+        'emoji', ?,
         'frequency', ?,
         'scheduleType', ?,
         'dayOfWeek', ?,
@@ -161,6 +169,7 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
         tenantId,
         chore.title ?? null,
         chore.description ?? null,
+        chore.emoji ?? null,
         chore.frequency ?? null,
         chore.scheduleType ?? null,
         chore.dayOfWeek ?? null,
@@ -172,6 +181,7 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
         chore.id,
         chore.title ?? null,
         chore.description ?? null,
+        chore.emoji ?? null,
         chore.frequency ?? null,
         chore.scheduleType ?? null,
         chore.dayOfWeek ?? null,

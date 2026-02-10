@@ -164,6 +164,19 @@ export async function initDatabase() {
         await createTenantDataTables(connection);
         console.log('Created tenant data tables successfully');
 
+        // Add emoji column to tenant_chores_v2 table if it doesn't exist
+        const [choreColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_chores_v2 LIKE 'emoji'"
+        );
+        
+        if (choreColumns.length === 0) {
+          // emoji column doesn't exist, add it
+          await connection.query(
+            'ALTER TABLE tenant_chores_v2 ADD COLUMN emoji VARCHAR(10) AFTER description'
+          );
+          console.log('Added emoji column to tenant_chores_v2 table');
+        }
+
         // Create subscription_plans table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscription_plans (
