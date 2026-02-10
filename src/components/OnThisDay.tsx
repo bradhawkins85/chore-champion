@@ -60,7 +60,7 @@ export function OnThisDay({
       if (showToast) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
         toast.error('Failed to refresh calendar feed', {
-          description: errorMessage,
+          description: errorMessage
         })
       }
     } finally {
