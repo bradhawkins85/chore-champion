@@ -36,9 +36,16 @@ function mapRow(row: ChildRow): ChildRecord {
       const payload = typeof row.payload_json === 'string' 
         ? JSON.parse(row.payload_json) 
         : row.payload_json;
-      return payload as ChildRecord;
+      
+      // Basic validation: ensure the payload has an id property
+      if (payload && typeof payload === 'object' && payload.id) {
+        return payload as ChildRecord;
+      } else {
+        console.error('Invalid payload_json structure for child:', row.id, payload);
+        // Fall through to normalized columns
+      }
     } catch (error) {
-      console.error('Error parsing payload_json for child:', error);
+      console.error('Error parsing payload_json for child:', row.id, error);
       // Fall through to normalized columns
     }
   }

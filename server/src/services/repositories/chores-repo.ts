@@ -44,9 +44,16 @@ function mapRow(row: ChoreRow): ChoreRecord {
       const payload = typeof row.payload_json === 'string' 
         ? JSON.parse(row.payload_json) 
         : row.payload_json;
-      return payload as ChoreRecord;
+      
+      // Basic validation: ensure the payload has an id property
+      if (payload && typeof payload === 'object' && payload.id) {
+        return payload as ChoreRecord;
+      } else {
+        console.error('Invalid payload_json structure for chore:', row.id, payload);
+        // Fall through to normalized columns
+      }
     } catch (error) {
-      console.error('Error parsing payload_json for chore:', error);
+      console.error('Error parsing payload_json for chore:', row.id, error);
       // Fall through to normalized columns
     }
   }
