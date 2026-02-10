@@ -21,6 +21,7 @@ interface ChildRow extends RowDataPacket {
   points_balance: number | null;
   is_active: number | boolean | null;
   sort_order: number | null;
+  payload_json?: string | any;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
@@ -28,6 +29,20 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
 }
 
 function mapRow(row: ChildRow): ChildRecord {
+  // Return the full payload_json object if it exists, otherwise fall back to normalized columns
+  // This preserves all properties including avatarColor which is not in normalized columns
+  if (row.payload_json) {
+    try {
+      const payload = typeof row.payload_json === 'string' 
+        ? JSON.parse(row.payload_json) 
+        : row.payload_json;
+      return payload as ChildRecord;
+    } catch (error) {
+      console.error('Error parsing payload_json for child:', error);
+      // Fall through to normalized columns
+    }
+  }
+  
   return {
     id: row.id,
     firstName: row.first_name,
@@ -43,7 +58,7 @@ function mapRow(row: ChildRow): ChildRecord {
 export async function listChildren(tenantId: string, connection?: PoolConnection): Promise<ChildRecord[]> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChildRow[]>(
-    `SELECT id, first_name, last_name, display_name, status, points_balance, is_active, sort_order
+    `SELECT id, first_name, last_name, display_name, status, points_balance, is_active, sort_order, payload_json
      FROM tenant_children_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -55,7 +70,7 @@ export async function listChildren(tenantId: string, connection?: PoolConnection
 export async function getChildById(tenantId: string, childId: string, connection?: PoolConnection): Promise<ChildRecord | null> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChildRow[]>(
-    `SELECT id, first_name, last_name, display_name, status, points_balance, is_active, sort_order
+    `SELECT id, first_name, last_name, display_name, status, points_balance, is_active, sort_order, payload_json
      FROM tenant_children_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, childId]

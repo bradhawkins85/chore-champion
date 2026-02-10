@@ -29,6 +29,7 @@ interface ChoreRow extends RowDataPacket {
   points: number | null;
   is_active: number | boolean | null;
   sort_order: number | null;
+  payload_json?: string | any;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
@@ -36,6 +37,20 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
 }
 
 function mapRow(row: ChoreRow): ChoreRecord {
+  // Return the full payload_json object if it exists, otherwise fall back to normalized columns
+  // This preserves all properties including rotationConfig and other complex objects
+  if (row.payload_json) {
+    try {
+      const payload = typeof row.payload_json === 'string' 
+        ? JSON.parse(row.payload_json) 
+        : row.payload_json;
+      return payload as ChoreRecord;
+    } catch (error) {
+      console.error('Error parsing payload_json for chore:', error);
+      // Fall through to normalized columns
+    }
+  }
+  
   return {
     id: row.id,
     title: row.title,
@@ -55,7 +70,7 @@ function mapRow(row: ChoreRow): ChoreRecord {
 export async function listChores(tenantId: string, connection?: PoolConnection): Promise<ChoreRecord[]> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
+    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json
      FROM tenant_chores_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -69,7 +84,7 @@ export async function listChores(tenantId: string, connection?: PoolConnection):
 export async function getChoreById(tenantId: string, choreId: string, connection?: PoolConnection): Promise<ChoreRecord | null> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order
+    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json
      FROM tenant_chores_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, choreId]
