@@ -96,23 +96,12 @@ export async function getChoreById(tenantId: string, choreId: string, connection
 export async function upsertChore(tenantId: string, chore: ChoreRecord, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
   const sortOrder = chore.sortOrder ?? 0;
+  // Store the entire chore object as JSON to preserve all properties including rotationConfig
+  const payloadJson = JSON.stringify(chore);
   await executor.query(
     `INSERT INTO tenant_chores_v2
     (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-      'id', ?,
-      'title', ?,
-      'description', ?,
-      'emoji', ?,
-      'frequency', ?,
-      'scheduleType', ?,
-      'dayOfWeek', ?,
-      'dayOfMonth', ?,
-      'dueTime', ?,
-      'points', ?,
-      'active', ?,
-      'sortOrder', ?
-    ))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       title = VALUES(title),
       description = VALUES(description),
@@ -140,18 +129,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       chore.points ?? 0,
       chore.active ?? true,
       sortOrder,
-      chore.id,
-      chore.title ?? null,
-      chore.description ?? null,
-      chore.emoji ?? null,
-      chore.frequency ?? null,
-      chore.scheduleType ?? null,
-      chore.dayOfWeek ?? null,
-      chore.dayOfMonth ?? null,
-      chore.dueTime ?? null,
-      chore.points ?? 0,
-      chore.active ?? true,
-      sortOrder,
+      payloadJson,
     ]
   );
 }
@@ -162,23 +140,12 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
 
   for (const [index, chore] of chores.entries()) {
     const sortOrder = chore.sortOrder ?? index;
+    // Store the entire chore object as JSON to preserve all properties including rotationConfig
+    const payloadJson = JSON.stringify(chore);
     await executor.query(
       `INSERT INTO tenant_chores_v2
       (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-        'id', ?,
-        'title', ?,
-        'description', ?,
-        'emoji', ?,
-        'frequency', ?,
-        'scheduleType', ?,
-        'dayOfWeek', ?,
-        'dayOfMonth', ?,
-        'dueTime', ?,
-        'points', ?,
-        'active', ?,
-        'sortOrder', ?
-      ))`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         chore.id,
         tenantId,
@@ -193,18 +160,7 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
         chore.points ?? 0,
         chore.active ?? true,
         sortOrder,
-        chore.id,
-        chore.title ?? null,
-        chore.description ?? null,
-        chore.emoji ?? null,
-        chore.frequency ?? null,
-        chore.scheduleType ?? null,
-        chore.dayOfWeek ?? null,
-        chore.dayOfMonth ?? null,
-        chore.dueTime ?? null,
-        chore.points ?? 0,
-        chore.active ?? true,
-        sortOrder,
+        payloadJson,
       ]
     );
   }

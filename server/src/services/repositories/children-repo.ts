@@ -81,19 +81,12 @@ export async function getChildById(tenantId: string, childId: string, connection
 
 export async function upsertChild(tenantId: string, child: ChildRecord, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
+  // Store the entire child object as JSON to preserve all properties including avatarColor
+  const payloadJson = JSON.stringify(child);
   await executor.query(
     `INSERT INTO tenant_children_v2
      (id, tenant_id, first_name, last_name, display_name, status, points_balance, is_active, sort_order, payload_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-        'id', ?,
-        'firstName', ?,
-        'lastName', ?,
-        'name', ?,
-        'status', ?,
-        'points', ?,
-        'isActive', ?,
-        'sortOrder', ?
-     ))
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
       first_name = VALUES(first_name),
       last_name = VALUES(last_name),
@@ -113,14 +106,7 @@ export async function upsertChild(tenantId: string, child: ChildRecord, connecti
       child.points ?? 0,
       child.isActive ?? true,
       child.sortOrder ?? 0,
-      child.id,
-      child.firstName ?? null,
-      child.lastName ?? null,
-      child.name ?? null,
-      child.status ?? null,
-      child.points ?? 0,
-      child.isActive ?? true,
-      child.sortOrder ?? 0,
+      payloadJson,
     ]
   );
 }
@@ -131,19 +117,12 @@ export async function replaceChildren(tenantId: string, children: ChildRecord[],
 
   for (const [index, child] of children.entries()) {
     const sortOrder = child.sortOrder ?? index;
+    // Store the entire child object as JSON to preserve all properties including avatarColor
+    const payloadJson = JSON.stringify(child);
     await executor.query(
       `INSERT INTO tenant_children_v2
        (id, tenant_id, first_name, last_name, display_name, status, points_balance, is_active, sort_order, payload_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT(
-          'id', ?,
-          'firstName', ?,
-          'lastName', ?,
-          'name', ?,
-          'status', ?,
-          'points', ?,
-          'isActive', ?,
-          'sortOrder', ?
-       ))`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         child.id,
         tenantId,
@@ -154,14 +133,7 @@ export async function replaceChildren(tenantId: string, children: ChildRecord[],
         child.points ?? 0,
         child.isActive ?? true,
         sortOrder,
-        child.id,
-        child.firstName ?? null,
-        child.lastName ?? null,
-        child.name ?? null,
-        child.status ?? null,
-        child.points ?? 0,
-        child.isActive ?? true,
-        sortOrder,
+        payloadJson,
       ]
     );
   }
