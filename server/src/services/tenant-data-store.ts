@@ -1,66 +1,16 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { pool } from '../config/database.js';
-import { getLegacyTableForKey } from './tenant-data-schema.js';
 import { deleteChildren, listChildren, replaceChildren } from './repositories/children-repo.js';
 import { deleteChores, listChores, replaceChores } from './repositories/chores-repo.js';
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
 
+// Supported keys that map to normalized v2 tables
 const NORMALIZED_KEYS = ['children', 'chores', 'rewards', 'ip-access-requests'] as const;
 type NormalizedKey = (typeof NORMALIZED_KEYS)[number];
 
 function isNormalizedKey(key: string): key is NormalizedKey {
   return (NORMALIZED_KEYS as readonly string[]).includes(key);
-}
-
-function parseLegacyJson(value: string | null | undefined): unknown | null {
-  if (!value) return null;
-  return JSON.parse(value);
-}
-
-async function getLegacyTenantData(key: string, tenantId: string): Promise<unknown | null> {
-  const legacyTable = getLegacyTableForKey(key);
-  if (!legacyTable) {
-    try {
-      const [rows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
-        'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
-        [key, tenantId]
-      );
-      if (!rows.length) return null;
-      return parseLegacyJson(rows[0].value_data);
-    } catch (error) {
-      console.error(`Error querying kv_store for key "${key}" (tenantId: ${tenantId}):`, error);
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-      throw error;
-    }
-  }
-
-  try {
-    const [rows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(`SELECT value_data FROM ${legacyTable} WHERE tenant_id = ?`, [tenantId]);
-    if (!rows.length) return null;
-    return parseLegacyJson(rows[0].value_data);
-  } catch (error) {
-    console.error(`Error querying legacy table "${legacyTable}" for key "${key}" (tenantId: ${tenantId}):`, error);
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-    throw error;
-  }
-}
-
-async function setMigrationState(connection: PoolConnection | undefined, tenantId: string, key: string, table: string, rowCount: number): Promise<void> {
-  const executor = connection ?? pool;
-  await executor.query(
-    `INSERT INTO tenant_data_migration_state
-     (tenant_id, key_name, table_name, source_row_count, backfilled_row_count, migration_status, last_error)
-     VALUES (?, ?, ?, ?, ?, 'success', NULL)
-     ON DUPLICATE KEY UPDATE
-      table_name = VALUES(table_name),
-      source_row_count = VALUES(source_row_count),
-      backfilled_row_count = VALUES(backfilled_row_count),
-      migration_status = 'success',
-      last_error = NULL,
-      migrated_at = CURRENT_TIMESTAMP`,
-    [tenantId, key, table, rowCount, rowCount]
-  );
 }
 
 async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Promise<unknown | null> {
@@ -92,19 +42,15 @@ async function setNormalizedTenantData(
     switch (key) {
       case 'children':
         await replaceChildren(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
-        await setMigrationState(connection, tenantId, key, 'tenant_children_v2', Array.isArray(value) ? value.length : 0);
         return;
       case 'chores':
         await replaceChores(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
-        await setMigrationState(connection, tenantId, key, 'tenant_chores_v2', Array.isArray(value) ? value.length : 0);
         return;
       case 'rewards':
         await replaceRewards(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
-        await setMigrationState(connection, tenantId, key, 'tenant_rewards_v2', Array.isArray(value) ? value.length : 0);
         return;
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
-        await setMigrationState(connection, tenantId, key, 'tenant_ip_access_requests_v2', Array.isArray(value) ? value.length : 0);
         return;
     }
   } catch (error) {
@@ -130,21 +76,24 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
       await deleteIpAccessRequests(tenantId);
       break;
   }
-
-  await pool.query('DELETE FROM tenant_data_migration_state WHERE tenant_id = ? AND key_name = ?', [tenantId, key]);
 }
 
-// Temporary compatibility adapter for legacy key-value API endpoints.
+// Get tenant data - only supports normalized keys in v2 tables
 export async function getTenantData(key: string, tenantId: string): Promise<unknown | null> {
   try {
-    if (isNormalizedKey(key)) {
-      const normalized = await getNormalizedTenantData(key, tenantId);
-      if (normalized !== null && normalized !== undefined) {
-        return normalized;
-      }
+    if (!isNormalizedKey(key)) {
+      // For non-normalized keys, store in generic kv_store table
+      const [rows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
+        'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+        [key, tenantId]
+      );
+      if (!rows.length) return null;
+      const value = rows[0].value_data;
+      if (!value) return null;
+      return JSON.parse(value);
     }
 
-    return getLegacyTenantData(key, tenantId);
+    return await getNormalizedTenantData(key, tenantId);
   } catch (error) {
     console.error(`Error in getTenantData for key "${key}" (tenantId: ${tenantId}):`, error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -152,7 +101,7 @@ export async function getTenantData(key: string, tenantId: string): Promise<unkn
   }
 }
 
-// Temporary compatibility adapter for legacy key-value API endpoints.
+// Set tenant data - supports both normalized and generic keys
 export async function setTenantData(
   key: string,
   tenantId: string,
@@ -160,16 +109,17 @@ export async function setTenantData(
   connection?: PoolConnection
 ): Promise<void> {
   try {
-    if (isNormalizedKey(key)) {
-      await setNormalizedTenantData(key, tenantId, value, connection);
+    if (!isNormalizedKey(key)) {
+      // For non-normalized keys, store in generic kv_store table
+      const executor = connection ?? pool;
+      await executor.query(
+        'INSERT INTO kv_store (key_name, value_data, tenant_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value_data = VALUES(value_data)',
+        [key, JSON.stringify(value), tenantId]
+      );
       return;
     }
 
-    const executor = connection ?? pool;
-    await executor.query(
-      'INSERT INTO kv_store (key_name, value_data, tenant_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value_data = VALUES(value_data)',
-      [key, JSON.stringify(value), tenantId]
-    );
+    await setNormalizedTenantData(key, tenantId, value, connection);
   } catch (error) {
     console.error(`Error in setTenantData for key "${key}" (tenantId: ${tenantId}):`, error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -179,17 +129,18 @@ export async function setTenantData(
 }
 
 export async function deleteTenantData(key: string, tenantId: string): Promise<void> {
-  if (isNormalizedKey(key)) {
-    await deleteNormalizedTenantData(key, tenantId);
+  if (!isNormalizedKey(key)) {
+    await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
     return;
   }
 
-  await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', [key, tenantId]);
+  await deleteNormalizedTenantData(key, tenantId);
 }
 
 export async function getAllTenantData(tenantId: string): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = {};
 
+  // Get normalized data from v2 tables
   for (const key of NORMALIZED_KEYS) {
     try {
       const value = await getNormalizedTenantData(key, tenantId);
@@ -201,20 +152,26 @@ export async function getAllTenantData(tenantId: string): Promise<Record<string,
     }
   }
 
-  const [kvRows] = await pool.query<(RowDataPacket & { key_name: string; value_data: string })[]>(
-    'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
-    [tenantId]
-  );
+  // Get generic key-value data from kv_store
+  try {
+    const [kvRows] = await pool.query<(RowDataPacket & { key_name: string; value_data: string })[]>(
+      'SELECT key_name, value_data FROM kv_store WHERE tenant_id = ?',
+      [tenantId]
+    );
 
-  for (const row of kvRows) {
-    if (isNormalizedKey(row.key_name)) continue;
-    if (row.value_data === null || row.value_data === undefined) continue;
+    for (const row of kvRows) {
+      if (isNormalizedKey(row.key_name)) continue; // Skip normalized keys
+      if (row.value_data === null || row.value_data === undefined) continue;
 
-    try {
-      data[row.key_name] = JSON.parse(row.value_data);
-    } catch (error) {
-      console.error(`Error parsing kv_store value for key "${row.key_name}":`, error);
+      try {
+        data[row.key_name] = JSON.parse(row.value_data);
+      } catch (error) {
+        console.error(`Error parsing kv_store value for key "${row.key_name}":`, error);
+      }
     }
+  } catch (error) {
+    console.error('Error loading kv_store data:', error);
+    // Continue anyway - normalized data is more important
   }
 
   return data;

@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import type { RowDataPacket } from 'mysql2';
-import { createTenantDataTables, migrateKvStoreToTenantTables } from '../services/tenant-data-schema.js';
+import { createTenantDataTables } from '../services/tenant-data-schema.js';
 
 // Validate required environment variables in production
 if (process.env.NODE_ENV === 'production') {
@@ -147,89 +147,22 @@ export async function initDatabase() {
           console.log('Added allowed_children_ids column to devices table');
         }
 
-        // Create kv_store table or modify it if it exists
-        // First check if the table exists
-        const [tables] = await connection.query<RowDataPacket[]>(
-          "SHOW TABLES LIKE 'kv_store'"
-        );
-
-        if (tables.length === 0) {
-          // Table doesn't exist, create it with tenant_id
-          await connection.query(`
-            CREATE TABLE kv_store (
-              key_name VARCHAR(255) NOT NULL,
-              tenant_id VARCHAR(36) NOT NULL,
-              value_data LONGTEXT NOT NULL,
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              PRIMARY KEY (key_name, tenant_id),
-              INDEX idx_tenant_id (tenant_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-          `);
-        } else {
-          // Table exists, check if tenant_id column exists
-          const [columns] = await connection.query<RowDataPacket[]>(
-            "SHOW COLUMNS FROM kv_store LIKE 'tenant_id'"
-          );
-
-          if (columns.length === 0) {
-            // tenant_id column doesn't exist, add it with default value for existing data
-            // First, add tenant_id column with a default value
-            await connection.query(
-              'ALTER TABLE kv_store ADD COLUMN tenant_id VARCHAR(36) NOT NULL DEFAULT "legacy"'
-            );
-            
-            // Add index on tenant_id
-            await connection.query(
-              'ALTER TABLE kv_store ADD INDEX idx_tenant_id (tenant_id)'
-            );
-            
-            // Drop the old primary key
-            await connection.query('ALTER TABLE kv_store DROP PRIMARY KEY');
-            
-            // Add composite primary key
-            await connection.query(
-              'ALTER TABLE kv_store ADD PRIMARY KEY (key_name, tenant_id)'
-            );
-            
-            console.log('Note: Existing data has been assigned to "legacy" tenant');
-          }
-        }
+        // Create kv_store table for non-normalized keys (generic key-value storage)
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS kv_store (
+            key_name VARCHAR(255) NOT NULL,
+            tenant_id VARCHAR(36) NOT NULL,
+            value_data LONGTEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (key_name, tenant_id),
+            INDEX idx_tenant_id (tenant_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created kv_store table successfully');
 
         await createTenantDataTables(connection);
         console.log('Created tenant data tables successfully');
-
-        // One-time migration from legacy non-v2 access-request table to _v2 table.
-        const [ipAccessLegacyTable] = await connection.query<RowDataPacket[]>("SHOW TABLES LIKE 'tenant_ip_access_requests'");
-        if (ipAccessLegacyTable.length > 0) {
-          console.log('Migrating legacy IP access requests table...');
-          await connection.query(
-            `INSERT INTO tenant_ip_access_requests_v2
-             (tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at)
-             SELECT legacy.tenant_id,
-                    legacy.id,
-                    legacy.ip,
-                    legacy.token,
-                    COALESCE(legacy.approved, FALSE),
-                    COALESCE(legacy.requested_at, 0),
-                    legacy.approved_at,
-                    COALESCE(legacy.expires_at, COALESCE(legacy.requested_at, 0))
-             FROM tenant_ip_access_requests legacy
-             WHERE legacy.token IS NOT NULL
-             ON DUPLICATE KEY UPDATE
-              ip = VALUES(ip),
-              token = VALUES(token),
-              approved = VALUES(approved),
-              requested_at = VALUES(requested_at),
-              approved_at = VALUES(approved_at),
-              expires_at = VALUES(expires_at)`
-          );
-          console.log('Legacy IP access requests migrated successfully');
-        }
-
-        console.log('Running kv_store migration to tenant tables...');
-        await migrateKvStoreToTenantTables(connection);
-        console.log('kv_store migration completed successfully');
 
         // Create subscription_plans table
         await connection.query(`
