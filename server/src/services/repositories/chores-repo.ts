@@ -3,10 +3,12 @@ import { pool } from '../../config/database.js';
 
 export interface ChoreRecord {
   id: string;
+  name?: string | null;
   title: string | null;
   description: string | null;
   emoji: string | null;
   frequency: string | null;
+  completionType?: string | null;
   scheduleType: string | null;
   dayOfWeek: number | null;
   dayOfMonth: number | null;
@@ -14,14 +16,31 @@ export interface ChoreRecord {
   points: number;
   active: boolean;
   sortOrder: number;
+  categoryIds?: any;  // JSON array
+  categoryPoints?: any;  // JSON array
+  desiredTime?: string | null;
+  timeOfDay?: string | null;
+  timeWindow?: any;  // JSON object
+  estimatedDuration?: number | null;
+  approvalConfigs?: any;  // JSON array
+  maxCompletions?: number | null;
+  resetPeriod?: string | null;
+  weatherConditions?: any;  // JSON object
+  speakDescription?: boolean | null;
+  inactiveOnSchoolHolidays?: boolean | null;
+  onlyOnSchoolHolidays?: boolean | null;
+  rotationConfig?: any;  // JSON object
+  createdAt?: number | null;
 }
 
 interface ChoreRow extends RowDataPacket {
   id: string;
+  name: string | null;
   title: string | null;
   description: string | null;
   emoji: string | null;
   frequency: string | null;
+  completion_type: string | null;
   schedule_type: string | null;
   day_of_week: number | null;
   day_of_month: number | null;
@@ -29,7 +48,21 @@ interface ChoreRow extends RowDataPacket {
   points: number | null;
   is_active: number | boolean | null;
   sort_order: number | null;
-  payload_json?: string | any;
+  category_ids?: string | null;
+  category_points?: string | null;
+  desired_time?: string | null;
+  time_of_day?: string | null;
+  time_window?: string | null;
+  estimated_duration?: number | null;
+  approval_configs?: string | null;
+  max_completions?: number | null;
+  reset_period?: string | null;
+  weather_conditions?: string | null;
+  speak_description?: number | boolean | null;
+  inactive_on_school_holidays?: number | boolean | null;
+  only_on_school_holidays?: number | boolean | null;
+  rotation_config?: string | null;
+  created_at_timestamp?: number | null;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
@@ -37,33 +70,24 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
 }
 
 function mapRow(row: ChoreRow): ChoreRecord {
-  // Return the full payload_json object if it exists, otherwise fall back to normalized columns
-  // This preserves all properties including rotationConfig and other complex objects
-  if (row.payload_json) {
+  // Helper function to safely parse JSON fields
+  const parseJson = (value: string | null | undefined) => {
+    if (!value) return null;
     try {
-      const payload = typeof row.payload_json === 'string' 
-        ? JSON.parse(row.payload_json) 
-        : row.payload_json;
-      
-      // Basic validation: ensure the payload has an id property
-      if (payload && typeof payload === 'object' && payload.id) {
-        return payload as ChoreRecord;
-      } else {
-        console.error('Invalid payload_json structure for chore:', row.id, payload);
-        // Fall through to normalized columns
-      }
-    } catch (error) {
-      console.error('Error parsing payload_json for chore:', row.id, error);
-      // Fall through to normalized columns
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      return null;
     }
-  }
-  
+  };
+
   return {
     id: row.id,
+    name: row.name,
     title: row.title,
     description: row.description,
     emoji: row.emoji,
     frequency: row.frequency,
+    completionType: row.completion_type,
     scheduleType: row.schedule_type,
     dayOfWeek: row.day_of_week,
     dayOfMonth: row.day_of_month,
@@ -71,13 +95,33 @@ function mapRow(row: ChoreRow): ChoreRecord {
     points: row.points ?? 0,
     active: Boolean(row.is_active ?? true),
     sortOrder: row.sort_order ?? 0,
+    categoryIds: parseJson(row.category_ids),
+    categoryPoints: parseJson(row.category_points),
+    desiredTime: row.desired_time,
+    timeOfDay: row.time_of_day,
+    timeWindow: parseJson(row.time_window),
+    estimatedDuration: row.estimated_duration,
+    approvalConfigs: parseJson(row.approval_configs),
+    maxCompletions: row.max_completions,
+    resetPeriod: row.reset_period,
+    weatherConditions: parseJson(row.weather_conditions),
+    speakDescription: row.speak_description !== null ? Boolean(row.speak_description) : null,
+    inactiveOnSchoolHolidays: row.inactive_on_school_holidays !== null ? Boolean(row.inactive_on_school_holidays) : null,
+    onlyOnSchoolHolidays: row.only_on_school_holidays !== null ? Boolean(row.only_on_school_holidays) : null,
+    rotationConfig: parseJson(row.rotation_config),
+    createdAt: row.created_at_timestamp,
   };
 }
 
 export async function listChores(tenantId: string, connection?: PoolConnection): Promise<ChoreRecord[]> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json
+    `SELECT id, name, title, description, emoji, frequency, completion_type, schedule_type, 
+            day_of_week, day_of_month, due_time, points, is_active, sort_order,
+            category_ids, category_points, desired_time, time_of_day, time_window,
+            estimated_duration, approval_configs, max_completions, reset_period,
+            weather_conditions, speak_description, inactive_on_school_holidays,
+            only_on_school_holidays, rotation_config, created_at_timestamp
      FROM tenant_chores_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -91,7 +135,12 @@ export async function listChores(tenantId: string, connection?: PoolConnection):
 export async function getChoreById(tenantId: string, choreId: string, connection?: PoolConnection): Promise<ChoreRecord | null> {
   const executor = getExecutor(connection);
   const [rows] = await executor.query<ChoreRow[]>(
-    `SELECT id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json
+    `SELECT id, name, title, description, emoji, frequency, completion_type, schedule_type,
+            day_of_week, day_of_month, due_time, points, is_active, sort_order,
+            category_ids, category_points, desired_time, time_of_day, time_window,
+            estimated_duration, approval_configs, max_completions, reset_period,
+            weather_conditions, speak_description, inactive_on_school_holidays,
+            only_on_school_holidays, rotation_config, created_at_timestamp
      FROM tenant_chores_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, choreId]
@@ -103,17 +152,29 @@ export async function getChoreById(tenantId: string, choreId: string, connection
 export async function upsertChore(tenantId: string, chore: ChoreRecord, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
   const sortOrder = chore.sortOrder ?? 0;
-  // Store the entire chore object as JSON to preserve all properties including rotationConfig
-  const payloadJson = JSON.stringify(chore);
+  
+  // Helper function to safely stringify JSON fields
+  const stringifyJson = (value: any) => {
+    if (value === null || value === undefined) return null;
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  };
+
   await executor.query(
     `INSERT INTO tenant_chores_v2
-    (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (id, tenant_id, name, title, description, emoji, frequency, completion_type, schedule_type,
+     day_of_week, day_of_month, due_time, points, is_active, sort_order,
+     category_ids, category_points, desired_time, time_of_day, time_window,
+     estimated_duration, approval_configs, max_completions, reset_period,
+     weather_conditions, speak_description, inactive_on_school_holidays,
+     only_on_school_holidays, rotation_config, created_at_timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
       title = VALUES(title),
       description = VALUES(description),
       emoji = VALUES(emoji),
       frequency = VALUES(frequency),
+      completion_type = VALUES(completion_type),
       schedule_type = VALUES(schedule_type),
       day_of_week = VALUES(day_of_week),
       day_of_month = VALUES(day_of_month),
@@ -121,14 +182,30 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       points = VALUES(points),
       is_active = VALUES(is_active),
       sort_order = VALUES(sort_order),
-      payload_json = VALUES(payload_json)`,
+      category_ids = VALUES(category_ids),
+      category_points = VALUES(category_points),
+      desired_time = VALUES(desired_time),
+      time_of_day = VALUES(time_of_day),
+      time_window = VALUES(time_window),
+      estimated_duration = VALUES(estimated_duration),
+      approval_configs = VALUES(approval_configs),
+      max_completions = VALUES(max_completions),
+      reset_period = VALUES(reset_period),
+      weather_conditions = VALUES(weather_conditions),
+      speak_description = VALUES(speak_description),
+      inactive_on_school_holidays = VALUES(inactive_on_school_holidays),
+      only_on_school_holidays = VALUES(only_on_school_holidays),
+      rotation_config = VALUES(rotation_config),
+      created_at_timestamp = VALUES(created_at_timestamp)`,
     [
       chore.id,
       tenantId,
+      chore.name ?? chore.title ?? null,
       chore.title ?? null,
       chore.description ?? null,
       chore.emoji ?? null,
       chore.frequency ?? null,
+      chore.completionType ?? null,
       chore.scheduleType ?? null,
       chore.dayOfWeek ?? null,
       chore.dayOfMonth ?? null,
@@ -136,7 +213,21 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       chore.points ?? 0,
       chore.active ?? true,
       sortOrder,
-      payloadJson,
+      stringifyJson(chore.categoryIds),
+      stringifyJson(chore.categoryPoints),
+      chore.desiredTime ?? null,
+      chore.timeOfDay ?? null,
+      stringifyJson(chore.timeWindow),
+      chore.estimatedDuration ?? null,
+      stringifyJson(chore.approvalConfigs),
+      chore.maxCompletions ?? null,
+      chore.resetPeriod ?? null,
+      stringifyJson(chore.weatherConditions),
+      chore.speakDescription ?? null,
+      chore.inactiveOnSchoolHolidays ?? null,
+      chore.onlyOnSchoolHolidays ?? null,
+      stringifyJson(chore.rotationConfig),
+      chore.createdAt ?? null,
     ]
   );
 }
@@ -145,21 +236,32 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
   const executor = getExecutor(connection);
   await executor.query('DELETE FROM tenant_chores_v2 WHERE tenant_id = ?', [tenantId]);
 
+  // Helper function to safely stringify JSON fields
+  const stringifyJson = (value: any) => {
+    if (value === null || value === undefined) return null;
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  };
+
   for (const [index, chore] of chores.entries()) {
     const sortOrder = chore.sortOrder ?? index;
-    // Store the entire chore object as JSON to preserve all properties including rotationConfig
-    const payloadJson = JSON.stringify(chore);
     await executor.query(
       `INSERT INTO tenant_chores_v2
-      (id, tenant_id, title, description, emoji, frequency, schedule_type, day_of_week, day_of_month, due_time, points, is_active, sort_order, payload_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, tenant_id, name, title, description, emoji, frequency, completion_type, schedule_type,
+       day_of_week, day_of_month, due_time, points, is_active, sort_order,
+       category_ids, category_points, desired_time, time_of_day, time_window,
+       estimated_duration, approval_configs, max_completions, reset_period,
+       weather_conditions, speak_description, inactive_on_school_holidays,
+       only_on_school_holidays, rotation_config, created_at_timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         chore.id,
         tenantId,
+        chore.name ?? chore.title ?? null,
         chore.title ?? null,
         chore.description ?? null,
         chore.emoji ?? null,
         chore.frequency ?? null,
+        chore.completionType ?? null,
         chore.scheduleType ?? null,
         chore.dayOfWeek ?? null,
         chore.dayOfMonth ?? null,
@@ -167,7 +269,21 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
         chore.points ?? 0,
         chore.active ?? true,
         sortOrder,
-        payloadJson,
+        stringifyJson(chore.categoryIds),
+        stringifyJson(chore.categoryPoints),
+        chore.desiredTime ?? null,
+        chore.timeOfDay ?? null,
+        stringifyJson(chore.timeWindow),
+        chore.estimatedDuration ?? null,
+        stringifyJson(chore.approvalConfigs),
+        chore.maxCompletions ?? null,
+        chore.resetPeriod ?? null,
+        stringifyJson(chore.weatherConditions),
+        chore.speakDescription ?? null,
+        chore.inactiveOnSchoolHolidays ?? null,
+        chore.onlyOnSchoolHolidays ?? null,
+        stringifyJson(chore.rotationConfig),
+        chore.createdAt ?? null,
       ]
     );
   }
