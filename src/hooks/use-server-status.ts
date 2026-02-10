@@ -80,9 +80,9 @@ export function useServerStatus() {
 
     setStatus(prev => {
       const newConsecutiveFailures = isServerOnline ? 0 : prev.consecutiveFailures + 1
-      const wasOffline = prev.consecutiveFailures >= OFFLINE_THRESHOLD
       const isNowOffline = newConsecutiveFailures >= OFFLINE_THRESHOLD
-      const justCameBackOnline = wasOffline && !isNowOffline
+      // Use the ref to track actual state transition, not threshold comparison
+      const justCameBackOnline = wasOfflineRef.current && !isNowOffline
 
       // Calculate offline duration
       let offlineDuration = prev.offlineDuration
