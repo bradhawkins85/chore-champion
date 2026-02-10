@@ -77,7 +77,10 @@ export function WallpaperSettingsPanel({
         )
       } catch (error) {
         console.error('Error loading linked devices:', error)
-        toast.error('Failed to load linked devices')
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+        toast.error('Failed to load linked devices', {
+          description: errorMessage
+        })
       } finally {
         setLoading(false)
       }
@@ -106,7 +109,10 @@ export function WallpaperSettingsPanel({
         setGalleryWallpapers(data.wallpapers || [])
       } catch (error) {
         console.error('Error loading wallpaper gallery:', error)
-        toast.error('Failed to load wallpaper gallery')
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+        toast.error('Failed to load wallpaper gallery', {
+          description: errorMessage
+        })
       } finally {
         setGalleryLoading(false)
       }

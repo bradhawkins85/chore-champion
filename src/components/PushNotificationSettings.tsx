@@ -62,7 +62,10 @@ export function PushNotificationSettingsComponent({
       }
     } catch (error) {
       console.error('Error requesting notification permission:', error)
-      toast.error('Failed to request notification permission')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to request notification permission', {
+        description: errorMessage
+      })
       return false
     }
   }
@@ -140,7 +143,10 @@ export function PushNotificationSettingsComponent({
       }
     } catch (error) {
       console.error('Error subscribing to push notifications:', error)
-      toast.error('Failed to enable push notifications. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to enable push notifications', {
+        description: errorMessage
+      })
     } finally {
       setIsSubscribing(false)
     }
@@ -170,7 +176,10 @@ export function PushNotificationSettingsComponent({
       toast.success('Push notifications disabled for this device')
     } catch (error) {
       console.error('Error unsubscribing from push notifications:', error)
-      toast.error('Failed to disable push notifications')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to disable push notifications', {
+        description: errorMessage
+      })
     }
   }
 
@@ -239,7 +248,10 @@ export function PushNotificationSettingsComponent({
       toast.success('Test notification sent!')
     } catch (error) {
       console.error('Error sending test notification:', error)
-      toast.error('Failed to send test notification')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to send test notification', {
+        description: errorMessage
+      })
     }
   }
 

@@ -34,8 +34,11 @@ export function ApproveAccessPage({ token, onApprove, onComplete }: ApproveAcces
       }
     } catch (error) {
       setStatus('error')
-      setErrorMessage('An unexpected error occurred')
-      toast.error('An unexpected error occurred')
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      setErrorMessage(errorMessage)
+      toast.error('An unexpected error occurred', {
+        description: errorMessage
+      })
     }
   }
 

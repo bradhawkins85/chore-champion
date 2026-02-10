@@ -109,7 +109,10 @@ export function DeviceManagement() {
       );
     } catch (error) {
       console.error('Error loading devices:', error);
-      toast.error('Failed to load devices');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load devices', {
+        description: errorMessage
+      });
     } finally {
       setLoading(false);
     }

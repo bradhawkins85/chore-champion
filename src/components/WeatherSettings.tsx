@@ -52,7 +52,10 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
         })
       }
     } catch (error) {
-      toast.error('Failed to search location')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to search location', {
+        description: errorMessage
+      })
     } finally {
       setIsSearching(false)
     }
@@ -85,7 +88,10 @@ export function WeatherSettingsComponent({ settings, onUpdate }: WeatherSettings
         })
       }
     } catch (error) {
-      toast.error('Failed to get current location')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to get current location', {
+        description: errorMessage
+      })
     } finally {
       setIsGettingLocation(false)
     }

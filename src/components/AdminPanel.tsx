@@ -188,7 +188,10 @@ export function AdminPanel() {
       setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
-      toast.error('Failed to load statistics')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load statistics', {
+        description: errorMessage
+      })
     }
   }, [token])
 
@@ -207,7 +210,10 @@ export function AdminPanel() {
       setTenants(data.tenants)
     } catch (error) {
       console.error('Error fetching tenants:', error)
-      toast.error('Failed to load tenants')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load tenants', {
+        description: errorMessage
+      })
     } finally {
       setLoading(false)
     }
@@ -228,7 +234,10 @@ export function AdminPanel() {
       setParents(data.parents)
     } catch (error) {
       console.error('Error fetching parents:', error)
-      toast.error('Failed to load parent users')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load parent users', {
+        description: errorMessage
+      })
     } finally {
       setLoading(false)
     }
@@ -249,7 +258,10 @@ export function AdminPanel() {
       setPayments(data.payments)
     } catch (error) {
       console.error('Error fetching payments:', error)
-      toast.error('Failed to load payment status')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load payment status', {
+        description: errorMessage
+      })
     } finally {
       setLoading(false)
     }
@@ -270,7 +282,10 @@ export function AdminPanel() {
       setWallpapers(data.wallpapers || [])
     } catch (error) {
       console.error('Error fetching wallpapers:', error)
-      toast.error('Failed to load wallpaper gallery')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load wallpaper gallery', {
+        description: errorMessage
+      })
     } finally {
       setWallpapersLoading(false)
     }
@@ -290,7 +305,10 @@ export function AdminPanel() {
       setAvailablePlans(plans)
     } catch (error) {
       console.error('Error fetching plans:', error)
-      toast.error('Failed to load subscription plans')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load subscription plans', {
+        description: errorMessage
+      })
     }
   }
 
@@ -319,7 +337,10 @@ export function AdminPanel() {
       setOverrideEditInputs(edits)
     } catch (error) {
       console.error('Error fetching pricing settings:', error)
-      toast.error('Failed to load pricing settings')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load pricing settings', {
+        description: errorMessage
+      })
     } finally {
       setPricingLoading(false)
     }
@@ -424,7 +445,10 @@ export function AdminPanel() {
       toast.success('Wallpaper uploaded')
     } catch (error) {
       console.error('Error uploading wallpaper:', error)
-      toast.error('Failed to upload wallpaper')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to upload wallpaper', {
+        description: errorMessage
+      })
     } finally {
       setWallpaperUploading(false)
     }
@@ -448,7 +472,10 @@ export function AdminPanel() {
       toast.success('Wallpaper removed')
     } catch (error) {
       console.error('Error deleting wallpaper:', error)
-      toast.error('Failed to delete wallpaper')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to delete wallpaper', {
+        description: errorMessage
+      })
     }
   }
 
@@ -533,7 +560,10 @@ export function AdminPanel() {
       setTenantsWithSubscriptions(tenantsWithSubs)
     } catch (error) {
       console.error('Error fetching subscriptions:', error)
-      toast.error('Failed to load subscription data')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to load subscription data', {
+        description: errorMessage
+      })
     } finally {
       setLoading(false)
     }
@@ -655,7 +685,10 @@ export function AdminPanel() {
       fetchStats()
     } catch (error) {
       console.error('Error deleting parent:', error)
-      toast.error('Failed to delete parent user')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to delete parent user', {
+        description: errorMessage
+      })
     } finally {
       setDeleteDialogOpen(false)
       setParentToDelete(null)
@@ -691,7 +724,10 @@ export function AdminPanel() {
       navigate('/')
     } catch (error) {
       console.error('Error viewing tenant:', error)
-      toast.error('Failed to view tenant dashboard')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      toast.error('Failed to view tenant dashboard', {
+        description: errorMessage
+      })
     }
   }
 

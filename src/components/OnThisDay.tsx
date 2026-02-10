@@ -58,8 +58,9 @@ export function OnThisDay({
       console.error('Failed to load ICS feed:', error)
       setIcsEvents([])
       if (showToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
         toast.error('Failed to refresh calendar feed', {
-          description: 'Please check the feed URL and try again',
+          description: errorMessage,
         })
       }
     } finally {

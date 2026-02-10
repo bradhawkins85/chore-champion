@@ -20,10 +20,19 @@ export const ErrorFallback = ({ error, resetErrorBoundary }) => {
         </Alert>
         
         <div className="bg-card border rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-sm text-muted-foreground mb-2">Error Details:</h3>
-          <pre className="text-xs text-destructive bg-muted/50 p-3 rounded border overflow-auto max-h-32">
+          <h3 className="font-semibold text-sm text-muted-foreground mb-2">Error Message:</h3>
+          <pre className="text-xs text-destructive bg-muted/50 p-3 rounded border overflow-auto max-h-32 mb-4">
             {error.message}
           </pre>
+          
+          {error.stack && (
+            <>
+              <h3 className="font-semibold text-sm text-muted-foreground mb-2">Stack Trace:</h3>
+              <pre className="text-xs text-muted-foreground bg-muted/50 p-3 rounded border overflow-auto max-h-48">
+                {error.stack}
+              </pre>
+            </>
+          )}
         </div>
         
         <Button 
