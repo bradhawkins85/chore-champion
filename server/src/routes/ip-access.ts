@@ -3,6 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../config/database.js';
 import type { RowDataPacket } from 'mysql2';
 import { getTenantData, setTenantData } from '../services/tenant-data-store.js';
+import {
+  approveIpAccessRequestById,
+  findPendingIpAccessRequestForIp,
+  getIpAccessRequestByToken,
+  listPendingIpAccessRequests,
+  upsertIpAccessRequest,
+} from '../services/repositories/ip-access-repo.js';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 
@@ -11,12 +18,12 @@ const router = Router();
 // Type definitions
 interface IPAccessRequest {
   id: string;
-  ip: string;
-  token: string;
-  requestedAt: number;
-  expiresAt: number;
+  ip: string | null;
+  token: string | null;
+  requestedAt: number | null;
+  expiresAt: number | null;
   approved: boolean;
-  approvedAt?: number;
+  approvedAt?: number | null;
 }
 
 // Rate limiting for access requests - 5 requests per 15 minutes per IP
@@ -57,20 +64,10 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
       return res.status(401).json({ error: 'Invalid parent PIN' });
     }
 
-    // Check for existing active requests from this IP
-    const existingRequests = await getTenantData('ip-access-requests', tenantId);
-
-    let requests: IPAccessRequest[] = [];
-    if (Array.isArray(existingRequests)) {
-      requests = existingRequests as IPAccessRequest[];
-    }
-
-    // Clean up expired requests
     const now = Date.now();
-    requests = requests.filter((r: IPAccessRequest) => r.expiresAt > now);
 
     // Check if there's already an active request from this IP
-    const existingRequest = requests.find((r: IPAccessRequest) => r.ip === ip && !r.approved);
+    const existingRequest = await findPendingIpAccessRequestForIp(tenantId, ip, now);
     if (existingRequest) {
       return res.status(409).json({ 
         error: 'An access request from this IP is already pending',
@@ -89,10 +86,15 @@ router.post('/request-access', requestAccessLimiter, async (req: Request, res: R
       approved: false,
     };
 
-    requests.push(newRequest);
-
-    // Save the updated requests
-    await setTenantData('ip-access-requests', tenantId, requests);
+    await upsertIpAccessRequest(tenantId, {
+      id: newRequest.id,
+      ip: newRequest.ip,
+      token: newRequest.token,
+      approved: newRequest.approved,
+      requestedAt: newRequest.requestedAt,
+      approvedAt: null,
+      expiresAt: newRequest.expiresAt,
+    });
 
     // Get the primary parent's email to send the approval link
     const [users] = await pool.query<RowDataPacket[]>(
@@ -144,49 +146,14 @@ router.post('/approve-access', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Token is required' });
     }
 
-    // Search for the token across all tenants
-    const [matchingRequests] = await pool.query<RowDataPacket[]>(
-      `SELECT tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at
-       FROM tenant_ip_access_requests_v2
-       WHERE token = ?
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [token]
-    );
-
-    let foundTenantId: string | null = null;
-    let foundRequest: IPAccessRequest | null = null;
-
-    if (matchingRequests.length > 0) {
-      const row = matchingRequests[0] as RowDataPacket & {
-        tenant_id: string;
-        id: string;
-        ip: string;
-        token: string;
-        approved: boolean | number;
-        requested_at: number;
-        approved_at?: number;
-        expires_at: number;
-      };
-
-      foundTenantId = row.tenant_id;
-      foundRequest = {
-        id: row.id,
-        ip: row.ip,
-        token: row.token,
-        approved: Boolean(row.approved),
-        requestedAt: row.requested_at,
-        approvedAt: row.approved_at,
-        expiresAt: row.expires_at,
-      };
-    }
+    const foundRequest = await getIpAccessRequestByToken(token);
 
     if (!foundRequest) {
       return res.status(404).json({ error: 'Invalid or expired token' });
     }
 
     // Check if token has expired
-    if (foundRequest.expiresAt < Date.now()) {
+    if (!foundRequest.expiresAt || foundRequest.expiresAt < Date.now()) {
       return res.status(410).json({ error: 'Token has expired' });
     }
 
@@ -196,27 +163,19 @@ router.post('/approve-access', async (req: Request, res: Response) => {
     }
 
     // Mark the request as approved
-    foundRequest.approved = true;
-    foundRequest.approvedAt = Date.now();
-
-    // Update the requests in the database
-    const existingRequests = await getTenantData('ip-access-requests', foundTenantId!);
-    const allTenantRequests = Array.isArray(existingRequests) ? (existingRequests as IPAccessRequest[]) : [];
-    const updatedRequests = allTenantRequests.map((request) =>
-      request.id === foundRequest!.id ? foundRequest! : request
-    );
-    await setTenantData('ip-access-requests', foundTenantId!, updatedRequests);
+    const approvedAt = Date.now();
+    await approveIpAccessRequestById(foundRequest.tenantId, foundRequest.id, approvedAt);
 
     // Add the IP to the allowed list
-    const ipRestrictions = await getTenantData('ip-restrictions', foundTenantId!);
+    const ipRestrictions = await getTenantData('ip-restrictions', foundRequest.tenantId);
 
     if (ipRestrictions && typeof ipRestrictions === 'object') {
       const settings = ipRestrictions as { allowedIPs?: string[] };
       settings.allowedIPs = settings.allowedIPs || [];
-      if (!settings.allowedIPs.includes(foundRequest.ip)) {
+      if (foundRequest.ip && !settings.allowedIPs.includes(foundRequest.ip)) {
         settings.allowedIPs.push(foundRequest.ip);
         
-        await setTenantData('ip-restrictions', foundTenantId!, settings);
+        await setTenantData('ip-restrictions', foundRequest.tenantId, settings);
       }
     }
 
@@ -236,19 +195,8 @@ router.get('/pending-requests/:tenantId', async (req: Request, res: Response) =>
   try {
     const { tenantId } = req.params;
 
-    const pending = await getTenantData('ip-access-requests', tenantId);
-
-    if (!Array.isArray(pending)) {
-      return res.json({ success: true, requests: [] });
-    }
-
-    const requests: IPAccessRequest[] = pending as IPAccessRequest[];
     const now = Date.now();
-
-    // Filter to only active (not expired, not approved) requests
-    const pendingRequests = requests.filter((r: IPAccessRequest) => 
-      !r.approved && r.expiresAt > now
-    );
+    const pendingRequests = await listPendingIpAccessRequests(tenantId, now);
 
     res.json({
       success: true,

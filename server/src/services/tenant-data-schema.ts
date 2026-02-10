@@ -25,7 +25,7 @@ export const KEY_TABLE_MAP: Record<string, string> = {
   'child-availability': 'tenant_child_availability_v2',
   'parent-pin': 'tenant_parent_pin_v2',
   'ip-restrictions': 'tenant_ip_restrictions_v2',
-  'ip-access-requests': 'tenant_ip_access_requests_v2',
+  'ip-access-requests': 'tenant_ip_access_requests',
 };
 
 const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
@@ -345,26 +345,23 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
   'ip-access-requests': {
-    tableName: 'tenant_ip_access_requests_v2',
+    tableName: 'tenant_ip_access_requests',
     legacyTableName: 'tenant_ip_access_requests',
     mode: 'collection',
-    createSql: `CREATE TABLE IF NOT EXISTS tenant_ip_access_requests_v2 (
+    createSql: `CREATE TABLE IF NOT EXISTS tenant_ip_access_requests (
       id VARCHAR(64) NOT NULL,
       tenant_id VARCHAR(36) NOT NULL,
       ip VARCHAR(64),
-      token VARCHAR(128),
+      token VARCHAR(128) NOT NULL,
+      requested_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL,
       approved BOOLEAN DEFAULT FALSE,
-      requested_at BIGINT NULL,
       approved_at BIGINT NULL,
-      expires_at BIGINT NULL,
-      payload_json JSON NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (tenant_id, id),
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
-      INDEX idx_ip_requests_tenant_status (tenant_id, approved, expires_at),
-      INDEX idx_ip_requests_token (token),
-      INDEX idx_ip_requests_ip (tenant_id, ip, requested_at)
+      UNIQUE KEY idx_ip_requests_token (token),
+      INDEX idx_ip_requests_tenant_approved (tenant_id, approved),
+      INDEX idx_ip_requests_expires_at (expires_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
 };
@@ -450,6 +447,63 @@ export async function migrateKvStoreToTenantTables(connection: PoolConnection): 
         }
       } else {
         await connection.query(`DELETE FROM ${config.tableName} WHERE tenant_id = ?`, [row.tenant_id]);
+
+        if (row.key_name === 'ip-access-requests') {
+          for (let index = 0; index < sourceItems.length; index += 1) {
+            const item = sourceItems[index] as Record<string, unknown>;
+            const itemId = String(item?.id ?? `${row.key_name}-${index}`);
+            const token = item?.token ? String(item.token) : null;
+            const requestedAt = item?.requestedAt !== undefined ? Number(item.requestedAt) : Date.now();
+            const expiresAt = item?.expiresAt !== undefined ? Number(item.expiresAt) : requestedAt;
+            const approvedAt = item?.approvedAt !== undefined ? Number(item.approvedAt) : null;
+            const approved = Boolean(item?.approved);
+
+            if (!token || Number.isNaN(requestedAt) || Number.isNaN(expiresAt)) {
+              continue;
+            }
+
+            await connection.query(
+              `INSERT INTO ${config.tableName}
+               (tenant_id, id, ip, token, approved, requested_at, approved_at, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE
+                ip = VALUES(ip),
+                token = VALUES(token),
+                approved = VALUES(approved),
+                requested_at = VALUES(requested_at),
+                approved_at = VALUES(approved_at),
+                expires_at = VALUES(expires_at)`,
+              [
+                row.tenant_id,
+                itemId,
+                item?.ip ? String(item.ip) : null,
+                token,
+                approved,
+                requestedAt,
+                approvedAt,
+                expiresAt,
+              ]
+            );
+            backfilledCount += 1;
+          }
+
+          const expected = sourceItems.length;
+          const status = expected === backfilledCount ? 'success' : 'failed';
+          await connection.query(
+            `INSERT INTO tenant_data_migration_state
+             (tenant_id, key_name, table_name, source_row_count, backfilled_row_count, migration_status, last_error)
+             VALUES (?, ?, ?, ?, ?, ?, NULL)
+             ON DUPLICATE KEY UPDATE
+              table_name = VALUES(table_name),
+              source_row_count = VALUES(source_row_count),
+              backfilled_row_count = VALUES(backfilled_row_count),
+              migration_status = VALUES(migration_status),
+              last_error = VALUES(last_error),
+              migrated_at = CURRENT_TIMESTAMP`,
+            [row.tenant_id, row.key_name, config.tableName, expected, backfilledCount, status]
+          );
+          continue;
+        }
 
         for (let index = 0; index < sourceItems.length; index += 1) {
           const item = sourceItems[index] as Record<string, unknown>;
