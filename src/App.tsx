@@ -816,6 +816,12 @@ function App() {
       childId,
       choreId,
       assignedAt: Date.now(),
+      startDate: chore?.defaultStartDate,
+      endDate: chore?.defaultEndDate,
+      daysOfWeek: chore?.defaultDaysOfWeek,
+      repeatPattern: chore?.defaultRepeatPattern,
+      timeOfDay: chore?.timeOfDay,
+      timeWindow: chore?.timeWindow,
     }
     
     // Initialize rotation state for rotational chores

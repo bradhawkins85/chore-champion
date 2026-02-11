@@ -24,7 +24,7 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarBlank, X, Info, Star, Clock } from '@phosphor-icons/react'
-import { ChoreAssignment, DayOfWeek, RepeatPattern, ChoreTimeOfDay, TimeWindow, ChorePointOverride, CategoryPointOverride, Child, Category } from '@/lib/types'
+import { ChoreAssignment, DayOfWeek, RepeatPattern, ChoreTimeOfDay, TimeWindow, ChorePointOverride, CategoryPointOverride, Child, Category, Chore } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
@@ -52,6 +52,7 @@ interface EditAssignmentDialogProps {
   chorePoints?: number
   choreCategories?: { id: string; name: string; color: string; points: number }[]
   categories?: Category[]
+  chore?: Chore
 }
 
 export function EditAssignmentDialog({
@@ -64,6 +65,7 @@ export function EditAssignmentDialog({
   chorePoints = 10,
   choreCategories = [],
   categories = [],
+  chore,
 }: EditAssignmentDialogProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
@@ -86,15 +88,22 @@ export function EditAssignmentDialog({
     { value: 'sunday', label: 'Sunday' },
   ]
 
+
+  const inheritedDays = assignment?.daysOfWeek ?? chore?.defaultDaysOfWeek ?? []
+  const inheritedStartDate = assignment?.startDate ?? chore?.defaultStartDate
+  const inheritedEndDate = assignment?.endDate ?? chore?.defaultEndDate
+  const inheritedTimeOfDay = assignment?.timeOfDay ?? chore?.timeOfDay ?? 'anytime'
+  const inheritedTimeWindow = assignment?.timeWindow ?? chore?.timeWindow
+
   useEffect(() => {
     if (assignment && open) {
-      setStartDate(assignment.startDate ? new Date(assignment.startDate) : undefined)
-      setEndDate(assignment.endDate ? new Date(assignment.endDate) : undefined)
-      setSelectedDays(assignment.daysOfWeek || [])
-      setTimeOfDay(assignment.timeOfDay || 'anytime')
-      setUseTimeWindow(!!assignment.timeWindow)
-      setTimeWindowStart(assignment.timeWindow?.startTime || '')
-      setTimeWindowEnd(assignment.timeWindow?.endTime || '')
+      setStartDate(inheritedStartDate ? new Date(inheritedStartDate) : undefined)
+      setEndDate(inheritedEndDate ? new Date(inheritedEndDate) : undefined)
+      setSelectedDays(inheritedDays)
+      setTimeOfDay(inheritedTimeOfDay)
+      setUseTimeWindow(!!inheritedTimeWindow)
+      setTimeWindowStart(inheritedTimeWindow?.startTime || '')
+      setTimeWindowEnd(inheritedTimeWindow?.endTime || '')
       
       setCategoryPointOverrides(assignment.categoryPointOverrides || [])
       
@@ -107,7 +116,7 @@ export function EditAssignmentDialog({
         setRepeatInterval(1)
       }
     }
-  }, [assignment, open, child])
+  }, [assignment, open, child, inheritedStartDate, inheritedEndDate, inheritedDays, inheritedTimeOfDay, inheritedTimeWindow])
 
   const handleSave = () => {
     if (!assignment) return
@@ -184,6 +193,14 @@ export function EditAssignmentDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {chore && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                This child starts with defaults from Management → Chores. Any changes you save here override defaults for {child?.name || 'this child'} only.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-3">
             <Label>Start Date (Optional)</Label>
             <div className="flex items-center gap-2">
