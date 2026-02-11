@@ -291,7 +291,8 @@ export async function initDatabase() {
 
         for (const migration of rewardColumnMigrations) {
           const [columns] = await connection.query<RowDataPacket[]>(
-            `SHOW COLUMNS FROM tenant_rewards_v2 LIKE '${migration.name}'`
+            'SHOW COLUMNS FROM tenant_rewards_v2 LIKE ?',
+            [migration.name]
           );
           if (columns.length === 0) {
             await connection.query(migration.sql);
