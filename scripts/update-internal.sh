@@ -138,16 +138,6 @@ if [ "$SOURCE_BASED" = "true" ]; then
             if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
                 echo "✓ Updates available from GitHub"
                 UPDATE_AVAILABLE=true
-                
-                # Reset to the latest version of the current branch
-                echo "Updating code to latest version..."
-                if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest reset --hard "origin/${CURRENT_BRANCH}" 2>&1; then
-                    echo "✓ Code updated to latest version from GitHub"
-                else
-                    echo "WARNING: Failed to reset to origin/${CURRENT_BRANCH}"
-                    echo "Will skip update..."
-                    UPDATE_AVAILABLE=false
-                fi
             else
                 echo "✓ Already up to date (${LOCAL_COMMIT:0:8})"
             fi
@@ -164,28 +154,6 @@ if [ "$SOURCE_BASED" = "true" ]; then
         echo "Not a git repository - cannot check for updates"
         echo "Building images anyway since we can't verify if updates exist..."
         UPDATE_AVAILABLE=true
-    fi
-    
-    if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        echo ""
-        echo "Building latest images with updated code..."
-        
-        # Determine the version to build
-        # Try to get the version from the latest git tag
-        VERSION=$(docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
-        # Strip 'v' prefix if present (e.g., v1.2.0 -> 1.2.0)
-        VERSION=${VERSION#v}
-        echo "Building with version: ${VERSION}"
-        
-        # Build new images with the updated code
-        # Using --pull to ensure base images are up to date
-        # Not using --no-cache to leverage Docker's layer caching for faster builds
-        # Pass the version as a build argument
-        if [ -n "$COMPOSE_FILE_PATH" ]; then
-            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
-        else
-            docker compose -p "${COMPOSE_PROJECT}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
-        fi
     fi
 else
     echo ""
@@ -286,6 +254,43 @@ if [ "$UPDATE_AVAILABLE" = "true" ]; then
         fi
     else
         echo "WARNING: Backup container not found - skipping backup"
+    fi
+    
+    # Now apply the update after backup is complete
+    if [ "$SOURCE_BASED" = "true" ]; then
+        if [ "$GIT_REPO" = "true" ]; then
+            # Reset to the latest version of the current branch
+            echo ""
+            echo "Updating code to latest version..."
+            if docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest reset --hard "origin/${CURRENT_BRANCH}" 2>&1; then
+                echo "✓ Code updated to latest version from GitHub"
+            else
+                echo "ERROR: Failed to reset to origin/${CURRENT_BRANCH}"
+                echo "Update aborted."
+                echo "Backup location: Check the chorequest-backups volume or ./backups/ directory"
+                exit 1
+            fi
+        fi
+        
+        echo ""
+        echo "Building latest images with updated code..."
+        
+        # Determine the version to build
+        # Try to get the version from the latest git tag
+        VERSION=$(docker run --rm -v "${COMPOSE_WORKDIR}:/repo" -w /repo alpine/git:latest describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
+        # Strip 'v' prefix if present (e.g., v1.2.0 -> 1.2.0)
+        VERSION=${VERSION#v}
+        echo "Building with version: ${VERSION}"
+        
+        # Build new images with the updated code
+        # Using --pull to ensure base images are up to date
+        # Not using --no-cache to leverage Docker's layer caching for faster builds
+        # Pass the version as a build argument
+        if [ -n "$COMPOSE_FILE_PATH" ]; then
+            docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
+        else
+            docker compose -p "${COMPOSE_PROJECT}" build --pull --build-arg VITE_APP_VERSION="${VERSION}"
+        fi
     fi
     
     echo ""

@@ -42,15 +42,6 @@ if [ -f Dockerfile ]; then
             if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
                 echo "✓ Updates available from GitHub"
                 UPDATE_AVAILABLE=true
-                
-                echo "Updating to latest version..."
-                if git reset --hard "origin/${CURRENT_BRANCH}"; then
-                    echo "✓ Code updated to latest version from GitHub"
-                else
-                    echo "WARNING: Failed to reset to origin/${CURRENT_BRANCH}"
-                    echo "Continuing with current code..."
-                    UPDATE_AVAILABLE=false
-                fi
             else
                 echo "✓ Already up to date (${LOCAL_COMMIT:0:8})"
             fi
@@ -63,16 +54,10 @@ if [ -f Dockerfile ]; then
         echo "Building images anyway since we can't check for updates..."
         UPDATE_AVAILABLE=true
     fi
-    
-    if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        echo ""
-        echo "Building new image..."
-        docker compose -f docker-compose.prod.yml build --no-cache
-    fi
 else
     # Registry-based deployment - check for image updates
     # Note: Docker doesn't provide a reliable way to check for updates without pulling
-    # We'll pull and check if any images were updated
+    # The pull operation downloads new images but doesn't affect running containers
     echo "Checking for image updates from registry..."
     echo "(This will pull images to check for updates)"
     
@@ -111,6 +96,26 @@ if [ "$UPDATE_AVAILABLE" = "true" ]; then
         else
             echo "WARNING: Backup container not running (state: ${CONTAINER_STATE:-unknown}) - skipping backup"
         fi
+    fi
+    
+    # Now apply the update after backup is complete
+    if [ -f Dockerfile ]; then
+        if [ -d .git ]; then
+            echo ""
+            echo "Updating to latest version..."
+            if git reset --hard "origin/${CURRENT_BRANCH}"; then
+                echo "✓ Code updated to latest version from GitHub"
+            else
+                echo "ERROR: Failed to reset to origin/${CURRENT_BRANCH}"
+                echo "Update aborted. Check backups directory for rollback."
+                echo "Backup location: ./backups/"
+                exit 1
+            fi
+        fi
+        
+        echo ""
+        echo "Building new image..."
+        docker compose -f docker-compose.prod.yml build --no-cache
     fi
     
     echo ""
