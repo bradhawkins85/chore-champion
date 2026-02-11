@@ -348,7 +348,6 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
       tenant_id VARCHAR(36) PRIMARY KEY,
       pin_hash VARCHAR(255),
       pin_hint VARCHAR(255),
-      payload_json JSON NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       INDEX idx_parent_pin_updated (updated_at)
@@ -362,7 +361,6 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
       tenant_id VARCHAR(36) PRIMARY KEY,
       enabled BOOLEAN DEFAULT FALSE,
       mode VARCHAR(30),
-      payload_json JSON NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
       INDEX idx_ip_restrictions_enabled (enabled, updated_at)
