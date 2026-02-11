@@ -54,8 +54,8 @@ function mapRow(row: RewardRow): RewardRecord {
   
   return {
     id: row.id,
-    name: row.name ?? row.title,
-    title: row.title ?? row.name,
+    name: row.name ?? row.title ?? '',
+    title: row.title ?? row.name ?? '',
     description: row.description,
     cost: row.cost_points ?? 0,
     imageEmoji: row.image_emoji ?? '',
@@ -64,7 +64,7 @@ function mapRow(row: RewardRow): RewardRecord {
     disabled: !isActive,
     stock: row.stock_count,
     sortOrder: row.sort_order ?? 0,
-    createdAt: row.created_at_timestamp ?? Date.now(),
+    createdAt: row.created_at_timestamp ?? 0,
     categoryIds: row.category_ids ? JSON.parse(row.category_ids) : [],
     costOverrides: row.cost_overrides ? JSON.parse(row.cost_overrides) : undefined,
     requirements: row.requirements ? JSON.parse(row.requirements) : undefined,
@@ -110,11 +110,13 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
   const executor = getExecutor(connection);
   
   // Map frontend Reward object to backend structure
+  // Frontend typically uses 'name', but support 'title' as fallback
   const name = reward.name ?? reward.title ?? null;
   const title = reward.title ?? reward.name ?? null;
   const active = reward.active ?? reward.isActive ?? (reward.disabled !== true);
   const sortOrder = reward.sortOrder ?? 0;
-  const createdAt = reward.createdAt ?? Date.now();
+  // Preserve existing createdAt, or set to null to let database handle timestamp
+  const createdAt = reward.createdAt ?? null;
   
   await executor.query(
     `INSERT INTO tenant_rewards_v2
@@ -169,11 +171,13 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
   await executor.query('DELETE FROM tenant_rewards_v2 WHERE tenant_id = ?', [tenantId]);
 
   for (const [index, reward] of rewards.entries()) {
+    // Frontend typically uses 'name', but support 'title' as fallback
     const name = reward.name ?? reward.title ?? null;
     const title = reward.title ?? reward.name ?? null;
     const active = reward.active ?? reward.isActive ?? (reward.disabled !== true);
     const sortOrder = reward.sortOrder ?? index;
-    const createdAt = reward.createdAt ?? Date.now();
+    // Preserve existing createdAt, or set to null to let database handle timestamp
+    const createdAt = reward.createdAt ?? null;
     
     await executor.query(
       `INSERT INTO tenant_rewards_v2
