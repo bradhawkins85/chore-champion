@@ -55,8 +55,9 @@ function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T 
     return JSON.parse(value) as T;
   } catch (error) {
     console.error('Failed to parse JSON value:', value, error);
-    // If it's a plain string that looks like it should be in an array, wrap it
-    if (typeof value === 'string' && value.startsWith('category_')) {
+    // Special case: If it's a plain string that looks like a category ID and defaultValue is an array,
+    // wrap the string in an array. This handles corrupted data where category_ids was stored as a string.
+    if (typeof value === 'string' && value.startsWith('category_') && Array.isArray(defaultValue)) {
       console.warn('Converting plain category string to array:', value);
       return [value] as T;
     }
@@ -78,7 +79,7 @@ function ensureCategoryIdsArray(categoryIds: string | string[] | null | undefine
   if (categoryIds === null || categoryIds === undefined) {
     return [];
   }
-  // For any other type, try to convert to array
+  // For any other type, return empty array
   console.warn('Unexpected categoryIds type:', typeof categoryIds, categoryIds);
   return [];
 }
