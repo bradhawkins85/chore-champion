@@ -58,7 +58,9 @@ function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T 
     
     // Try to fix malformed JSON with single quotes instead of double quotes
     // This handles cases where data was stored with JavaScript array notation instead of JSON
-    if (typeof value === 'string' && value.includes("'")) {
+    // Only apply this fix if the value looks like it's an array to avoid breaking strings with apostrophes
+    if (typeof value === 'string' && value.includes("'") && 
+        (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
       const fixedValue = value.replace(/'/g, '"');
       try {
         const parsed = JSON.parse(fixedValue);
