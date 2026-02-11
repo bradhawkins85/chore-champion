@@ -66,10 +66,10 @@ export async function getParentPin(tenantId: string, connection?: PoolConnection
 export async function setParentPin(tenantId: string, pin: ParentPinRecord, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
   await executor.query(
-    `INSERT INTO tenant_parent_pin_v2 (tenant_id, pin_hash, pin_hint, payload_json)
-     VALUES (?, ?, ?, JSON_OBJECT('pinHash', ?, 'pinHint', ?))
-     ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), pin_hint = VALUES(pin_hint), payload_json = VALUES(payload_json)`,
-    [tenantId, pin.pinHash ?? null, pin.pinHint ?? null, pin.pinHash ?? null, pin.pinHint ?? null]
+    `INSERT INTO tenant_parent_pin_v2 (tenant_id, pin_hash, pin_hint)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), pin_hint = VALUES(pin_hint)`,
+    [tenantId, pin.pinHash ?? null, pin.pinHint ?? null]
   );
 }
 
@@ -90,10 +90,10 @@ export async function getIpRestrictions(tenantId: string, connection?: PoolConne
 export async function setIpRestrictions(tenantId: string, value: IpRestrictionsRecord, connection?: PoolConnection): Promise<void> {
   const executor = getExecutor(connection);
   await executor.query(
-    `INSERT INTO tenant_ip_restrictions_v2 (tenant_id, enabled, mode, payload_json)
-     VALUES (?, ?, ?, JSON_OBJECT('enabled', ?, 'mode', ?))
-     ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), mode = VALUES(mode), payload_json = VALUES(payload_json)`,
-    [tenantId, value.enabled, value.mode ?? null, value.enabled, value.mode ?? null]
+    `INSERT INTO tenant_ip_restrictions_v2 (tenant_id, enabled, mode)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), mode = VALUES(mode)`,
+    [tenantId, value.enabled, value.mode ?? null]
   );
 }
 
