@@ -358,7 +358,7 @@ export function ParentPanel({
     if (!areArraysEqual(normalizedWelcomeCardOrder, welcomeCardOrder)) {
       setWelcomeCardOrder(normalizedWelcomeCardOrder)
     }
-  }, [normalizedWelcomeCardOrder, setWelcomeCardOrder, welcomeCardOrder])
+  }, [normalizedWelcomeCardOrder, welcomeCardOrder]) // Removed setWelcomeCardOrder to prevent re-render loop
 
   // Sensors for drag and drop
   const sensors = useSensors(

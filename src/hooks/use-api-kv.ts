@@ -15,7 +15,7 @@ const authTokenListeners = new Set<() => void>();
 let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
 const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
-const BACKGROUND_SYNC_INTERVAL_MS = 30000; // Keep data fresh across long-lived dashboard sessions
+const BACKGROUND_SYNC_INTERVAL_MS = 120000; // Keep data fresh across long-lived dashboard sessions (2 minutes)
 const FOCUS_SYNC_THROTTLE_MS = 5000; // Prevent a request burst when multiple hooks react to focus
 
 // Track the most recent focus/visibility refresh by key to throttle concurrent hooks
