@@ -15,7 +15,6 @@ const authTokenListeners = new Set<() => void>();
 let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
 const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
-const BACKGROUND_SYNC_INTERVAL_MS = 120000; // Keep data fresh across long-lived dashboard sessions (2 minutes)
 
 function resetApiAvailability() {
   apiAvailable = null;
@@ -315,10 +314,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
     syncValue();
 
-    const backgroundSyncId = window.setInterval(() => {
-      syncValue();
-    }, BACKGROUND_SYNC_INTERVAL_MS);
-
     const handleStorageUpdate = (event: StorageEvent) => {
       if (event.key === key && !useApiRef.current) {
         syncValue();
@@ -333,7 +328,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
     return () => {
       mounted = false;
-      clearInterval(backgroundSyncId);
       window.removeEventListener('storage', handleStorageUpdate);
     };
   }, [key, authToken]);
