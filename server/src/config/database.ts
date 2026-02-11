@@ -244,7 +244,7 @@ export async function initDatabase() {
           "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'name'"
         );
         if (nameColumns.length === 0) {
-          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN name VARCHAR(255) AFTER tenant_id');
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN name VARCHAR(255) DEFAULT NULL AFTER tenant_id');
           console.log('Added name column to tenant_rewards_v2 table');
         }
         
@@ -253,7 +253,7 @@ export async function initDatabase() {
           "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'title'"
         );
         if (titleColumns.length === 0) {
-          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN title VARCHAR(255) AFTER name');
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN title VARCHAR(255) DEFAULT NULL AFTER name');
           console.log('Added title column to tenant_rewards_v2 table');
         }
 
