@@ -1058,6 +1058,7 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   }
   
   // Get current counts from tenant data tables with error handling
+  // If data fetch fails, default to 0 to allow operation to proceed without blocking
   let childrenCount = 0;
   try {
     const children = (await getTenantData('children', tenantId)) ?? [];
@@ -1066,7 +1067,7 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching children data for tenant ${tenantId}:`, error);
-    childrenCount = 0; // Default to 0 on error
+    // Keep default of 0 to gracefully handle missing or corrupted data
   }
   
   let choresCount = 0;
@@ -1077,7 +1078,7 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching chores data for tenant ${tenantId}:`, error);
-    choresCount = 0; // Default to 0 on error
+    // Keep default of 0 to gracefully handle missing or corrupted data
   }
   
   let rewardsCount = 0;
@@ -1088,7 +1089,7 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching rewards data for tenant ${tenantId}:`, error);
-    rewardsCount = 0; // Default to 0 on error
+    // Keep default of 0 to gracefully handle missing or corrupted data
   }
   
   let devicesCount = 0;
@@ -1100,7 +1101,7 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     devicesCount = devicesRows[0]?.count || 0;
   } catch (error) {
     console.error(`Error fetching devices count for tenant ${tenantId}:`, error);
-    devicesCount = 0; // Default to 0 on error
+    // Keep default of 0 to gracefully handle database query failures
   }
   
   return {
