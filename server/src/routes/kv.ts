@@ -157,20 +157,14 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     }
 
     if (isPlanLimitedKey(key)) {
-      try {
-        const limits = await checkPlanLimits(tenantId);
-        const maxLimit = getPlanLimitForKey(key, limits);
-        if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
-          return res.status(403).json({
-            error: `Plan limit reached for ${key}`,
-            limit: maxLimit,
-            attempted: value.length,
-          });
-        }
-      } catch (limitsError) {
-        console.error(`Error checking plan limits for key "${key}" (tenantId: ${tenantId}):`, limitsError);
-        // Continue with the operation - don't block writes if plan limit check fails
-        // This ensures data can still be saved even if subscription service has issues
+      const limits = await checkPlanLimits(tenantId);
+      const maxLimit = getPlanLimitForKey(key, limits);
+      if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
+        return res.status(403).json({
+          error: `Plan limit reached for ${key}`,
+          limit: maxLimit,
+          attempted: value.length,
+        });
       }
     }
     
@@ -297,23 +291,17 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     
     const limitKeys = Object.keys(data).filter(isPlanLimitedKey);
     if (limitKeys.length > 0) {
-      try {
-        const limits = await checkPlanLimits(tenantId);
-        for (const key of limitKeys) {
-          const maxLimit = getPlanLimitForKey(key, limits);
-          const value = data[key];
-          if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
-            return res.status(403).json({
-              error: `Plan limit reached for ${key}`,
-              limit: maxLimit,
-              attempted: value.length,
-            });
-          }
+      const limits = await checkPlanLimits(tenantId);
+      for (const key of limitKeys) {
+        const maxLimit = getPlanLimitForKey(key, limits);
+        const value = data[key];
+        if (maxLimit !== null && Array.isArray(value) && value.length > maxLimit) {
+          return res.status(403).json({
+            error: `Plan limit reached for ${key}`,
+            limit: maxLimit,
+            attempted: value.length,
+          });
         }
-      } catch (limitsError) {
-        console.error(`Error checking plan limits in bulk operation (tenantId: ${tenantId}):`, limitsError);
-        // Continue with the operation - don't block writes if plan limit check fails
-        // This ensures data can still be saved even if subscription service has issues
       }
     }
 
