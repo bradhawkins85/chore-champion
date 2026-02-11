@@ -88,15 +88,14 @@ export function EditAssignmentDialog({
     { value: 'sunday', label: 'Sunday' },
   ]
 
-
-  const inheritedDays = assignment?.daysOfWeek ?? chore?.defaultDaysOfWeek ?? []
-  const inheritedStartDate = assignment?.startDate ?? chore?.defaultStartDate
-  const inheritedEndDate = assignment?.endDate ?? chore?.defaultEndDate
-  const inheritedTimeOfDay = assignment?.timeOfDay ?? chore?.timeOfDay ?? 'anytime'
-  const inheritedTimeWindow = assignment?.timeWindow ?? chore?.timeWindow
-
   useEffect(() => {
     if (assignment && open) {
+      const inheritedDays = assignment.daysOfWeek ?? chore?.defaultDaysOfWeek ?? []
+      const inheritedStartDate = assignment.startDate ?? chore?.defaultStartDate
+      const inheritedEndDate = assignment.endDate ?? chore?.defaultEndDate
+      const inheritedTimeOfDay = assignment.timeOfDay ?? chore?.timeOfDay ?? 'anytime'
+      const inheritedTimeWindow = assignment.timeWindow ?? chore?.timeWindow
+
       setStartDate(inheritedStartDate ? new Date(inheritedStartDate) : undefined)
       setEndDate(inheritedEndDate ? new Date(inheritedEndDate) : undefined)
       setSelectedDays(inheritedDays)
@@ -116,7 +115,7 @@ export function EditAssignmentDialog({
         setRepeatInterval(1)
       }
     }
-  }, [assignment, open, child, inheritedStartDate, inheritedEndDate, inheritedDays, inheritedTimeOfDay, inheritedTimeWindow])
+  }, [assignment, open, child, chore])
 
   const handleSave = () => {
     if (!assignment) return
