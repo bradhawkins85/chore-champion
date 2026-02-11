@@ -30,18 +30,24 @@ else
     BACKUP_WAIT=0
     BACKUP_MAX_WAIT=30
     while [ $BACKUP_WAIT -lt $BACKUP_MAX_WAIT ]; do
-        CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' chorequest-backup 2>/dev/null)
+        CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' chorequest-backup 2>/dev/null || echo "")
         
         if [ "$CONTAINER_STATE" = "running" ]; then
             echo "✓ Backup container is running"
             break
         fi
         
-        # Container is not running, show appropriate message and wait
+        # Check for terminal states that won't transition to running
+        if [ "$CONTAINER_STATE" = "exited" ] || [ "$CONTAINER_STATE" = "dead" ] || [ -z "$CONTAINER_STATE" ]; then
+            echo "WARNING: Backup container in terminal state '${CONTAINER_STATE:-not found}' - cannot proceed"
+            break
+        fi
+        
+        # Container is not running but may transition, show appropriate message and wait
         if [ "$CONTAINER_STATE" = "restarting" ]; then
             echo "Waiting for backup container to finish restarting... ($BACKUP_WAIT/$BACKUP_MAX_WAIT seconds)"
         else
-            echo "Backup container is in state '${CONTAINER_STATE:-unknown}' - waiting..."
+            echo "Backup container is in state '${CONTAINER_STATE}' - waiting..."
         fi
         
         sleep 2
