@@ -91,6 +91,34 @@ export async function getOrCreateStripeProduct(): Promise<string> {
   return product.id;
 }
 
+/**
+ * Helper function to determine if a resource can be added based on fetch status and limits
+ * 
+ * This function implements fail-secure behavior: when data fetch fails (fetchFailed=true),
+ * it assumes the limit is reached and returns false. This prevents bypassing subscription
+ * limits during system degradation or data access failures.
+ * 
+ * @param fetchFailed - Whether the data fetch for this resource failed
+ * @param currentCount - Current count of the resource (if fetch succeeded)
+ * @param maxLimit - Maximum allowed count (null means unlimited)
+ * @returns true if the resource can be added, false otherwise (false if fetch failed)
+ */
+function canAddResource(fetchFailed: boolean, currentCount: number, maxLimit: number | null): boolean {
+  // If fetch failed, be pessimistic and assume limit is reached (fail-secure)
+  // This prevents bypassing limits when we cannot verify current usage
+  if (fetchFailed) {
+    return false;
+  }
+  
+  // If no limit, always allow
+  if (maxLimit === null) {
+    return true;
+  }
+  
+  // Check if current count is below limit
+  return currentCount < maxLimit;
+}
+
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
   id: string;
@@ -1057,33 +1085,68 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     throw new Error('Plan not found');
   }
   
-  // Get current counts from tenant data tables
-  const children = (await getTenantData('children', tenantId)) ?? [];
-  const childrenCount = Array.isArray(children)
-    ? children.filter((child) => child?.isActive !== false).length
-    : 0;
+  // Get current counts from tenant data tables with error handling
+  // Track fetch failures to ensure at least some data is available
+  type ResourceName = 'children' | 'chores' | 'rewards' | 'devices';
   
-  const chores = (await getTenantData('chores', tenantId)) ?? [];
-  const choresCount = Array.isArray(chores)
-    ? chores.filter((chore) => chore?.isActive !== false).length
-    : 0;
+  const dataFetches: Array<{ name: ResourceName; fetchFn: () => Promise<number> }> = [
+    { name: 'children', fetchFn: async () => {
+      const children = (await getTenantData('children', tenantId)) ?? [];
+      return Array.isArray(children)
+        ? children.filter((child) => child?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'chores', fetchFn: async () => {
+      const chores = (await getTenantData('chores', tenantId)) ?? [];
+      return Array.isArray(chores)
+        ? chores.filter((chore) => chore?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'rewards', fetchFn: async () => {
+      const rewards = (await getTenantData('rewards', tenantId)) ?? [];
+      return Array.isArray(rewards)
+        ? rewards.filter((reward) => reward?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'devices', fetchFn: async () => {
+      const [devicesRows] = await pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
+        [tenantId]
+      );
+      return devicesRows[0]?.count || 0;
+    }},
+  ];
   
-  const rewards = (await getTenantData('rewards', tenantId)) ?? [];
-  const rewardsCount = Array.isArray(rewards)
-    ? rewards.filter((reward) => reward?.isActive !== false).length
-    : 0;
+  // Execute all fetches concurrently for better performance
+  const counts: Record<ResourceName, number> = { children: 0, chores: 0, rewards: 0, devices: 0 };
+  const fetchFailed: Record<ResourceName, boolean> = { children: false, chores: false, rewards: false, devices: false };
   
-  const [devicesRows] = await pool.query<RowDataPacket[]>(
-    'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
-    [tenantId]
-  );
-  const devicesCount = devicesRows[0]?.count || 0;
+  const results = await Promise.allSettled(dataFetches.map(fetch => fetch.fetchFn()));
   
+  let fetchFailures = 0;
+  results.forEach((result, index) => {
+    const fetchName = dataFetches[index].name;
+    if (result.status === 'fulfilled') {
+      counts[fetchName] = result.value;
+    } else {
+      console.error(`Error fetching ${fetchName} data for tenant ${tenantId}:`, result.reason);
+      fetchFailed[fetchName] = true;
+      fetchFailures++;
+    }
+  });
+  
+  // If all fetches failed, throw an error - this indicates a major system issue
+  if (fetchFailures === dataFetches.length) {
+    throw new Error(`Unable to fetch any tenant data for plan limit checks (tenant: ${tenantId})`);
+  }
+  
+  // For failed individual fetches, be pessimistic and assume limit is reached
+  // This prevents bypassing limits while allowing the operation to proceed with partial data
   return {
-    canAddChild: plan.max_children === null || childrenCount < plan.max_children,
-    canAddDevice: plan.max_devices === null || devicesCount < plan.max_devices,
-    canAddChore: plan.max_chores === null || choresCount < plan.max_chores,
-    canAddReward: plan.max_rewards === null || rewardsCount < plan.max_rewards,
+    canAddChild: canAddResource(fetchFailed.children, counts.children, plan.max_children),
+    canAddDevice: canAddResource(fetchFailed.devices, counts.devices, plan.max_devices),
+    canAddChore: canAddResource(fetchFailed.chores, counts.chores, plan.max_chores),
+    canAddReward: canAddResource(fetchFailed.rewards, counts.rewards, plan.max_rewards),
     limits: {
       maxChildren: plan.max_children,
       maxDevices: plan.max_devices,
@@ -1091,10 +1154,10 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       maxRewards: plan.max_rewards,
     },
     current: {
-      children: childrenCount,
-      devices: devicesCount,
-      chores: choresCount,
-      rewards: rewardsCount,
+      children: counts.children,
+      devices: counts.devices,
+      chores: counts.chores,
+      rewards: counts.rewards,
     },
   };
 }
