@@ -81,7 +81,27 @@ function mapRow(row: ChoreRow): ChoreRecord {
     if (!value) return null;
     try {
       return typeof value === 'string' ? JSON.parse(value) : value;
-    } catch {
+    } catch (error) {
+      console.error('Failed to parse JSON value:', value, error);
+      
+      // Try to fix malformed JSON with single quotes instead of double quotes
+      // This handles cases where data was stored with JavaScript array notation instead of JSON
+      // Only apply this fix if the value looks like it's an array or object to avoid breaking strings with apostrophes
+      // Note: This simple replacement works for category IDs (e.g., 'category_default_0') which never contain apostrophes.
+      // If this function needs to handle user-entered text with apostrophes in the future, a more sophisticated
+      // approach would be needed to distinguish delimiter quotes from apostrophes within values.
+      if (typeof value === 'string' && value.includes("'") && 
+          (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
+        const fixedValue = value.replace(/'/g, '"');
+        try {
+          const parsed = JSON.parse(fixedValue);
+          console.warn('Successfully parsed JSON after replacing single quotes with double quotes:', value, '->', fixedValue);
+          return parsed;
+        } catch (secondError) {
+          console.error('Failed to parse even after fixing quotes:', fixedValue, secondError);
+        }
+      }
+      
       return null;
     }
   };
