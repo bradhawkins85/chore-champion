@@ -49,7 +49,15 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
-function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T {
+function safeJsonParse<T>(value: unknown, defaultValue: T): T {
+  if (value === null || value === undefined) return defaultValue;
+
+  // mysql2 can return JSON columns as already-parsed values depending on configuration.
+  // In that case, return the value directly instead of treating it like a string.
+  if (typeof value !== 'string') {
+    return value as T;
+  }
+
   if (!value) return defaultValue;
   const trimmedValue = value.trim();
 
@@ -78,7 +86,7 @@ function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T 
   }
 
   try {
-    return JSON.parse(value) as T;
+    return JSON.parse(trimmedValue) as T;
   } catch (error) {
     console.error('Failed to parse JSON value:', value, error);
     
