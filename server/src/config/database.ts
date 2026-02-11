@@ -238,20 +238,23 @@ export async function initDatabase() {
 
         // Add new columns to tenant_rewards_v2 table for payload-to-columns migration
         console.log('Checking for missing columns in tenant_rewards_v2...');
-        const rewardColumnMigrations = [
-          { name: 'name', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN name VARCHAR(255) AFTER tenant_id' },
-          { name: 'title', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN title VARCHAR(255) AFTER name' },
-        ];
-
-        for (const migration of rewardColumnMigrations) {
-          const [cols] = await connection.query<RowDataPacket[]>(
-            'SHOW COLUMNS FROM tenant_rewards_v2 LIKE ?',
-            [migration.name]
-          );
-          if (cols.length === 0) {
-            await connection.query(migration.sql);
-            console.log(`Added ${migration.name} column to tenant_rewards_v2 table`);
-          }
+        
+        // Check and add name column
+        const [nameColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'name'"
+        );
+        if (nameColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN name VARCHAR(255) AFTER tenant_id');
+          console.log('Added name column to tenant_rewards_v2 table');
+        }
+        
+        // Check and add title column
+        const [titleColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'title'"
+        );
+        if (titleColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN title VARCHAR(255) AFTER name');
+          console.log('Added title column to tenant_rewards_v2 table');
         }
 
         // Drop payload_json column from tenant_children_v2 if it exists
