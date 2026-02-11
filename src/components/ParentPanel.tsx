@@ -178,6 +178,10 @@ interface ParentPanelProps {
       endDate?: number
       daysOfWeek?: DayOfWeek[]
       repeatPattern?: RepeatPattern
+      timeOfDay?: ChoreTimeOfDay
+      timeWindow?: { startTime: string; endTime: string }
+      pointOverrides?: { childId: string; points: number }[]
+      categoryPointOverrides?: { childId: string; categoryId: string; points: number }[]
     }
   ) => void
   onAddReward: (reward: Omit<Reward, 'id' | 'createdAt'>) => void
@@ -1564,6 +1568,7 @@ export function ParentPanel({
         assignments={assignments}
         onAssignChild={onAssignChore}
         onUnassignChild={onUnassignChore}
+        onEditAssignment={onEditAssignment}
         categories={categories}
         canAddChore={limits?.canAddChore ?? true}
       />
