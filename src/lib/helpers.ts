@@ -987,7 +987,21 @@ export function sortChoresWithLockPriority<T extends { chore: { id: string; desi
       return aLocked ? 1 : -1
     }
     
-    // Within the same lock status, sort by desired time
+    // Within the same lock status, prioritize AM chores before PM chores
+    const timeOfDayRank = (item: T): number => {
+      const timeOfDay = (item as T & { timeOfDay?: 'am' | 'pm' }).timeOfDay
+      if (timeOfDay === 'am') return 0
+      if (timeOfDay === 'pm') return 2
+      return 1
+    }
+
+    const aTimeOfDayRank = timeOfDayRank(a)
+    const bTimeOfDayRank = timeOfDayRank(b)
+    if (aTimeOfDayRank !== bTimeOfDayRank) {
+      return aTimeOfDayRank - bTimeOfDayRank
+    }
+
+    // Within the same lock and time-of-day status, sort by desired time
     const timeA = timeToMinutes(a.chore.desiredTime)
     const timeB = timeToMinutes(b.chore.desiredTime)
     return timeA - timeB
