@@ -169,7 +169,6 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
         }
       } catch (limitsError) {
         console.error(`Error checking plan limits for key "${key}" (tenantId: ${tenantId}):`, limitsError);
-        console.error('Stack trace:', limitsError instanceof Error ? limitsError.stack : 'No stack trace available');
         // Continue with the operation - don't block writes if plan limit check fails
         // This ensures data can still be saved even if subscription service has issues
       }
@@ -313,7 +312,6 @@ router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
         }
       } catch (limitsError) {
         console.error(`Error checking plan limits in bulk operation (tenantId: ${tenantId}):`, limitsError);
-        console.error('Stack trace:', limitsError instanceof Error ? limitsError.stack : 'No stack trace available');
         // Continue with the operation - don't block writes if plan limit check fails
         // This ensures data can still be saved even if subscription service has issues
       }
