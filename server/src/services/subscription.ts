@@ -93,13 +93,19 @@ export async function getOrCreateStripeProduct(): Promise<string> {
 
 /**
  * Helper function to determine if a resource can be added based on fetch status and limits
+ * 
+ * This function implements fail-secure behavior: when data fetch fails (fetchFailed=true),
+ * it assumes the limit is reached and returns false. This prevents bypassing subscription
+ * limits during system degradation or data access failures.
+ * 
  * @param fetchFailed - Whether the data fetch for this resource failed
  * @param currentCount - Current count of the resource (if fetch succeeded)
  * @param maxLimit - Maximum allowed count (null means unlimited)
- * @returns true if the resource can be added, false otherwise
+ * @returns true if the resource can be added, false otherwise (false if fetch failed)
  */
 function canAddResource(fetchFailed: boolean, currentCount: number, maxLimit: number | null): boolean {
   // If fetch failed, be pessimistic and assume limit is reached (fail-secure)
+  // This prevents bypassing limits when we cannot verify current usage
   if (fetchFailed) {
     return false;
   }
@@ -1111,20 +1117,23 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     }},
   ];
   
-  // Execute all fetches and collect results
+  // Execute all fetches concurrently for better performance
   const counts: Record<ResourceName, number> = { children: 0, chores: 0, rewards: 0, devices: 0 };
   const fetchFailed: Record<ResourceName, boolean> = { children: false, chores: false, rewards: false, devices: false };
-  let fetchFailures = 0;
   
-  for (const fetch of dataFetches) {
-    try {
-      counts[fetch.name] = await fetch.fetchFn();
-    } catch (error) {
-      console.error(`Error fetching ${fetch.name} data for tenant ${tenantId}:`, error);
-      fetchFailed[fetch.name] = true;
+  const results = await Promise.allSettled(dataFetches.map(fetch => fetch.fetchFn()));
+  
+  let fetchFailures = 0;
+  results.forEach((result, index) => {
+    const fetchName = dataFetches[index].name;
+    if (result.status === 'fulfilled') {
+      counts[fetchName] = result.value;
+    } else {
+      console.error(`Error fetching ${fetchName} data for tenant ${tenantId}:`, result.reason);
+      fetchFailed[fetchName] = true;
       fetchFailures++;
     }
-  }
+  });
   
   // If all fetches failed, throw an error - this indicates a major system issue
   if (fetchFailures === dataFetches.length) {
