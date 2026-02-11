@@ -55,6 +55,20 @@ function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T 
     return JSON.parse(value) as T;
   } catch (error) {
     console.error('Failed to parse JSON value:', value, error);
+    
+    // Try to fix malformed JSON with single quotes instead of double quotes
+    // This handles cases where data was stored with JavaScript array notation instead of JSON
+    if (typeof value === 'string' && value.includes("'")) {
+      const fixedValue = value.replace(/'/g, '"');
+      try {
+        const parsed = JSON.parse(fixedValue);
+        console.warn('Successfully parsed JSON after replacing single quotes with double quotes:', value, '->', fixedValue);
+        return parsed as T;
+      } catch (secondError) {
+        console.error('Failed to parse even after fixing quotes:', fixedValue, secondError);
+      }
+    }
+    
     // Special case: If it's a plain string that looks like a category ID and defaultValue is an array,
     // wrap the string in an array. This handles corrupted data where category_ids was stored as a string.
     if (typeof value === 'string' && value.startsWith('category_') && Array.isArray(defaultValue)) {
