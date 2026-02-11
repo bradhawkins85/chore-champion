@@ -16,10 +16,6 @@ let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
 const API_RECHECK_INTERVAL_MS = 30000; // Recheck API availability every 30 seconds if it was previously unavailable
 const BACKGROUND_SYNC_INTERVAL_MS = 120000; // Keep data fresh across long-lived dashboard sessions (2 minutes)
-const FOCUS_SYNC_THROTTLE_MS = 5000; // Prevent a request burst when multiple hooks react to focus
-
-// Track the most recent focus/visibility refresh by key to throttle concurrent hooks
-const lastVisibilitySyncByKey = new Map<string, number>();
 
 function resetApiAvailability() {
   apiAvailable = null;
@@ -323,22 +319,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
       syncValue();
     }, BACKGROUND_SYNC_INTERVAL_MS);
 
-    const handleFocusOrVisible = () => {
-      const now = Date.now();
-      const lastSync = lastVisibilitySyncByKey.get(key) ?? 0;
-      if (now - lastSync < FOCUS_SYNC_THROTTLE_MS) {
-        return;
-      }
-      lastVisibilitySyncByKey.set(key, now);
-      syncValue(true);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleFocusOrVisible();
-      }
-    };
-
     const handleStorageUpdate = (event: StorageEvent) => {
       if (event.key === key && !useApiRef.current) {
         syncValue();
@@ -349,15 +329,11 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
       }
     };
 
-    window.addEventListener('focus', handleFocusOrVisible);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('storage', handleStorageUpdate);
 
     return () => {
       mounted = false;
       clearInterval(backgroundSyncId);
-      window.removeEventListener('focus', handleFocusOrVisible);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorageUpdate);
     };
   }, [key, authToken]);
