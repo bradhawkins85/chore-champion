@@ -1081,65 +1081,85 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   
   // Get current counts from tenant data tables with error handling
   // Track fetch failures to ensure at least some data is available
-  let fetchFailures = 0;
-  const totalFetches = 4;
+  const dataFetches = [
+    { name: 'children', fetchFn: async () => {
+      const children = (await getTenantData('children', tenantId)) ?? [];
+      return Array.isArray(children)
+        ? children.filter((child) => child?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'chores', fetchFn: async () => {
+      const chores = (await getTenantData('chores', tenantId)) ?? [];
+      return Array.isArray(chores)
+        ? chores.filter((chore) => chore?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'rewards', fetchFn: async () => {
+      const rewards = (await getTenantData('rewards', tenantId)) ?? [];
+      return Array.isArray(rewards)
+        ? rewards.filter((reward) => reward?.isActive !== false).length
+        : 0;
+    }},
+    { name: 'devices', fetchFn: async () => {
+      const [devicesRows] = await pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
+        [tenantId]
+      );
+      return devicesRows[0]?.count || 0;
+    }},
+  ];
   
   let childrenCount = 0;
   let childrenFetchFailed = false;
-  try {
-    const children = (await getTenantData('children', tenantId)) ?? [];
-    childrenCount = Array.isArray(children)
-      ? children.filter((child) => child?.isActive !== false).length
-      : 0;
-  } catch (error) {
-    console.error(`Error fetching children data for tenant ${tenantId}:`, error);
-    childrenFetchFailed = true;
-    fetchFailures++;
-  }
-  
   let choresCount = 0;
   let choresFetchFailed = false;
-  try {
-    const chores = (await getTenantData('chores', tenantId)) ?? [];
-    choresCount = Array.isArray(chores)
-      ? chores.filter((chore) => chore?.isActive !== false).length
-      : 0;
-  } catch (error) {
-    console.error(`Error fetching chores data for tenant ${tenantId}:`, error);
-    choresFetchFailed = true;
-    fetchFailures++;
-  }
-  
   let rewardsCount = 0;
   let rewardsFetchFailed = false;
-  try {
-    const rewards = (await getTenantData('rewards', tenantId)) ?? [];
-    rewardsCount = Array.isArray(rewards)
-      ? rewards.filter((reward) => reward?.isActive !== false).length
-      : 0;
-  } catch (error) {
-    console.error(`Error fetching rewards data for tenant ${tenantId}:`, error);
-    rewardsFetchFailed = true;
-    fetchFailures++;
-  }
-  
   let devicesCount = 0;
   let devicesFetchFailed = false;
-  try {
-    const [devicesRows] = await pool.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
-      [tenantId]
-    );
-    devicesCount = devicesRows[0]?.count || 0;
-  } catch (error) {
-    console.error(`Error fetching devices count for tenant ${tenantId}:`, error);
-    devicesFetchFailed = true;
-    fetchFailures++;
+  let fetchFailures = 0;
+  
+  // Execute all fetches with error handling
+  for (const fetch of dataFetches) {
+    try {
+      const count = await fetch.fetchFn();
+      switch (fetch.name) {
+        case 'children':
+          childrenCount = count;
+          break;
+        case 'chores':
+          choresCount = count;
+          break;
+        case 'rewards':
+          rewardsCount = count;
+          break;
+        case 'devices':
+          devicesCount = count;
+          break;
+      }
+    } catch (error) {
+      console.error(`Error fetching ${fetch.name} data for tenant ${tenantId}:`, error);
+      fetchFailures++;
+      switch (fetch.name) {
+        case 'children':
+          childrenFetchFailed = true;
+          break;
+        case 'chores':
+          choresFetchFailed = true;
+          break;
+        case 'rewards':
+          rewardsFetchFailed = true;
+          break;
+        case 'devices':
+          devicesFetchFailed = true;
+          break;
+      }
+    }
   }
   
   // If all fetches failed, throw an error - this indicates a major system issue
-  if (fetchFailures === totalFetches) {
-    throw new Error('Unable to fetch any tenant data for plan limit checks');
+  if (fetchFailures === dataFetches.length) {
+    throw new Error(`Unable to fetch any tenant data for plan limit checks (tenant: ${tenantId})`);
   }
   
   // For failed individual fetches, be pessimistic and assume limit is reached
