@@ -258,6 +258,15 @@ export async function initDatabase() {
           console.log('Added title column to tenant_rewards_v2 table');
         }
 
+        // Check and add image_emoji column
+        const [imageEmojiColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'image_emoji'"
+        );
+        if (imageEmojiColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN image_emoji VARCHAR(20) DEFAULT NULL AFTER cost_points');
+          console.log('Added image_emoji column to tenant_rewards_v2 table');
+        }
+
         // Drop payload_json column from tenant_children_v2 if it exists
         console.log('Checking for payload_json column in tenant_children_v2...');
         const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
