@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 const HEALTH_CHECK_INTERVAL = 10000 // Check every 10 seconds
@@ -14,9 +14,9 @@ interface ServerStatus {
 }
 
 /**
- * Hook to monitor backend server availability
+ * Hook to monitor backend server availability.
  * This detects when the server goes offline (e.g., during software upgrades)
- * and triggers an automatic page refresh when it comes back online
+ * and surfaces reconnection state without forcing a page refresh.
  */
 export function useServerStatus() {
   const [status, setStatus] = useState<ServerStatus>({
@@ -27,9 +27,6 @@ export function useServerStatus() {
     consecutiveFailures: 0,
   })
 
-  const [shouldAutoRefresh, setShouldAutoRefresh] = useState(true)
-  const wasOfflineRef = useRef(false)
-  const refreshTimeoutRef = useRef<number | null>(null)
 
   const checkServerHealth = useCallback(async (): Promise<boolean> => {
     try {
@@ -81,8 +78,6 @@ export function useServerStatus() {
     setStatus(prev => {
       const newConsecutiveFailures = isServerOnline ? 0 : prev.consecutiveFailures + 1
       const isNowOffline = newConsecutiveFailures >= OFFLINE_THRESHOLD
-      // Use the ref to track actual state transition, not threshold comparison
-      const justCameBackOnline = wasOfflineRef.current && !isNowOffline
 
       // Calculate offline duration
       let offlineDuration = prev.offlineDuration
@@ -108,23 +103,6 @@ export function useServerStatus() {
         return prev
       }
 
-      // Update ref to track offline state
-      wasOfflineRef.current = isNowOffline
-
-      // Trigger auto-refresh if server just came back online
-      if (justCameBackOnline && shouldAutoRefresh) {
-        console.log('Server is back online. Triggering auto-refresh...')
-        // Clear any existing refresh timeout to prevent multiple refreshes
-        if (refreshTimeoutRef.current !== null) {
-          clearTimeout(refreshTimeoutRef.current)
-        }
-        // Use a small delay to ensure the UI updates before refresh
-        refreshTimeoutRef.current = window.setTimeout(() => {
-          refreshTimeoutRef.current = null
-          handleServerReconnect()
-        }, 1000)
-      }
-
       return {
         isOnline,
         isChecking: false,
@@ -133,7 +111,7 @@ export function useServerStatus() {
         consecutiveFailures: newConsecutiveFailures,
       }
     })
-  }, [checkServerHealth, shouldAutoRefresh, handleServerReconnect])
+  }, [checkServerHealth])
 
   // Start periodic health checks
   useEffect(() => {
@@ -145,11 +123,6 @@ export function useServerStatus() {
 
     return () => {
       clearInterval(intervalId)
-      // Clean up any pending refresh timeout
-      if (refreshTimeoutRef.current !== null) {
-        clearTimeout(refreshTimeoutRef.current)
-        refreshTimeoutRef.current = null
-      }
     }
   }, [performHealthCheck])
 
@@ -157,8 +130,6 @@ export function useServerStatus() {
     isServerOnline: status.isOnline,
     isChecking: status.isChecking,
     offlineDuration: status.offlineDuration,
-    shouldAutoRefresh,
-    setShouldAutoRefresh,
     manualRefresh: handleServerReconnect,
   }
 }
