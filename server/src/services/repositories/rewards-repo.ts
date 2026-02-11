@@ -51,6 +51,32 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
 
 function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T {
   if (!value) return defaultValue;
+  const trimmedValue = value.trim();
+
+  // Handle legacy category values stored as plain string identifiers.
+  if (Array.isArray(defaultValue) && /^category_[\w-]+$/.test(trimmedValue)) {
+    return [trimmedValue] as T;
+  }
+
+  // Handle legacy category arrays stored as `[category_default_0]` (missing quotes).
+  if (
+    Array.isArray(defaultValue) &&
+    trimmedValue.startsWith('[') &&
+    trimmedValue.endsWith(']') &&
+    !trimmedValue.includes('"') &&
+    !trimmedValue.includes("'")
+  ) {
+    const items = trimmedValue
+      .slice(1, -1)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (items.length > 0 && items.every((item) => /^category_[\w-]+$/.test(item))) {
+      return items as T;
+    }
+  }
+
   try {
     return JSON.parse(value) as T;
   } catch (error) {
@@ -119,7 +145,7 @@ function mapRow(row: RewardRow): RewardRecord {
     stock: row.stock_count,
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at_timestamp ?? 0,
-    categoryIds: safeJsonParse(row.category_ids, []),
+    categoryIds: ensureCategoryIdsArray(safeJsonParse(row.category_ids, [])),
     costOverrides: safeJsonParse(row.cost_overrides, undefined),
     requirements: safeJsonParse(row.requirements, undefined),
     purchaseLimit: safeJsonParse(row.purchase_limit, undefined),
@@ -279,4 +305,3 @@ export async function deleteRewardById(tenantId: string, rewardId: string, conne
   const executor = getExecutor(connection);
   await executor.query('DELETE FROM tenant_rewards_v2 WHERE tenant_id = ? AND id = ?', [tenantId, rewardId]);
 }
-
