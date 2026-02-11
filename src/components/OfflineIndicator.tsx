@@ -38,7 +38,7 @@ export function OfflineIndicator() {
         }, 5000) // Show for 5 seconds
       }
     }
-  }, [isServerOnline, offlineDuration, wasServerOffline])
+  }, [isServerOnline, offlineDuration]) // Removed wasServerOffline to prevent dependency loop
 
   useEffect(() => {
     const handleOnline = () => {
