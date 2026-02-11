@@ -21,7 +21,61 @@ fi
 source .env
 
 echo "Creating pre-update backup..."
-docker exec chorequest-backup /scripts/backup.sh || echo "WARNING: Backup container not running"
+
+# Check if backup container exists
+if ! docker inspect chorequest-backup > /dev/null 2>&1; then
+    echo "WARNING: Backup container not found - skipping backup"
+else
+    # Wait for backup container to be running (max 30 seconds)
+    BACKUP_WAIT=0
+    BACKUP_MAX_WAIT=30
+    while [ $BACKUP_WAIT -lt $BACKUP_MAX_WAIT ]; do
+        CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' chorequest-backup 2>/dev/null || echo "")
+        
+        if [ "$CONTAINER_STATE" = "running" ]; then
+            echo "✓ Backup container is running"
+            break
+        fi
+        
+        # Check for terminal states that won't transition to running
+        if [ "$CONTAINER_STATE" = "exited" ] || [ "$CONTAINER_STATE" = "dead" ]; then
+            echo "WARNING: Backup container in terminal state '$CONTAINER_STATE' - cannot proceed"
+            break
+        fi
+        
+        # Check if container was removed during the wait
+        if [ -z "$CONTAINER_STATE" ]; then
+            echo "WARNING: Backup container was removed - cannot proceed"
+            break
+        fi
+        
+        # Container is in a transitional state - wait for it to become running
+        # Expected states here: 'restarting', 'created', 'paused'
+        if [ "$CONTAINER_STATE" = "restarting" ]; then
+            echo "Waiting for backup container to finish restarting... ($BACKUP_WAIT/$BACKUP_MAX_WAIT seconds)"
+        else
+            echo "Backup container is in state '$CONTAINER_STATE' - waiting..."
+        fi
+        
+        sleep 2
+        BACKUP_WAIT=$((BACKUP_WAIT + 2))
+    done
+    
+    # Check final state after loop
+    CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' chorequest-backup 2>/dev/null || echo "")
+    
+    # Attempt backup if container is running
+    if [ "$CONTAINER_STATE" = "running" ]; then
+        if docker exec chorequest-backup /scripts/backup.sh; then
+            echo "✓ Backup completed successfully"
+        else
+            echo "WARNING: Backup failed but continuing with update"
+        fi
+    else
+        echo "WARNING: Backup container not ready after ${BACKUP_MAX_WAIT}s (state: ${CONTAINER_STATE:-unknown})"
+        echo "Skipping backup and continuing with update"
+    fi
+fi
 
 echo ""
 echo "Checking for updates..."
