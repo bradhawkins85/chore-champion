@@ -236,6 +236,28 @@ export async function initDatabase() {
 
         console.log('Column migration completed');
 
+        // Add new columns to tenant_rewards_v2 table for payload-to-columns migration
+        console.log('Checking for missing columns in tenant_rewards_v2...');
+        
+        // Check and add name column first
+        const [nameColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'name'"
+        );
+        if (nameColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN name VARCHAR(255) DEFAULT NULL AFTER tenant_id');
+          console.log('Added name column to tenant_rewards_v2 table');
+        }
+        
+        // Check and add title column after name
+        // Note: name column is guaranteed to exist at this point (either it existed before or was just added above)
+        const [titleColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'title'"
+        );
+        if (titleColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN title VARCHAR(255) DEFAULT NULL AFTER name');
+          console.log('Added title column to tenant_rewards_v2 table');
+        }
+
         // Drop payload_json column from tenant_children_v2 if it exists
         console.log('Checking for payload_json column in tenant_children_v2...');
         const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
