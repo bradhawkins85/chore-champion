@@ -49,6 +49,41 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
+function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T {
+  if (!value) return defaultValue;
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    console.error('Failed to parse JSON value:', value, error);
+    // Special case: If it's a plain string that looks like a category ID and defaultValue is an array,
+    // wrap the string in an array. This handles corrupted data where category_ids was stored as a string.
+    if (typeof value === 'string' && value.startsWith('category_') && Array.isArray(defaultValue)) {
+      console.warn('Converting plain category string to array:', value);
+      return [value] as T;
+    }
+    return defaultValue;
+  }
+}
+
+function ensureCategoryIdsArray(categoryIds: string | string[] | null | undefined): string[] {
+  // If already an array, return as is
+  if (Array.isArray(categoryIds)) {
+    return categoryIds;
+  }
+  // If it's a string, wrap it in an array
+  if (typeof categoryIds === 'string') {
+    console.warn('Converting string categoryIds to array:', categoryIds);
+    return [categoryIds];
+  }
+  // If null/undefined, return empty array
+  if (categoryIds === null || categoryIds === undefined) {
+    return [];
+  }
+  // For any other type, return empty array
+  console.warn('Unexpected categoryIds type:', typeof categoryIds, categoryIds);
+  return [];
+}
+
 function mapRow(row: RewardRow): RewardRecord {
   const isActive = Boolean(row.is_active ?? true);
   
@@ -65,14 +100,14 @@ function mapRow(row: RewardRow): RewardRecord {
     stock: row.stock_count,
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at_timestamp ?? 0,
-    categoryIds: row.category_ids ? JSON.parse(row.category_ids) : [],
-    costOverrides: row.cost_overrides ? JSON.parse(row.cost_overrides) : undefined,
-    requirements: row.requirements ? JSON.parse(row.requirements) : undefined,
-    purchaseLimit: row.purchase_limit ? JSON.parse(row.purchase_limit) : undefined,
+    categoryIds: safeJsonParse(row.category_ids, []),
+    costOverrides: safeJsonParse(row.cost_overrides, undefined),
+    requirements: safeJsonParse(row.requirements, undefined),
+    purchaseLimit: safeJsonParse(row.purchase_limit, undefined),
     startDate: row.start_date,
     expiryDate: row.expiry_date,
     isPointSwap: Boolean(row.is_point_swap ?? false),
-    swapConfig: row.swap_config ? JSON.parse(row.swap_config) : undefined,
+    swapConfig: safeJsonParse(row.swap_config, undefined),
   };
 }
 
@@ -118,6 +153,9 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
   // Preserve existing createdAt, or set to null to let database handle timestamp
   const createdAt = reward.createdAt ?? null;
   
+  // Ensure categoryIds is always an array before stringifying
+  const categoryIdsArray = ensureCategoryIdsArray(reward.categoryIds);
+  
   await executor.query(
     `INSERT INTO tenant_rewards_v2
     (id, tenant_id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
@@ -154,7 +192,7 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
       reward.stock ?? null,
       sortOrder,
       createdAt,
-      reward.categoryIds ? JSON.stringify(reward.categoryIds) : null,
+      categoryIdsArray.length > 0 ? JSON.stringify(categoryIdsArray) : null,
       reward.costOverrides ? JSON.stringify(reward.costOverrides) : null,
       reward.requirements ? JSON.stringify(reward.requirements) : null,
       reward.purchaseLimit ? JSON.stringify(reward.purchaseLimit) : null,
@@ -179,6 +217,9 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
     // Preserve existing createdAt, or set to null to let database handle timestamp
     const createdAt = reward.createdAt ?? null;
     
+    // Ensure categoryIds is always an array before stringifying
+    const categoryIdsArray = ensureCategoryIdsArray(reward.categoryIds);
+    
     await executor.query(
       `INSERT INTO tenant_rewards_v2
       (id, tenant_id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
@@ -197,7 +238,7 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
         reward.stock ?? null,
         sortOrder,
         createdAt,
-        reward.categoryIds ? JSON.stringify(reward.categoryIds) : null,
+        categoryIdsArray.length > 0 ? JSON.stringify(categoryIdsArray) : null,
         reward.costOverrides ? JSON.stringify(reward.costOverrides) : null,
         reward.requirements ? JSON.stringify(reward.requirements) : null,
         reward.purchaseLimit ? JSON.stringify(reward.purchaseLimit) : null,
