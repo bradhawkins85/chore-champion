@@ -150,8 +150,12 @@ fi
 
 if [ "$UPDATE_AVAILABLE" = "true" ]; then
     echo ""
-    echo "Recreating containers..."
-    docker compose -f docker-compose.prod.yml up -d --force-recreate
+    echo "Recreating application containers..."
+    # Recreate app containers but only restart the backup container
+    docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps mysql api chorequest
+    
+    echo "Restarting backup container..."
+    docker compose -f docker-compose.prod.yml restart backup
 else
     echo ""
     echo "No updates available - skipping build and deployment"

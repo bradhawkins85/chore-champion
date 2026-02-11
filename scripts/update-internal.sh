@@ -267,12 +267,14 @@ fi
 
 if [ "$UPDATE_AVAILABLE" = "true" ]; then
     echo ""
-    echo "Recreating containers..."
-    # Recreate containers with new images
+    echo "Recreating application containers..."
+    # Recreate app containers but only restart the backup container
     if [ -n "$COMPOSE_FILE_PATH" ]; then
-        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" up -d --force-recreate --remove-orphans
+        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" up -d --force-recreate --no-deps --remove-orphans mysql api chorequest
+        docker compose -p "${COMPOSE_PROJECT}" -f "${COMPOSE_FILE_PATH}" restart backup
     else
-        docker compose -p "${COMPOSE_PROJECT}" up -d --force-recreate --remove-orphans
+        docker compose -p "${COMPOSE_PROJECT}" up -d --force-recreate --no-deps --remove-orphans mysql api chorequest
+        docker compose -p "${COMPOSE_PROJECT}" restart backup
     fi
 else
     echo ""
