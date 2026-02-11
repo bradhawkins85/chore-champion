@@ -177,6 +177,65 @@ export async function initDatabase() {
           console.log('Added emoji column to tenant_chores_v2 table');
         }
 
+        // Add new columns to tenant_children_v2 table for payload-to-columns migration
+        console.log('Checking for missing columns in tenant_children_v2...');
+        const childColumnMigrations = [
+          { name: 'avatar_color', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN avatar_color VARCHAR(20) AFTER sort_order' },
+          { name: 'ics_url', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN ics_url TEXT AFTER avatar_color' },
+          { name: 'calendar_last_refresh', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN calendar_last_refresh BIGINT NULL AFTER ics_url' },
+          { name: 'calendar_auto_refresh', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN calendar_auto_refresh BOOLEAN DEFAULT FALSE AFTER calendar_last_refresh' },
+          { name: 'calendar_refresh_interval', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN calendar_refresh_interval VARCHAR(20) AFTER calendar_auto_refresh' },
+          { name: 'calendar_show_times', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN calendar_show_times BOOLEAN DEFAULT TRUE AFTER calendar_refresh_interval' },
+          { name: 'total_points', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN total_points INT DEFAULT 0 AFTER calendar_show_times' },
+          { name: 'created_at_timestamp', sql: 'ALTER TABLE tenant_children_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER total_points' },
+        ];
+
+        for (const migration of childColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_children_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_children_v2 table`);
+          }
+        }
+
+        // Add new columns to tenant_chores_v2 table for payload-to-columns migration
+        console.log('Checking for missing columns in tenant_chores_v2...');
+        const choreColumnMigrations = [
+          { name: 'name', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN name VARCHAR(255) AFTER tenant_id' },
+          { name: 'completion_type', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN completion_type VARCHAR(50) AFTER frequency' },
+          { name: 'category_ids', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN category_ids JSON AFTER sort_order' },
+          { name: 'category_points', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN category_points JSON AFTER category_ids' },
+          { name: 'desired_time', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN desired_time VARCHAR(20) AFTER category_points' },
+          { name: 'time_of_day', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN time_of_day VARCHAR(20) AFTER desired_time' },
+          { name: 'time_window', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN time_window JSON AFTER time_of_day' },
+          { name: 'estimated_duration', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN estimated_duration INT NULL AFTER time_window' },
+          { name: 'approval_configs', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN approval_configs JSON AFTER estimated_duration' },
+          { name: 'max_completions', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN max_completions INT NULL AFTER approval_configs' },
+          { name: 'reset_period', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN reset_period VARCHAR(50) AFTER max_completions' },
+          { name: 'weather_conditions', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN weather_conditions JSON AFTER reset_period' },
+          { name: 'speak_description', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN speak_description BOOLEAN DEFAULT TRUE AFTER weather_conditions' },
+          { name: 'inactive_on_school_holidays', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN inactive_on_school_holidays BOOLEAN DEFAULT FALSE AFTER speak_description' },
+          { name: 'only_on_school_holidays', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN only_on_school_holidays BOOLEAN DEFAULT FALSE AFTER inactive_on_school_holidays' },
+          { name: 'rotation_config', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN rotation_config JSON AFTER only_on_school_holidays' },
+          { name: 'created_at_timestamp', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER rotation_config' },
+        ];
+
+        for (const migration of choreColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_chores_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_chores_v2 table`);
+          }
+        }
+
+        console.log('Column migration completed');
+
         // Create subscription_plans table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscription_plans (
