@@ -137,6 +137,10 @@ export interface Chore {
   isActive?: boolean
   rotationConfig?: RotationConfig
   emoji?: string
+  defaultStartDate?: number
+  defaultEndDate?: number
+  defaultDaysOfWeek?: DayOfWeek[]
+  defaultRepeatPattern?: RepeatPattern
 }
 
 export type CalendarRefreshInterval = 'never' | '5min' | '15min' | '30min' | '1hour' | '6hours' | '12hours' | '24hours'

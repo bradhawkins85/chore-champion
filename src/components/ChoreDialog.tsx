@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder } from '@/lib/types'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder, DayOfWeek } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -80,6 +80,9 @@ export function ChoreDialog({
   const [timeWindowStart, setTimeWindowStart] = useState(editChore?.timeWindow?.startTime || '')
   const [timeWindowEnd, setTimeWindowEnd] = useState(editChore?.timeWindow?.endTime || '')
   const [estimatedDuration, setEstimatedDuration] = useState(editChore?.estimatedDuration?.toString() || '')
+  const [defaultStartDate, setDefaultStartDate] = useState<Date | undefined>(editChore?.defaultStartDate ? new Date(editChore.defaultStartDate) : undefined)
+  const [defaultEndDate, setDefaultEndDate] = useState<Date | undefined>(editChore?.defaultEndDate ? new Date(editChore.defaultEndDate) : undefined)
+  const [defaultDays, setDefaultDays] = useState<DayOfWeek[]>(editChore?.defaultDaysOfWeek || [])
   const [approvalConfigs, setApprovalConfigs] = useState<ApprovalConfig[]>(editChore?.approvalConfigs || [])
   const [maxCompletions, setMaxCompletions] = useState(editChore?.maxCompletions?.toString() || '')
   const [resetPeriod, setResetPeriod] = useState<'daily' | 'weekly' | 'bi-weekly' | 'monthly'>(editChore?.resetPeriod || 'daily')
@@ -119,6 +122,9 @@ export function ChoreDialog({
       setTimeWindowStart(editChore.timeWindow?.startTime || '')
       setTimeWindowEnd(editChore.timeWindow?.endTime || '')
       setEstimatedDuration(editChore.estimatedDuration?.toString() || '')
+      setDefaultStartDate(editChore.defaultStartDate ? new Date(editChore.defaultStartDate) : undefined)
+      setDefaultEndDate(editChore.defaultEndDate ? new Date(editChore.defaultEndDate) : undefined)
+      setDefaultDays(editChore.defaultDaysOfWeek || [])
       setApprovalConfigs(editChore.approvalConfigs || [])
       setMaxCompletions(editChore.maxCompletions?.toString() || '')
       setResetPeriod(editChore.resetPeriod || 'daily')
@@ -149,6 +155,9 @@ export function ChoreDialog({
       setTimeWindowStart('')
       setTimeWindowEnd('')
       setEstimatedDuration('')
+      setDefaultStartDate(undefined)
+      setDefaultEndDate(undefined)
+      setDefaultDays([])
       setApprovalConfigs([])
       setMaxCompletions('')
       setResetPeriod('daily')
@@ -166,6 +175,21 @@ export function ChoreDialog({
       setEmoji('')
     }
   }, [editChore])
+
+
+  const defaultDaysOfWeek: { value: DayOfWeek; label: string }[] = [
+    { value: 'monday', label: 'Monday' },
+    { value: 'tuesday', label: 'Tuesday' },
+    { value: 'wednesday', label: 'Wednesday' },
+    { value: 'thursday', label: 'Thursday' },
+    { value: 'friday', label: 'Friday' },
+    { value: 'saturday', label: 'Saturday' },
+    { value: 'sunday', label: 'Sunday' },
+  ]
+
+  const toggleDefaultDay = (day: DayOfWeek) => {
+    setDefaultDays((current) => current.includes(day) ? current.filter((d) => d !== day) : [...current, day])
+  }
 
   const filteredTemplates = getTemplatesByCategory(selectedCategory).filter((template) =>
     searchQuery === '' ||
@@ -286,6 +310,10 @@ export function ChoreDialog({
       choreData.estimatedDuration = parseInt(estimatedDuration)
     }
 
+    choreData.defaultStartDate = defaultStartDate ? defaultStartDate.getTime() : undefined
+    choreData.defaultEndDate = defaultEndDate ? defaultEndDate.getTime() : undefined
+    choreData.defaultDaysOfWeek = defaultDays.length > 0 ? defaultDays : undefined
+
     if (approvalConfigs && approvalConfigs.length > 0) {
       choreData.approvalConfigs = approvalConfigs
     }
@@ -341,6 +369,9 @@ export function ChoreDialog({
       setTimeWindowStart('')
       setTimeWindowEnd('')
       setEstimatedDuration('')
+      setDefaultStartDate(undefined)
+      setDefaultEndDate(undefined)
+      setDefaultDays([])
       setApprovalConfigs([])
       setMaxCompletions('')
       setResetPeriod('daily')
@@ -661,6 +692,46 @@ export function ChoreDialog({
                     Used for sorting chores by time - not displayed to children
                   </p>
                 </div>
+
+                <Separator />
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-base font-fredoka font-semibold">Default Assignment Schedule</Label>
+                    <p className="text-xs text-muted-foreground">These defaults are used when assigning this chore to a child. You can still override them per child in Edit Chores.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="default-start-date">Default Start Date (optional)</Label>
+                      <Input id="default-start-date" type="date" value={defaultStartDate ? new Date(defaultStartDate).toISOString().split('T')[0] : ''} onChange={(e) => setDefaultStartDate(e.target.value ? new Date(`${e.target.value}T00:00:00`) : undefined)} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="default-end-date">Default End Date (optional)</Label>
+                      <Input id="default-end-date" type="date" value={defaultEndDate ? new Date(defaultEndDate).toISOString().split('T')[0] : ''} onChange={(e) => setDefaultEndDate(e.target.value ? new Date(`${e.target.value}T00:00:00`) : undefined)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Default Active Days</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {defaultDaysOfWeek.map((day) => (
+                        <div
+                          key={day.value}
+                          onClick={() => toggleDefaultDay(day.value)}
+                          className={
+                            `flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${defaultDays.includes(day.value) ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'}`
+                          }
+                        >
+                          <Checkbox
+                            checked={defaultDays.includes(day.value)}
+                            onCheckedChange={() => toggleDefaultDay(day.value)}
+                          />
+                          <span className="text-sm">{day.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{defaultDays.length === 0 ? 'No days selected - defaults to every day' : `Default active on ${defaultDays.length} day${defaultDays.length === 1 ? '' : 's'}`}</p>
+                  </div>
+                </div>
+
                 <Separator />
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

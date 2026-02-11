@@ -119,6 +119,10 @@ export function AssignChoresView({
     }).filter(Boolean) as { id: string; name: string; color: string; points: number }[]
   }
 
+  const editingChore = editingAssignment
+    ? allChores.find((c) => c.id === editingAssignment.choreId)
+    : undefined
+
   return (
     <div className="mx-auto p-6 max-w-6xl">
       <div className="space-y-6">
@@ -335,6 +339,7 @@ export function AssignChoresView({
         open={!!editingAssignment}
         onClose={() => setEditingAssignment(null)}
         onSave={onEditAssignment}
+        chore={editingChore}
         child={child}
         chorePoints={editingAssignment ? allChores.find(c => c.id === editingAssignment.choreId)?.points : 10}
         choreCategories={editingAssignment ? getChoreCategories(editingAssignment.choreId) : []}
