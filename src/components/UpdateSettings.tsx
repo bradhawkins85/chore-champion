@@ -251,7 +251,7 @@ export function UpdateSettings() {
           <div className="text-xs text-muted-foreground pt-2 border-t">
             <p>
               Updates are installed by pulling the latest Docker image and restarting the application.
-              A backup will be created automatically before updating.
+              A backup will be created automatically before updating if an update is available.
             </p>
           </div>
         </CardContent>

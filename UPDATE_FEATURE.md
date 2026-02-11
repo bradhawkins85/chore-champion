@@ -55,8 +55,9 @@ These requirements are automatically met if you deployed using:
 1. After checking for updates, click **Update Now**
 2. Confirm the update in the dialog box
 3. The update process will:
-   - Create a pre-update backup
-   - Pull the latest Docker images
+   - Check if updates are available
+   - Create a pre-update backup (only if updates are available)
+   - Pull the latest Docker images or code from GitHub
    - Recreate containers with new images
    - Clean up old images
 4. The application will restart automatically
