@@ -22,8 +22,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus } from '@phosphor-icons/react'
-import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder, DayOfWeek } from '@/lib/types'
+import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus, PencilSimple } from '@phosphor-icons/react'
+import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder, DayOfWeek, RepeatPattern, TimeWindow, ChorePointOverride, CategoryPointOverride } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { EditAssignmentDialog } from './EditAssignmentDialog'
 
 // Helper function to handle chore name property that might be stored as 'name' or 'title'
 // Backend stores it as 'title', but frontend type uses 'name'
@@ -49,6 +50,19 @@ interface ChoreDialogProps {
   assignments?: ChoreAssignment[]
   onAssignChild?: (childId: string, choreId: string) => void
   onUnassignChild?: (assignmentId: string) => void
+  onEditAssignment?: (
+    assignmentId: string,
+    updates: {
+      startDate?: number
+      endDate?: number
+      daysOfWeek?: DayOfWeek[]
+      repeatPattern?: RepeatPattern
+      timeOfDay?: ChoreTimeOfDay
+      timeWindow?: TimeWindow
+      pointOverrides?: ChorePointOverride[]
+      categoryPointOverrides?: CategoryPointOverride[]
+    }
+  ) => void
   categories: Category[]
   canAddChore?: boolean
 }
@@ -62,6 +76,7 @@ export function ChoreDialog({
   assignments = [],
   onAssignChild,
   onUnassignChild,
+  onEditAssignment,
   categories,
   canAddChore = true,
 }: ChoreDialogProps) {
@@ -106,6 +121,8 @@ export function ChoreDialog({
   const [rotationOrder, setRotationOrder] = useState<RotationOrder>(editChore?.rotationConfig?.order || 'specific')
   const [rotationChildOrder, setRotationChildOrder] = useState<string[]>(editChore?.rotationConfig?.childOrder || [])
   const [emoji, setEmoji] = useState(editChore?.emoji || '')
+  const [editingChildAssignment, setEditingChildAssignment] = useState<ChoreAssignment | null>(null)
+  const [editingAssignmentChild, setEditingAssignmentChild] = useState<Child | null>(null)
 
   useEffect(() => {
     if (editChore) {
@@ -189,6 +206,24 @@ export function ChoreDialog({
 
   const toggleDefaultDay = (day: DayOfWeek) => {
     setDefaultDays((current) => current.includes(day) ? current.filter((d) => d !== day) : [...current, day])
+  }
+
+  const getChoreCategories = (choreToUse: Chore) => {
+    if (!choreToUse.categoryPoints) return []
+
+    return choreToUse.categoryPoints
+      .map((cp) => {
+        const category = categories.find((cat) => cat.id === cp.categoryId)
+        return category
+          ? {
+              id: category.id,
+              name: category.name,
+              color: category.color,
+              points: cp.points,
+            }
+          : null
+      })
+      .filter(Boolean) as { id: string; name: string; color: string; points: number }[]
   }
 
   const filteredTemplates = getTemplatesByCategory(selectedCategory).filter((template) =>
@@ -1766,7 +1801,22 @@ export function ChoreDialog({
                         >
                           {child.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium">{child.name}</span>
+                        <span className="font-medium flex-1">{child.name}</span>
+                        {isAssigned && assignment && onEditAssignment && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setEditingChildAssignment(assignment)
+                              setEditingAssignmentChild(child)
+                            }}
+                          >
+                            <PencilSimple className="h-3.5 w-3.5 mr-1" />
+                            Edit Schedule
+                          </Button>
+                        )}
                       </div>
                     </Card>
                   )
@@ -1774,6 +1824,24 @@ export function ChoreDialog({
               </div>
             </div>
           </>
+        )}
+
+        {editChore && onEditAssignment && (
+          <EditAssignmentDialog
+            assignment={editingChildAssignment}
+            choreName={getChoreName(editChore)}
+            open={!!editingChildAssignment}
+            onClose={() => {
+              setEditingChildAssignment(null)
+              setEditingAssignmentChild(null)
+            }}
+            onSave={onEditAssignment}
+            chore={editChore}
+            child={editingAssignmentChild || undefined}
+            chorePoints={editChore.points}
+            choreCategories={getChoreCategories(editChore)}
+            categories={categories}
+          />
         )}
 
         {editChore && childrenList.length > 0 && (
