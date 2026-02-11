@@ -1058,8 +1058,12 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   }
   
   // Get current counts from tenant data tables with error handling
-  // If data fetch fails, default to 0 to allow operation to proceed without blocking
+  // Track fetch failures to ensure at least some data is available
+  let fetchFailures = 0;
+  const totalFetches = 4;
+  
   let childrenCount = 0;
+  let childrenFetchFailed = false;
   try {
     const children = (await getTenantData('children', tenantId)) ?? [];
     childrenCount = Array.isArray(children)
@@ -1067,10 +1071,12 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching children data for tenant ${tenantId}:`, error);
-    // Keep default of 0 to gracefully handle missing or corrupted data
+    childrenFetchFailed = true;
+    fetchFailures++;
   }
   
   let choresCount = 0;
+  let choresFetchFailed = false;
   try {
     const chores = (await getTenantData('chores', tenantId)) ?? [];
     choresCount = Array.isArray(chores)
@@ -1078,10 +1084,12 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching chores data for tenant ${tenantId}:`, error);
-    // Keep default of 0 to gracefully handle missing or corrupted data
+    choresFetchFailed = true;
+    fetchFailures++;
   }
   
   let rewardsCount = 0;
+  let rewardsFetchFailed = false;
   try {
     const rewards = (await getTenantData('rewards', tenantId)) ?? [];
     rewardsCount = Array.isArray(rewards)
@@ -1089,10 +1097,12 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       : 0;
   } catch (error) {
     console.error(`Error fetching rewards data for tenant ${tenantId}:`, error);
-    // Keep default of 0 to gracefully handle missing or corrupted data
+    rewardsFetchFailed = true;
+    fetchFailures++;
   }
   
   let devicesCount = 0;
+  let devicesFetchFailed = false;
   try {
     const [devicesRows] = await pool.query<RowDataPacket[]>(
       'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
@@ -1101,14 +1111,22 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     devicesCount = devicesRows[0]?.count || 0;
   } catch (error) {
     console.error(`Error fetching devices count for tenant ${tenantId}:`, error);
-    // Keep default of 0 to gracefully handle database query failures
+    devicesFetchFailed = true;
+    fetchFailures++;
   }
   
+  // If all fetches failed, throw an error - this indicates a major system issue
+  if (fetchFailures === totalFetches) {
+    throw new Error('Unable to fetch any tenant data for plan limit checks');
+  }
+  
+  // For failed individual fetches, be pessimistic and assume limit is reached
+  // This prevents bypassing limits while allowing the operation to proceed with partial data
   return {
-    canAddChild: plan.max_children === null || childrenCount < plan.max_children,
-    canAddDevice: plan.max_devices === null || devicesCount < plan.max_devices,
-    canAddChore: plan.max_chores === null || choresCount < plan.max_chores,
-    canAddReward: plan.max_rewards === null || rewardsCount < plan.max_rewards,
+    canAddChild: childrenFetchFailed ? false : (plan.max_children === null || childrenCount < plan.max_children),
+    canAddDevice: devicesFetchFailed ? false : (plan.max_devices === null || devicesCount < plan.max_devices),
+    canAddChore: choresFetchFailed ? false : (plan.max_chores === null || choresCount < plan.max_chores),
+    canAddReward: rewardsFetchFailed ? false : (plan.max_rewards === null || rewardsCount < plan.max_rewards),
     limits: {
       maxChildren: plan.max_children,
       maxDevices: plan.max_devices,
