@@ -267,6 +267,15 @@ export async function initDatabase() {
           console.log('Added image_emoji column to tenant_rewards_v2 table');
         }
 
+        // Check and add created_at_timestamp column
+        const [rewardCreatedAtTimestampColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'created_at_timestamp'"
+        );
+        if (rewardCreatedAtTimestampColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_rewards_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER sort_order');
+          console.log('Added created_at_timestamp column to tenant_rewards_v2 table');
+        }
+
         // Drop payload_json column from tenant_children_v2 if it exists
         console.log('Checking for payload_json column in tenant_children_v2...');
         const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
