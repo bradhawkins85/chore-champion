@@ -38,16 +38,23 @@ else
         fi
         
         # Check for terminal states that won't transition to running
-        if [ "$CONTAINER_STATE" = "exited" ] || [ "$CONTAINER_STATE" = "dead" ] || [ -z "$CONTAINER_STATE" ]; then
-            echo "WARNING: Backup container in terminal state '${CONTAINER_STATE:-not found}' - cannot proceed"
+        if [ "$CONTAINER_STATE" = "exited" ] || [ "$CONTAINER_STATE" = "dead" ]; then
+            echo "WARNING: Backup container in terminal state '$CONTAINER_STATE' - cannot proceed"
             break
         fi
         
-        # Container is not running but may transition, show appropriate message and wait
+        # Check if container was removed during the wait
+        if [ -z "$CONTAINER_STATE" ]; then
+            echo "WARNING: Backup container was removed - cannot proceed"
+            break
+        fi
+        
+        # Container is in a transitional state - wait for it to become running
+        # Expected states here: 'restarting', 'created', 'paused'
         if [ "$CONTAINER_STATE" = "restarting" ]; then
             echo "Waiting for backup container to finish restarting... ($BACKUP_WAIT/$BACKUP_MAX_WAIT seconds)"
         else
-            echo "Backup container is in state '${CONTAINER_STATE}' - waiting..."
+            echo "Backup container is in state '$CONTAINER_STATE' - waiting..."
         fi
         
         sleep 2
