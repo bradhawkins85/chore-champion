@@ -91,6 +91,28 @@ export async function getOrCreateStripeProduct(): Promise<string> {
   return product.id;
 }
 
+/**
+ * Helper function to determine if a resource can be added based on fetch status and limits
+ * @param fetchFailed - Whether the data fetch for this resource failed
+ * @param currentCount - Current count of the resource (if fetch succeeded)
+ * @param maxLimit - Maximum allowed count (null means unlimited)
+ * @returns true if the resource can be added, false otherwise
+ */
+function canAddResource(fetchFailed: boolean, currentCount: number, maxLimit: number | null): boolean {
+  // If fetch failed, be pessimistic and assume limit is reached (fail-secure)
+  if (fetchFailed) {
+    return false;
+  }
+  
+  // If no limit, always allow
+  if (maxLimit === null) {
+    return true;
+  }
+  
+  // Check if current count is below limit
+  return currentCount < maxLimit;
+}
+
 // Subscription Plan Interfaces
 export interface SubscriptionPlan {
   id: string;
@@ -1123,10 +1145,10 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   // For failed individual fetches, be pessimistic and assume limit is reached
   // This prevents bypassing limits while allowing the operation to proceed with partial data
   return {
-    canAddChild: childrenFetchFailed ? false : (plan.max_children === null || childrenCount < plan.max_children),
-    canAddDevice: devicesFetchFailed ? false : (plan.max_devices === null || devicesCount < plan.max_devices),
-    canAddChore: choresFetchFailed ? false : (plan.max_chores === null || choresCount < plan.max_chores),
-    canAddReward: rewardsFetchFailed ? false : (plan.max_rewards === null || rewardsCount < plan.max_rewards),
+    canAddChild: canAddResource(childrenFetchFailed, childrenCount, plan.max_children),
+    canAddDevice: canAddResource(devicesFetchFailed, devicesCount, plan.max_devices),
+    canAddChore: canAddResource(choresFetchFailed, choresCount, plan.max_chores),
+    canAddReward: canAddResource(rewardsFetchFailed, rewardsCount, plan.max_rewards),
     limits: {
       maxChildren: plan.max_children,
       maxDevices: plan.max_devices,
