@@ -49,23 +49,22 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
-function safeJsonParse(value: string | null | undefined, defaultValue: any = undefined): any {
+function safeJsonParse<T>(value: string | null | undefined, defaultValue: T): T {
   if (!value) return defaultValue;
   try {
-    const parsed = JSON.parse(value);
-    return parsed;
+    return JSON.parse(value) as T;
   } catch (error) {
     console.error('Failed to parse JSON value:', value, error);
     // If it's a plain string that looks like it should be in an array, wrap it
     if (typeof value === 'string' && value.startsWith('category_')) {
       console.warn('Converting plain category string to array:', value);
-      return [value];
+      return [value] as T;
     }
     return defaultValue;
   }
 }
 
-function ensureCategoryIdsArray(categoryIds: any): any[] {
+function ensureCategoryIdsArray(categoryIds: string | string[] | null | undefined): string[] {
   // If already an array, return as is
   if (Array.isArray(categoryIds)) {
     return categoryIds;
