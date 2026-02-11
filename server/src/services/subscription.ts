@@ -1057,27 +1057,51 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     throw new Error('Plan not found');
   }
   
-  // Get current counts from tenant data tables
-  const children = (await getTenantData('children', tenantId)) ?? [];
-  const childrenCount = Array.isArray(children)
-    ? children.filter((child) => child?.isActive !== false).length
-    : 0;
+  // Get current counts from tenant data tables with error handling
+  let childrenCount = 0;
+  try {
+    const children = (await getTenantData('children', tenantId)) ?? [];
+    childrenCount = Array.isArray(children)
+      ? children.filter((child) => child?.isActive !== false).length
+      : 0;
+  } catch (error) {
+    console.error(`Error fetching children data for tenant ${tenantId}:`, error);
+    childrenCount = 0; // Default to 0 on error
+  }
   
-  const chores = (await getTenantData('chores', tenantId)) ?? [];
-  const choresCount = Array.isArray(chores)
-    ? chores.filter((chore) => chore?.isActive !== false).length
-    : 0;
+  let choresCount = 0;
+  try {
+    const chores = (await getTenantData('chores', tenantId)) ?? [];
+    choresCount = Array.isArray(chores)
+      ? chores.filter((chore) => chore?.isActive !== false).length
+      : 0;
+  } catch (error) {
+    console.error(`Error fetching chores data for tenant ${tenantId}:`, error);
+    choresCount = 0; // Default to 0 on error
+  }
   
-  const rewards = (await getTenantData('rewards', tenantId)) ?? [];
-  const rewardsCount = Array.isArray(rewards)
-    ? rewards.filter((reward) => reward?.isActive !== false).length
-    : 0;
+  let rewardsCount = 0;
+  try {
+    const rewards = (await getTenantData('rewards', tenantId)) ?? [];
+    rewardsCount = Array.isArray(rewards)
+      ? rewards.filter((reward) => reward?.isActive !== false).length
+      : 0;
+  } catch (error) {
+    console.error(`Error fetching rewards data for tenant ${tenantId}:`, error);
+    rewardsCount = 0; // Default to 0 on error
+  }
   
-  const [devicesRows] = await pool.query<RowDataPacket[]>(
-    'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
-    [tenantId]
-  );
-  const devicesCount = devicesRows[0]?.count || 0;
+  let devicesCount = 0;
+  try {
+    const [devicesRows] = await pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM devices WHERE tenant_id = ?',
+      [tenantId]
+    );
+    devicesCount = devicesRows[0]?.count || 0;
+  } catch (error) {
+    console.error(`Error fetching devices count for tenant ${tenantId}:`, error);
+    devicesCount = 0; // Default to 0 on error
+  }
   
   return {
     canAddChild: plan.max_children === null || childrenCount < plan.max_children,
