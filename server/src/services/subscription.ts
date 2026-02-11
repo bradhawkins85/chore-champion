@@ -1081,7 +1081,9 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   
   // Get current counts from tenant data tables with error handling
   // Track fetch failures to ensure at least some data is available
-  const dataFetches = [
+  type ResourceName = 'children' | 'chores' | 'rewards' | 'devices';
+  
+  const dataFetches: Array<{ name: ResourceName; fetchFn: () => Promise<number> }> = [
     { name: 'children', fetchFn: async () => {
       const children = (await getTenantData('children', tenantId)) ?? [];
       return Array.isArray(children)
@@ -1109,51 +1111,18 @@ export async function checkPlanLimits(tenantId: string): Promise<{
     }},
   ];
   
-  let childrenCount = 0;
-  let childrenFetchFailed = false;
-  let choresCount = 0;
-  let choresFetchFailed = false;
-  let rewardsCount = 0;
-  let rewardsFetchFailed = false;
-  let devicesCount = 0;
-  let devicesFetchFailed = false;
+  // Execute all fetches and collect results
+  const counts: Record<ResourceName, number> = { children: 0, chores: 0, rewards: 0, devices: 0 };
+  const fetchFailed: Record<ResourceName, boolean> = { children: false, chores: false, rewards: false, devices: false };
   let fetchFailures = 0;
   
-  // Execute all fetches with error handling
   for (const fetch of dataFetches) {
     try {
-      const count = await fetch.fetchFn();
-      switch (fetch.name) {
-        case 'children':
-          childrenCount = count;
-          break;
-        case 'chores':
-          choresCount = count;
-          break;
-        case 'rewards':
-          rewardsCount = count;
-          break;
-        case 'devices':
-          devicesCount = count;
-          break;
-      }
+      counts[fetch.name] = await fetch.fetchFn();
     } catch (error) {
       console.error(`Error fetching ${fetch.name} data for tenant ${tenantId}:`, error);
+      fetchFailed[fetch.name] = true;
       fetchFailures++;
-      switch (fetch.name) {
-        case 'children':
-          childrenFetchFailed = true;
-          break;
-        case 'chores':
-          choresFetchFailed = true;
-          break;
-        case 'rewards':
-          rewardsFetchFailed = true;
-          break;
-        case 'devices':
-          devicesFetchFailed = true;
-          break;
-      }
     }
   }
   
@@ -1165,10 +1134,10 @@ export async function checkPlanLimits(tenantId: string): Promise<{
   // For failed individual fetches, be pessimistic and assume limit is reached
   // This prevents bypassing limits while allowing the operation to proceed with partial data
   return {
-    canAddChild: canAddResource(childrenFetchFailed, childrenCount, plan.max_children),
-    canAddDevice: canAddResource(devicesFetchFailed, devicesCount, plan.max_devices),
-    canAddChore: canAddResource(choresFetchFailed, choresCount, plan.max_chores),
-    canAddReward: canAddResource(rewardsFetchFailed, rewardsCount, plan.max_rewards),
+    canAddChild: canAddResource(fetchFailed.children, counts.children, plan.max_children),
+    canAddDevice: canAddResource(fetchFailed.devices, counts.devices, plan.max_devices),
+    canAddChore: canAddResource(fetchFailed.chores, counts.chores, plan.max_chores),
+    canAddReward: canAddResource(fetchFailed.rewards, counts.rewards, plan.max_rewards),
     limits: {
       maxChildren: plan.max_children,
       maxDevices: plan.max_devices,
@@ -1176,10 +1145,10 @@ export async function checkPlanLimits(tenantId: string): Promise<{
       maxRewards: plan.max_rewards,
     },
     current: {
-      children: childrenCount,
-      devices: devicesCount,
-      chores: choresCount,
-      rewards: rewardsCount,
+      children: counts.children,
+      devices: counts.devices,
+      chores: counts.chores,
+      rewards: counts.rewards,
     },
   };
 }
