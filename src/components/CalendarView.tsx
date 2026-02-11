@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, Circle } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, Category, SchoolHoliday, ChildAvailabilityEntry } from '@/lib/types'
 import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
-import { isChoreActiveForDate, isChoreCompletedOnDate, getChorePointsForChild, isChoreActiveOnDateWithHolidays, isChildAvailableForTimeOfDay } from '@/lib/helpers'
+import { isChoreActiveForDate, isChoreCompletedOnDate, getChorePointsForChild, isChoreActiveOnDateWithHolidays, isChildAvailableForTimeOfDay, timeToMinutes } from '@/lib/helpers'
 
 interface CalendarViewProps {
   child: Child
@@ -137,7 +137,25 @@ export function CalendarView({ child, chores = [], assignments = [], completions
       }
     })
 
-    return dateChores
+    const getTimeOfDayRank = (timeOfDay?: 'am' | 'pm') => {
+      if (timeOfDay === 'am') return 0
+      if (timeOfDay === 'pm') return 2
+      return 1
+    }
+
+    return [...dateChores].sort((a, b) => {
+      const timeOfDayDelta = getTimeOfDayRank(a.timeOfDay) - getTimeOfDayRank(b.timeOfDay)
+      if (timeOfDayDelta !== 0) {
+        return timeOfDayDelta
+      }
+
+      const choreTimeDelta = timeToMinutes(a.chore.desiredTime) - timeToMinutes(b.chore.desiredTime)
+      if (choreTimeDelta !== 0) {
+        return choreTimeDelta
+      }
+
+      return a.chore.name.localeCompare(b.chore.name)
+    })
   }
 
   return (
