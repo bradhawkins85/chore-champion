@@ -57,7 +57,7 @@ if [ -f Dockerfile ]; then
 else
     # Registry-based deployment - check for image updates
     # Note: Docker doesn't provide a reliable way to check for updates without pulling
-    # We need to check before pulling to avoid downloading if already up to date
+    # The pull operation downloads new images but doesn't affect running containers
     echo "Checking for image updates from registry..."
     echo "(This will pull images to check for updates)"
     
@@ -107,7 +107,8 @@ if [ "$UPDATE_AVAILABLE" = "true" ]; then
                 echo "✓ Code updated to latest version from GitHub"
             else
                 echo "ERROR: Failed to reset to origin/${CURRENT_BRANCH}"
-                echo "Update aborted. Check backups in ${BACKUP_PATH:-./backups}"
+                echo "Update aborted. Check backups directory for rollback."
+                echo "Backup location: ./backups/"
                 exit 1
             fi
         fi

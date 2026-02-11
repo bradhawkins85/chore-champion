@@ -44,22 +44,22 @@ echo "$(date +%s) CHECK_END" >> "$LOG_FILE"
 
 if [ "$UPDATE_AVAILABLE" = "true" ]; then
     # Backup happens here
-    echo "$(date +%s) BACKUP_START" >> "$LOG_FILE"
+    echo "$(date +%s.%N) BACKUP_START" >> "$LOG_FILE"
     echo "Creating pre-update backup..."
-    sleep 1  # Simulate backup taking time
-    echo "$(date +%s) BACKUP_END" >> "$LOG_FILE"
+    sleep 0.5  # Simulate backup taking time
+    echo "$(date +%s.%N) BACKUP_END" >> "$LOG_FILE"
     
     # Git reset happens after backup
-    echo "$(date +%s) GIT_RESET_START" >> "$LOG_FILE"
+    echo "$(date +%s.%N) GIT_RESET_START" >> "$LOG_FILE"
     echo "Updating to latest version..."
-    sleep 1  # Simulate git reset
-    echo "$(date +%s) GIT_RESET_END" >> "$LOG_FILE"
+    sleep 0.5  # Simulate git reset
+    echo "$(date +%s.%N) GIT_RESET_END" >> "$LOG_FILE"
     
     # Build happens after git reset
-    echo "$(date +%s) BUILD_START" >> "$LOG_FILE"
+    echo "$(date +%s.%N) BUILD_START" >> "$LOG_FILE"
     echo "Building new image..."
-    sleep 1  # Simulate build
-    echo "$(date +%s) BUILD_END" >> "$LOG_FILE"
+    sleep 0.5  # Simulate build
+    echo "$(date +%s.%N) BUILD_END" >> "$LOG_FILE"
 fi
 EOF
 
@@ -69,7 +69,7 @@ chmod +x "$TEST_DIR/mock-update.sh"
 LOG_FILE="$TEST_DIR/update.log"
 bash "$TEST_DIR/mock-update.sh" "$LOG_FILE"
 
-# Parse the log to verify order
+# Parse the log to verify order using floating point comparison
 BACKUP_END_TIME=$(grep BACKUP_END "$LOG_FILE" | cut -d' ' -f1)
 GIT_RESET_START_TIME=$(grep GIT_RESET_START "$LOG_FILE" | cut -d' ' -f1)
 BUILD_START_TIME=$(grep BUILD_START "$LOG_FILE" | cut -d' ' -f1)
@@ -81,17 +81,23 @@ grep -E "(BACKUP_|GIT_RESET_|BUILD_)" "$LOG_FILE" | while read timestamp event; 
 done
 
 echo ""
-if [ "$BACKUP_END_TIME" -le "$GIT_RESET_START_TIME" ]; then
-    echo -e "${GREEN}✓ Backup completed BEFORE or at same time as git reset started${NC}"
+# Use awk for floating point comparison
+BACKUP_BEFORE_RESET=$(awk -v b="$BACKUP_END_TIME" -v g="$GIT_RESET_START_TIME" 'BEGIN { print (b < g) ? 1 : 0 }')
+RESET_BEFORE_BUILD=$(awk -v g="$GIT_RESET_START_TIME" -v b="$BUILD_START_TIME" 'BEGIN { print (g < b) ? 1 : 0 }')
+
+if [ "$BACKUP_BEFORE_RESET" = "1" ]; then
+    echo -e "${GREEN}✓ Backup completed BEFORE git reset started${NC}"
 else
     echo -e "${RED}❌ Backup did NOT complete before git reset${NC}"
+    echo "  Backup end: $BACKUP_END_TIME, Git reset start: $GIT_RESET_START_TIME"
     exit 1
 fi
 
-if [ "$GIT_RESET_START_TIME" -le "$BUILD_START_TIME" ]; then
-    echo -e "${GREEN}✓ Git reset completed BEFORE or at same time as build started${NC}"
+if [ "$RESET_BEFORE_BUILD" = "1" ]; then
+    echo -e "${GREEN}✓ Git reset completed BEFORE build started${NC}"
 else
     echo -e "${RED}❌ Git reset did NOT complete before build${NC}"
+    echo "  Git reset start: $GIT_RESET_START_TIME, Build start: $BUILD_START_TIME"
     exit 1
 fi
 

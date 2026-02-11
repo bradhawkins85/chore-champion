@@ -266,7 +266,8 @@ if [ "$UPDATE_AVAILABLE" = "true" ]; then
                 echo "✓ Code updated to latest version from GitHub"
             else
                 echo "ERROR: Failed to reset to origin/${CURRENT_BRANCH}"
-                echo "Update aborted. Check backups directory for rollback."
+                echo "Update aborted."
+                echo "Backup location: Check the chorequest-backups volume or ./backups/ directory"
                 exit 1
             fi
         fi
