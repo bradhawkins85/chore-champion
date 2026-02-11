@@ -42,14 +42,6 @@ fi
 echo "Compose Project: $COMPOSE_PROJECT"
 echo "Working Directory: $COMPOSE_WORKDIR"
 echo ""
-
-# Create backup before updating
-echo "Creating pre-update backup..."
-docker exec "${COMPOSE_PROJECT}-backup-1" /scripts/backup.sh 2>/dev/null || \
-    docker exec "${COMPOSE_PROJECT}_backup_1" /scripts/backup.sh 2>/dev/null || \
-    echo "WARNING: Could not create backup (backup container not found)"
-
-echo ""
 # Try to determine which compose file is being used
 COMPOSE_FILE=""
 if docker container inspect "${COMPOSE_PROJECT}-traefik-1" >/dev/null 2>&1 || \
@@ -266,6 +258,36 @@ else
 fi
 
 if [ "$UPDATE_AVAILABLE" = "true" ]; then
+    echo ""
+    echo "Creating pre-update backup..."
+    
+    # Execute backup script in the backup container
+    # First, try to determine the backup container name
+    BACKUP_CONTAINER=""
+    if docker container inspect "${COMPOSE_PROJECT}-backup-1" >/dev/null 2>&1; then
+        BACKUP_CONTAINER="${COMPOSE_PROJECT}-backup-1"
+    elif docker container inspect "${COMPOSE_PROJECT}_backup_1" >/dev/null 2>&1; then
+        BACKUP_CONTAINER="${COMPOSE_PROJECT}_backup_1"
+    fi
+    
+    if [ -n "$BACKUP_CONTAINER" ]; then
+        # Check if container is running
+        CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' "${BACKUP_CONTAINER}" 2>/dev/null || echo "")
+        
+        if [ "$CONTAINER_STATE" = "running" ]; then
+            echo "Executing backup in container: ${BACKUP_CONTAINER}"
+            if docker exec "${BACKUP_CONTAINER}" /scripts/backup.sh 2>&1; then
+                echo "✓ Backup completed successfully"
+            else
+                echo "WARNING: Backup failed but continuing with update"
+            fi
+        else
+            echo "WARNING: Backup container not running (state: ${CONTAINER_STATE:-unknown}) - skipping backup"
+        fi
+    else
+        echo "WARNING: Backup container not found - skipping backup"
+    fi
+    
     echo ""
     echo "Recreating application containers..."
     # Recreate app containers but only restart the backup container
