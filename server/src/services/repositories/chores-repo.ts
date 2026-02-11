@@ -81,7 +81,22 @@ function mapRow(row: ChoreRow): ChoreRecord {
     if (!value) return null;
     try {
       return typeof value === 'string' ? JSON.parse(value) : value;
-    } catch {
+    } catch (error) {
+      console.error('Failed to parse JSON value:', value, error);
+      
+      // Try to fix malformed JSON with single quotes instead of double quotes
+      // This handles cases where data was stored with JavaScript array notation instead of JSON
+      if (typeof value === 'string' && value.includes("'")) {
+        const fixedValue = value.replace(/'/g, '"');
+        try {
+          const parsed = JSON.parse(fixedValue);
+          console.warn('Successfully parsed JSON after replacing single quotes with double quotes:', value, '->', fixedValue);
+          return parsed;
+        } catch (secondError) {
+          console.error('Failed to parse even after fixing quotes:', fixedValue, secondError);
+        }
+      }
+      
       return null;
     }
   };
