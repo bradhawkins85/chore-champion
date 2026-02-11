@@ -236,6 +236,28 @@ export async function initDatabase() {
 
         console.log('Column migration completed');
 
+        // Drop payload_json column from tenant_children_v2 if it exists
+        console.log('Checking for payload_json column in tenant_children_v2...');
+        const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_children_v2 LIKE 'payload_json'"
+        );
+        
+        if (childrenPayloadColumns.length > 0) {
+          await connection.query('ALTER TABLE tenant_children_v2 DROP COLUMN payload_json');
+          console.log('Dropped payload_json column from tenant_children_v2 table');
+        }
+
+        // Drop payload_json column from tenant_chores_v2 if it exists
+        console.log('Checking for payload_json column in tenant_chores_v2...');
+        const [choresPayloadColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_chores_v2 LIKE 'payload_json'"
+        );
+        
+        if (choresPayloadColumns.length > 0) {
+          await connection.query('ALTER TABLE tenant_chores_v2 DROP COLUMN payload_json');
+          console.log('Dropped payload_json column from tenant_chores_v2 table');
+        }
+
         // Create subscription_plans table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscription_plans (
