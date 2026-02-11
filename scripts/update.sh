@@ -41,12 +41,15 @@ else
         if [ "$CONTAINER_STATE" = "restarting" ]; then
             echo "Waiting for backup container to finish restarting... ($BACKUP_WAIT/$BACKUP_MAX_WAIT seconds)"
         else
-            echo "Backup container is in state '$CONTAINER_STATE' - waiting..."
+            echo "Backup container is in state '${CONTAINER_STATE:-unknown}' - waiting..."
         fi
         
         sleep 2
         BACKUP_WAIT=$((BACKUP_WAIT + 2))
     done
+    
+    # Check final state after loop
+    CONTAINER_STATE=$(docker inspect -f '{{.State.Status}}' chorequest-backup 2>/dev/null || echo "")
     
     # Attempt backup if container is running
     if [ "$CONTAINER_STATE" = "running" ]; then
@@ -56,7 +59,7 @@ else
             echo "WARNING: Backup failed but continuing with update"
         fi
     else
-        echo "WARNING: Backup container not ready after ${BACKUP_MAX_WAIT}s (state: $CONTAINER_STATE)"
+        echo "WARNING: Backup container not ready after ${BACKUP_MAX_WAIT}s (state: ${CONTAINER_STATE:-unknown})"
         echo "Skipping backup and continuing with update"
     fi
 fi
