@@ -276,6 +276,29 @@ export async function initDatabase() {
           console.log('Added created_at_timestamp column to tenant_rewards_v2 table');
         }
 
+        // Add new JSON and other columns to tenant_rewards_v2 table
+        console.log('Checking for missing JSON columns in tenant_rewards_v2...');
+        const rewardColumnMigrations = [
+          { name: 'category_ids', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN category_ids JSON AFTER created_at_timestamp' },
+          { name: 'cost_overrides', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN cost_overrides JSON AFTER category_ids' },
+          { name: 'requirements', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN requirements JSON AFTER cost_overrides' },
+          { name: 'purchase_limit', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN purchase_limit JSON AFTER requirements' },
+          { name: 'start_date', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN start_date BIGINT NULL AFTER purchase_limit' },
+          { name: 'expiry_date', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN expiry_date BIGINT NULL AFTER start_date' },
+          { name: 'is_point_swap', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN is_point_swap BOOLEAN DEFAULT FALSE AFTER expiry_date' },
+          { name: 'swap_config', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN swap_config JSON AFTER is_point_swap' },
+        ];
+
+        for (const migration of rewardColumnMigrations) {
+          const [columns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM tenant_rewards_v2 LIKE '${migration.name}'`
+          );
+          if (columns.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_rewards_v2 table`);
+          }
+        }
+
         // Drop payload_json column from tenant_children_v2 if it exists
         console.log('Checking for payload_json column in tenant_children_v2...');
         const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
