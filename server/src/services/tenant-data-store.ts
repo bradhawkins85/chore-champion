@@ -14,8 +14,71 @@ function isNormalizedKey(key: string): key is NormalizedKey {
   return (NORMALIZED_KEYS as readonly string[]).includes(key);
 }
 
+// Migration flag to track which tenants have had their categories migrated
+const migratedTenants = new Set<string>();
+
+/**
+ * Migrates legacy category data from kv_store to tenant_categories_v2 table.
+ * This is a one-time migration per tenant that runs when categories are first accessed.
+ */
+async function migrateCategoriesFromKVStore(tenantId: string): Promise<void> {
+  // Skip if already migrated for this tenant in this session
+  if (migratedTenants.has(tenantId)) {
+    return;
+  }
+
+  try {
+    // Check if there's any data in kv_store for categories
+    const [kvRows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      ['categories', tenantId]
+    );
+
+    if (kvRows.length > 0 && kvRows[0].value_data) {
+      // Check if tenant_categories_v2 is empty for this tenant
+      const [existingCategories] = await pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM tenant_categories_v2 WHERE tenant_id = ?',
+        [tenantId]
+      );
+
+      const categoryCount = existingCategories[0]?.count ?? 0;
+
+      // Only migrate if the v2 table is empty (to avoid overwriting manual changes)
+      if (categoryCount === 0) {
+        console.log(`Migrating categories from kv_store to tenant_categories_v2 for tenant ${tenantId}`);
+        
+        try {
+          const legacyCategories = JSON.parse(kvRows[0].value_data);
+          
+          if (Array.isArray(legacyCategories) && legacyCategories.length > 0) {
+            // Use replaceCategories to insert the migrated data
+            await replaceCategories(tenantId, legacyCategories);
+            console.log(`Successfully migrated ${legacyCategories.length} categories for tenant ${tenantId}`);
+            
+            // Optionally, we could delete the kv_store entry after successful migration
+            // await pool.query('DELETE FROM kv_store WHERE key_name = ? AND tenant_id = ?', ['categories', tenantId]);
+          }
+        } catch (parseError) {
+          console.error(`Failed to parse legacy categories for tenant ${tenantId}:`, parseError);
+        }
+      }
+    }
+
+    // Mark as migrated for this session
+    migratedTenants.add(tenantId);
+  } catch (error) {
+    console.error(`Error during category migration for tenant ${tenantId}:`, error);
+    // Don't throw - continue with normal operation even if migration fails
+  }
+}
+
 async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Promise<unknown | null> {
   try {
+    // Run migration for categories before reading
+    if (key === 'categories') {
+      await migrateCategoriesFromKVStore(tenantId);
+    }
+
     switch (key) {
       case 'children':
         return listChildren(tenantId);
