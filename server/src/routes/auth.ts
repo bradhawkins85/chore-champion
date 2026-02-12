@@ -201,14 +201,21 @@ router.post('/device-login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Device is not linked to a tenant' });
     }
 
-    // Get any parent user from the tenant (prefer the first created parent for consistency)
+    // Get a user from the tenant, preferring a parent but falling back to admin.
+    // This keeps linked-device login working for legacy tenants that no longer
+    // have a parent account but still have an admin in the same tenant.
     const [users] = await pool.query<RowDataPacket[]>(
-      'SELECT id, email, tenant_id, role FROM users WHERE tenant_id = ? AND role = ? ORDER BY created_at ASC LIMIT 1',
-      [device.tenant_id, 'parent']
+      `SELECT id, email, tenant_id, role
+       FROM users
+       WHERE tenant_id = ?
+         AND role IN (?, ?)
+       ORDER BY CASE WHEN role = ? THEN 0 ELSE 1 END, created_at ASC
+       LIMIT 1`,
+      [device.tenant_id, 'parent', 'admin', 'parent']
     );
 
     if (users.length === 0) {
-      return res.status(404).json({ error: 'No parent user found for this tenant' });
+      return res.status(404).json({ error: 'No eligible user found for this tenant' });
     }
 
     const user = users[0] as User;
