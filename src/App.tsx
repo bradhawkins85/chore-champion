@@ -18,6 +18,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthPage } from '@/components/AuthPage'
+import { LandingPage } from '@/components/LandingPage'
 import { AcceptInvitationPage } from '@/components/AcceptInvitationPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
 import { ApproveAccessPage } from '@/components/ApproveAccessPage'
@@ -91,6 +92,7 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [showPinDialog, setShowPinDialog] = useState(false)
   const [showDeviceLinking, setShowDeviceLinking] = useState(false)
+  const [showAuthPage, setShowAuthPage] = useState(false)
   const [deviceIsLinked, setDeviceIsLinked] = useState(false)
   const [deviceAllowedChildrenIds, setDeviceAllowedChildrenIds] = useState<string[]>([])
   const [deviceRegistrationComplete, setDeviceRegistrationComplete] = useState(false)
@@ -2135,11 +2137,18 @@ Please log in to ChoreQuest to approve or reject this completion.
     )
   }
 
-  // Show auth page if not authenticated
+  // Show auth page or landing page if not authenticated
   if (!user) {
     return (
       <>
-        <AuthPage />
+        {showAuthPage ? (
+          <AuthPage onBack={() => setShowAuthPage(false)} />
+        ) : (
+          <LandingPage 
+            onGetStarted={() => setShowAuthPage(true)}
+            onLogin={() => setShowAuthPage(true)}
+          />
+        )}
         <OfflineIndicator />
       </>
     )

@@ -5,11 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Sparkle, LinkSimple } from '@phosphor-icons/react';
+import { Sparkle, LinkSimple, ArrowLeft } from '@phosphor-icons/react';
 import { DeviceLinkingScreen } from './DeviceLinkingScreen';
 import { getDeviceGuid } from '@/lib/deviceHelper';
 
-export function AuthPage() {
+interface AuthPageProps {
+  onBack?: () => void;
+}
+
+export function AuthPage({ onBack }: AuthPageProps = {}) {
   const [isLogin, setIsLogin] = useState(true);
   const [showDeviceLinking, setShowDeviceLinking] = useState(false);
   const [email, setEmail] = useState('');
@@ -71,6 +75,19 @@ export function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      {onBack && (
+        <div className="absolute top-4 left-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </div>
+      )}
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
