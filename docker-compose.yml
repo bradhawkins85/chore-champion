@@ -91,7 +91,6 @@ services:
         - VITE_API_URL=/api
         - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0}
         - VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}
-        - VITE_TINYMCE_API_KEY=${VITE_TINYMCE_API_KEY:-}
     image: chorequest:latest
     container_name: chorequest-app
     restart: unless-stopped

@@ -26,18 +26,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film, LayoutDashboard } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film } from 'lucide-react'
 import type { WallpaperAsset } from '@/lib/types'
 import { toast } from 'sonner'
-import { useApiKV } from '@/hooks/use-api-kv'
-import { Editor } from '@tinymce/tinymce-react'
-import {
-  buildHomepageHtmlContent,
-  defaultHomepageContent,
-  normalizeHomepageContent,
-} from '@/lib/homepageContent'
-
-const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY || ''
 
 interface Tenant {
   id: string
@@ -150,8 +141,6 @@ export function AdminPanel() {
   const [wallpaperUploading, setWallpaperUploading] = useState(false)
   const [wallpaperFile, setWallpaperFile] = useState<File | null>(null)
   const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = useState<string | null>(null)
-  const [homepageContent, setHomepageContent] = useApiKV('homepageContent', defaultHomepageContent)
-  const normalizedHomepageContent = useMemo(() => normalizeHomepageContent(homepageContent), [homepageContent])
 
   // Search and filter states
   const [tenantsSearch, setTenantsSearch] = useState('')
@@ -488,21 +477,6 @@ export function AdminPanel() {
         description: errorMessage
       })
     }
-  }
-
-  const updateHomepageHtmlContent = async (value: string) => {
-    await setHomepageContent((prev) => ({
-      ...normalizeHomepageContent(prev),
-      htmlContent: value,
-    }))
-  }
-
-  const resetHomepageContent = async () => {
-    await setHomepageContent({
-      ...defaultHomepageContent,
-      htmlContent: buildHomepageHtmlContent(defaultHomepageContent),
-    })
-    toast.success('Homepage content reset to defaults')
   }
 
   const saveTenantOverride = async (tenantId: string, inputValue: string) => {
@@ -973,10 +947,6 @@ export function AdminPanel() {
               <TabsTrigger value="wallpapers" onClick={fetchWallpapers}>
                 <Image className="h-4 w-4 mr-2" />
                 Wallpapers
-              </TabsTrigger>
-              <TabsTrigger value="homepage">
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                Homepage Editor
               </TabsTrigger>
             </TabsList>
 
@@ -1677,55 +1647,6 @@ export function AdminPanel() {
                       )}
                     </div>
                   </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="homepage" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Homepage Content</CardTitle>
-                      <CardDescription className="text-xs">
-                        Full WYSIWYG editor for the public homepage content.
-                      </CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={resetHomepageContent}>
-                      Reset Defaults
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Editor
-                    apiKey={TINYMCE_API_KEY}
-                    value={normalizedHomepageContent.htmlContent}
-                    onEditorChange={updateHomepageHtmlContent}
-                    init={{
-                      height: 520,
-                      menubar: true,
-                      branding: false,
-                      plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
-                      toolbar:
-                        'undo redo | blocks | bold italic underline forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | link image | code preview',
-                      content_style: 'body { font-family:Inter,Arial,sans-serif; font-size:16px; line-height:1.6 } h1,h2,h3 { font-weight:700; }',
-                    }}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Live Preview</CardTitle>
-                  <CardDescription className="text-xs">
-                    Preview of how the homepage content section will render.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="rounded-lg border bg-muted/20 p-4">
-                  <div
-                    className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: normalizedHomepageContent.htmlContent }}
-                  />
                 </CardContent>
               </Card>
             </TabsContent>
