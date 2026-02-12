@@ -10,7 +10,7 @@ import {
   listPendingIpAccessRequests,
   upsertIpAccessRequest,
 } from '../services/repositories/ip-access-repo.js';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'crypto';
 
 const router = Router();
@@ -34,8 +34,10 @@ const requestAccessLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Use the IP from the request
-    return req.body.ip || req.ip || 'unknown';
+    // Use user-submitted IP when present, otherwise fallback to request IP.
+    // Wrap any raw IP via ipKeyGenerator so IPv6 addresses are normalized.
+    const ip = req.body.ip || req.ip;
+    return ip ? ipKeyGenerator(ip) : 'unknown';
   },
 });
 
