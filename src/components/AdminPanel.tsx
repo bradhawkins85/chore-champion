@@ -37,6 +37,8 @@ import {
   normalizeHomepageContent,
 } from '@/lib/homepageContent'
 
+const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY || ''
+
 interface Tenant {
   id: string
   created_at: string
@@ -1696,6 +1698,7 @@ export function AdminPanel() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Editor
+                    apiKey={TINYMCE_API_KEY}
                     value={normalizedHomepageContent.htmlContent}
                     onEditorChange={updateHomepageHtmlContent}
                     init={{
