@@ -1778,6 +1778,7 @@ export function AdminPanel() {
                   </ScrollArea>
                 </CardContent>
               </Card>
+            </TabsContent>
 
             <TabsContent value="homepage" className="space-y-4">
               <Card>
@@ -1843,8 +1844,6 @@ export function AdminPanel() {
                   </ScrollArea>
                 </CardContent>
               </Card>
-            </TabsContent>
-
             </TabsContent>
           </Tabs>
         </div>
