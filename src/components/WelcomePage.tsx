@@ -1,27 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, Star, Trophy, Gift, Shield, TrendUp, EnvelopeSimple, Sparkle, Calendar, ChartBar, ChartLine, Users, Medal } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useApiKV } from '@/hooks/use-api-kv'
+import { defaultHomepageContent, normalizeHomepageContent } from '@/lib/homepageContent'
 
 // Define feature cards with IDs outside component to prevent recreation on every render
 const featureDefinitions: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
@@ -87,64 +72,6 @@ const featureDefinitions: Record<string, { icon: React.ReactNode; title: string;
   },
 }
 
-const allFeatureCardIds = Object.keys(featureDefinitions)
-
-const normalizeCardOrder = (order: string[]) => {
-  const unique = order.filter((id, index) => order.indexOf(id) === index && featureDefinitions[id])
-  const missing = allFeatureCardIds.filter((id) => !unique.includes(id))
-  return [...unique, ...missing]
-}
-
-const areArraysEqual = (left: string[], right: string[]) =>
-  left.length === right.length && left.every((value, index) => value === right[index])
-
-const parseSavedOrder = (saved: string | null) => {
-  if (!saved) return null
-  try {
-    const parsed = JSON.parse(saved)
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
-
-// Sortable card component for feature cards
-interface SortableFeatureCardProps {
-  id: string
-  children: React.ReactNode
-}
-
-function SortableFeatureCard({ id, children }: SortableFeatureCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      role="button"
-      aria-label={`Draggable feature card: ${id}`}
-    >
-      {children}
-    </div>
-  )
-}
-
 interface WelcomePageProps {
   currentIP: string | null
   onPinSubmit: (pin: string) => void
@@ -158,48 +85,8 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
   const [showRequestAccess, setShowRequestAccess] = useState(false)
   const [isRequestingAccess, setIsRequestingAccess] = useState(false)
 
-  // Load card order from localStorage, default to the original order
-  const defaultOrder = [
-    'chore-tracking', 'points-system', 'reward-shop', 
-    'goal-tracking', 'parent-approval', 'multi-device',
-    'weekly-completions', 'points-earned', 'top-performer',
-    'points-comparison', 'daily-activity', 'weekly-report'
-  ]
-  const [featureCardOrder, setFeatureCardOrder] = useState<string[]>(() => {
-    const savedOrder = parseSavedOrder(localStorage.getItem('welcomeFeatureCardOrder'))
-    return normalizeCardOrder(savedOrder ?? defaultOrder)
-  })
-
-  useEffect(() => {
-    const normalizedOrder = normalizeCardOrder(featureCardOrder)
-    if (!areArraysEqual(normalizedOrder, featureCardOrder)) {
-      setFeatureCardOrder(normalizedOrder)
-      localStorage.setItem('welcomeFeatureCardOrder', JSON.stringify(normalizedOrder))
-    }
-  }, [featureCardOrder])
-
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  // Handle drag end event
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over && active.id !== over.id) {
-      const oldIndex = featureCardOrder.indexOf(active.id as string)
-      const newIndex = featureCardOrder.indexOf(over.id as string)
-      
-      const newOrder = arrayMove(featureCardOrder, oldIndex, newIndex)
-      setFeatureCardOrder(newOrder)
-      // Persist to localStorage
-      localStorage.setItem('welcomeFeatureCardOrder', JSON.stringify(newOrder))
-    }
-  }
+  const [homepageContent] = useApiKV('homepageContent', defaultHomepageContent)
+  const normalizedHomepageContent = useMemo(() => normalizeHomepageContent(homepageContent), [homepageContent])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -234,58 +121,51 @@ export function WelcomePage({ currentIP, onPinSubmit, onRequestAccess }: Welcome
     }
   }
 
-  // Return features in the saved order
   const features = useMemo(() => {
-    return featureCardOrder.map((cardId) => ({
-      id: cardId,
-      ...featureDefinitions[cardId],
+    return normalizedHomepageContent.cards
+      .filter((card) => featureDefinitions[card.id])
+      .map((card) => ({
+      id: card.id,
+      ...featureDefinitions[card.id],
+      title: card.title,
+      description: card.description,
+      imageUrl: card.imageUrl,
     }))
-  }, [featureCardOrder])
+  }, [normalizedHomepageContent.cards])
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl">
         <div className="text-center mb-12">
           <h1 className="text-6xl font-fredoka font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            ChoreQuest
+            {normalizedHomepageContent.heading}
           </h1>
           <p className="text-2xl text-muted-foreground">
-            Make chores fun and rewarding for the whole family
+            {normalizedHomepageContent.subheading}
           </p>
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={featureCardOrder}
-            strategy={rectSortingStrategy}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {features.map((feature) => (
-                <SortableFeatureCard key={feature.id} id={feature.id}>
-                  <Card className="border-2 hover:border-primary/50 transition-colors">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="text-primary">
-                          {feature.icon}
-                        </div>
-                        <CardTitle className="text-xl">{feature.title}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base">
-                        {feature.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </SortableFeatureCard>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {features.map((feature) => (
+            <Card key={feature.id} className="border-2 hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="text-primary">
+                    {feature.imageUrl ? (
+                      <img src={feature.imageUrl} alt={feature.title} className="h-10 w-10 rounded-md object-cover" />
+                    ) : feature.icon}
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-base">
+                  {feature.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         <Card className="max-w-md mx-auto border-2 border-primary/20">
           <CardHeader className="text-center">
