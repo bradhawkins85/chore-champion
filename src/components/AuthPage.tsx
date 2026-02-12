@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Sparkle, LinkSimple } from '@phosphor-icons/react';
 import { DeviceLinkingScreen } from './DeviceLinkingScreen';
+import { getDeviceGuid } from '@/lib/deviceHelper';
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,7 +17,7 @@ export function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, signup } = useAuth();
+  const { login, signup, loginWithDevice } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,9 +48,16 @@ export function AuthPage() {
     }
   };
 
-  const handleDeviceLinked = () => {
-    // Device linked successfully, reload the page to re-authenticate with linked device
-    window.location.reload();
+  const handleDeviceLinked = async () => {
+    try {
+      // Link is already complete server-side, so perform device login immediately.
+      // This avoids a race where register-device status can lag briefly after linking.
+      await loginWithDevice(getDeviceGuid());
+    } catch (err) {
+      console.error('Device linked, but automatic device login failed:', err);
+      // Fallback to a full refresh so the mount-time device flow can retry.
+      window.location.reload();
+    }
   };
 
   if (showDeviceLinking) {
