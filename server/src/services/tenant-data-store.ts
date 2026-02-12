@@ -4,9 +4,10 @@ import { deleteChildren, listChildren, replaceChildren } from './repositories/ch
 import { deleteChores, listChores, replaceChores } from './repositories/chores-repo.js';
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
+import { deleteCategories, listCategories, replaceCategories } from './repositories/categories-repo.js';
 
 // Supported keys that map to normalized v2 tables
-const NORMALIZED_KEYS = ['children', 'chores', 'rewards', 'ip-access-requests'] as const;
+const NORMALIZED_KEYS = ['children', 'chores', 'rewards', 'categories', 'ip-access-requests'] as const;
 type NormalizedKey = (typeof NORMALIZED_KEYS)[number];
 
 function isNormalizedKey(key: string): key is NormalizedKey {
@@ -29,6 +30,8 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         });
       case 'rewards':
         return listRewards(tenantId);
+      case 'categories':
+        return listCategories(tenantId);
       case 'ip-access-requests':
         return listIpAccessRequests(tenantId);
     }
@@ -63,6 +66,9 @@ async function setNormalizedTenantData(
       case 'rewards':
         await replaceRewards(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
+      case 'categories':
+        await replaceCategories(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
@@ -85,6 +91,9 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
       break;
     case 'rewards':
       await deleteRewards(tenantId);
+      break;
+    case 'categories':
+      await deleteCategories(tenantId);
       break;
     case 'ip-access-requests':
       await deleteIpAccessRequests(tenantId);
