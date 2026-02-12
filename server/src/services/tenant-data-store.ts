@@ -15,6 +15,10 @@ function isNormalizedKey(key: string): key is NormalizedKey {
 }
 
 // Migration flag to track which tenants have had their categories migrated
+// Note: This is an in-memory Set that resets on server restart. This is acceptable because:
+// 1. The migration is idempotent (checks if v2 table is empty before migrating)
+// 2. The migration is fast and causes no issues if run multiple times
+// 3. Most tenants will only trigger this once during the upgrade window
 const migratedTenants = new Set<string>();
 
 /**
