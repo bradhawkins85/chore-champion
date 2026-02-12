@@ -10,6 +10,7 @@ export interface HomepageContent {
   subheading: string
   cards: HomepageFeatureCard[]
   sectionOrder: HomepageSectionId[]
+  htmlContent: string
 }
 
 export type HomepageSectionId = 'hero' | 'features' | 'access'
@@ -84,7 +85,27 @@ export const defaultHomepageContent: HomepageContent = {
   subheading: 'Make chores fun and rewarding for the whole family',
   cards: defaultHomepageCards,
   sectionOrder: defaultHomepageSectionOrder,
+  htmlContent: `<section><h1>ChoreQuest</h1><p>Make chores fun and rewarding for the whole family</p></section><section><h2>Features</h2></section>`,
 }
+
+const renderCardsHtml = (cards: HomepageFeatureCard[]) =>
+  cards
+    .map(
+      (card) =>
+        `<article><h3>${card.title}</h3><p>${card.description}</p></article>`,
+    )
+    .join('')
+
+export const buildHomepageHtmlContent = (content: Pick<HomepageContent, 'heading' | 'subheading' | 'cards'>) => `
+<section>
+  <h1>${content.heading}</h1>
+  <p>${content.subheading}</p>
+</section>
+<section>
+  <h2>Features</h2>
+  ${renderCardsHtml(content.cards)}
+</section>
+`.trim()
 
 export const normalizeHomepageContent = (content?: HomepageContent | null): HomepageContent => {
   if (!content) {
@@ -121,5 +142,19 @@ export const normalizeHomepageContent = (content?: HomepageContent | null): Home
         imageUrl: savedCard?.imageUrl || '',
       }
     }),
+    htmlContent:
+      content.htmlContent?.trim() ||
+      buildHomepageHtmlContent({
+        heading: content.heading || defaultHomepageContent.heading,
+        subheading: content.subheading || defaultHomepageContent.subheading,
+        cards: normalizedIds.map((id) => {
+          const defaultCard = defaultHomepageCards.find((card) => card.id === id)
+          const savedCard = contentById.get(id)
+          return {
+            ...(defaultCard || { id, title: id, description: '' }),
+            ...savedCard,
+          }
+        }),
+      }),
   }
 }
