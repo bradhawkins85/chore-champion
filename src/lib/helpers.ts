@@ -1328,10 +1328,15 @@ export function getNextUpcomingChore(
     .filter((item): item is NonNullable<typeof item> => item !== null)
 
   upcomingChores.sort((a, b) => {
+    // First, sort by time (sortTime)
+    const timeDiff = a.sortTime - b.sortTime
+    if (timeDiff !== 0) return timeDiff
+    
+    // If times are equal, prioritize chores with time windows
     if (a.effectiveTimeWindow && !b.effectiveTimeWindow) return -1
     if (!a.effectiveTimeWindow && b.effectiveTimeWindow) return 1
     
-    return a.sortTime - b.sortTime
+    return 0
   })
 
   if (upcomingChores.length === 0) return null
