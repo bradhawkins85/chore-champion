@@ -8,66 +8,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Sparkle,
   LinkSimple,
-  CheckCircle,
-  Trophy,
-  Users,
-  DeviceMobile,
-  Calendar,
-  Bell,
-  ShieldCheck,
-  Rocket,
   ChartLine,
 } from '@phosphor-icons/react';
 import { DeviceLinkingScreen } from './DeviceLinkingScreen';
 import { getDeviceGuid } from '@/lib/deviceHelper';
-
-const featureCards = [
-  {
-    icon: Trophy,
-    title: 'Motivation Through Rewards',
-    description: 'Turn chores into achievements with points, custom rewards, and celebration animations children look forward to.',
-  },
-  {
-    icon: Users,
-    title: 'Built for Family Teams',
-    description: 'Assign chores by child, share access with another parent, and keep everyone aligned from one dashboard.',
-  },
-  {
-    icon: Calendar,
-    title: 'Smart Planning Tools',
-    description: 'Use recurring chore schedules, calendar views, school holiday planning, and weekly progress snapshots.',
-  },
-  {
-    icon: Bell,
-    title: 'Proactive Notifications',
-    description: 'Stay ahead with reminders, approval alerts, and optional weekly reports delivered to your inbox.',
-  },
-  {
-    icon: DeviceMobile,
-    title: 'Device-Friendly Experience',
-    description: 'Link trusted devices for quick entry and use ChoreQuest as a smooth, app-like PWA on phones or tablets.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Parent Controls & Safety',
-    description: 'Protect parent actions with PIN and optional biometric unlock while keeping child views focused and simple.',
-  },
-];
-
-const appHighlights = [
-  'Gamified chore completion for kids',
-  'Custom chores, categories, and points',
-  'Reward store with purchase tracking',
-  'Calendar and history across all children',
-  'Notifications and weekly reporting',
-  'Secure parent controls and device linking',
-];
-
-const quickStats = [
-  { label: 'Family setup', value: '5 min' },
-  { label: 'Weekly planning', value: '1 dashboard' },
-  { label: 'Kid engagement', value: 'High-fives included' },
-];
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -132,85 +76,8 @@ export function AuthPage() {
       <div className="pointer-events-none absolute -right-36 top-40 h-96 w-96 rounded-full bg-violet-500/25 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[1.25fr_0.75fr] lg:gap-12 lg:px-8 lg:py-12">
-        <section className="space-y-8">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur sm:p-8">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-400/40 bg-blue-500/15 px-3 py-1 text-sm text-blue-100">
-              <Sparkle className="h-4 w-4" weight="fill" />
-              ChoreQuest for families
-            </div>
-            <h1 className="text-4xl font-bold leading-tight md:text-5xl">
-              Make chores feel like a game your family can actually win.
-            </h1>
-            <p className="mt-4 max-w-2xl text-lg text-slate-200">
-              ChoreQuest transforms everyday tasks into momentum with points, rewards, progress tracking,
-              and family-friendly accountability tools that keep parents and kids in sync.
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {quickStats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/10 bg-slate-800/70 p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">{stat.label}</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {appHighlights.map((item) => (
-              <div key={item} className="flex items-start gap-2 rounded-lg border border-slate-700/70 bg-slate-900/70 p-3">
-                <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-300" weight="fill" />
-                <span className="text-sm text-slate-100">{item}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-semibold">See ChoreQuest in action</h2>
-              <div className="hidden items-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100 sm:flex">
-                <Rocket className="h-4 w-4" weight="duotone" />
-                Mobile + tablet ready
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-              <figure className="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
-                <img src="/screenshots/home-tablet.png" alt="Family overview and management screen on tablet" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                <figcaption className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 to-transparent px-4 py-3 text-sm text-slate-100">
-                  Family dashboard with chore and progress management
-                </figcaption>
-              </figure>
-
-              <div className="grid gap-4">
-                <figure className="group overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
-                  <img src="/screenshots/home-mobile.png" alt="Parent dashboard and chore list on mobile" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                  <figcaption className="border-t border-slate-700 px-3 py-2 text-xs text-slate-300">Parent dashboard on mobile</figcaption>
-                </figure>
-                <figure className="group overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
-                  <img src="/screenshots/child-view-mobile.png" alt="Child mode with points and rewards" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                  <figcaption className="border-t border-slate-700 px-3 py-2 text-xs text-slate-300">Child mode with rewards and progress</figcaption>
-                </figure>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {featureCards.map(({ icon: Icon, title, description }) => (
-              <article key={title} className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 transition hover:-translate-y-0.5 hover:border-blue-400/40">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 text-blue-200">
-                  <Icon className="h-5 w-5" weight="duotone" />
-                </div>
-                <h3 className="text-base font-semibold text-white">{title}</h3>
-                <p className="mt-1 text-sm text-slate-300">{description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <aside className="flex items-start justify-center lg:justify-end">
-          <Card className="w-full max-w-md border-slate-700 bg-slate-900/95 text-slate-100 shadow-2xl lg:sticky lg:top-8">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md border-slate-700 bg-slate-900/95 text-slate-100 shadow-2xl">
             <CardHeader className="space-y-1">
               <div className="mb-3 flex items-center justify-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600">
@@ -330,7 +197,6 @@ export function AuthPage() {
               )}
             </CardFooter>
           </Card>
-        </aside>
       </div>
     </div>
   );
