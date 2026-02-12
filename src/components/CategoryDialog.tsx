@@ -183,12 +183,8 @@ export function CategoryDialog({
       },
       showInUpNext,
       showInCalendar,
-    }
-
-    // Only add prerequisiteCategoryId if it has a value
-    // This prevents undefined from being spread into the saved object
-    if (prerequisiteValue) {
-      categoryData.prerequisiteCategoryId = prerequisiteValue
+      // Always include prerequisiteCategoryId, even if undefined, to properly clear the field
+      prerequisiteCategoryId: prerequisiteValue,
     }
 
     onSave(categoryData)
