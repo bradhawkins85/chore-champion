@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem('auth_token', data.token);
+    setLoading(false);
   };
 
   const loginWithDevice = async (deviceGuid: string) => {
@@ -147,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem('auth_token', data.token);
+    setLoading(false);
   };
 
   const signup = async (email: string, password: string) => {
@@ -182,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem('auth_token', data.token);
+    setLoading(false);
   };
 
   const logout = () => {
@@ -257,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem('auth_token', data.token);
+    setLoading(false);
   };
 
   const getInvitationDetails = async (invitationToken: string) => {
