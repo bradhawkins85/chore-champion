@@ -48,7 +48,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useApiKV } from '@/hooks/use-api-kv'
-import { defaultHomepageContent, normalizeHomepageContent, type HomepageFeatureCard } from '@/lib/homepageContent'
+import {
+  defaultHomepageContent,
+  normalizeHomepageContent,
+  type HomepageFeatureCard,
+  type HomepageSectionId,
+} from '@/lib/homepageContent'
 
 interface Tenant {
   id: string
@@ -138,6 +143,61 @@ type SortDirection = 'asc' | 'desc'
 interface SortableHomepageCardRowProps {
   card: HomepageFeatureCard
   onCardChange: (cardId: string, field: 'title' | 'description' | 'imageUrl', value: string) => void
+}
+
+interface SortableHomepageSectionRowProps {
+  sectionId: HomepageSectionId
+  title: string
+  description: string
+}
+
+const homepageSectionDefinitions: Record<HomepageSectionId, { title: string; description: string }> = {
+  hero: {
+    title: 'Hero Header',
+    description: 'Main heading and subheading area',
+  },
+  features: {
+    title: 'Feature Cards',
+    description: 'Grid of product capabilities',
+  },
+  access: {
+    title: 'Access Card',
+    description: 'PIN and request access panel',
+  },
+}
+
+function SortableHomepageSectionRow({ sectionId, title, description }: SortableHomepageSectionRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionId })
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
+      className="border border-dashed border-border/80"
+    >
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </div>
+          <button
+            type="button"
+            className="rounded-md border p-2 cursor-grab active:cursor-grabbing"
+            aria-label={`Reorder ${title}`}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 function SortableHomepageCardRow({ card, onCardChange }: SortableHomepageCardRowProps) {
@@ -600,6 +660,28 @@ export function AdminPanel() {
       return {
         ...normalized,
         cards: arrayMove(normalized.cards, oldIndex, newIndex),
+      }
+    })
+  }
+
+  const handleHomepageSectionsDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const oldIndex = normalizedHomepageContent.sectionOrder.findIndex((sectionId) => sectionId === active.id)
+    const newIndex = normalizedHomepageContent.sectionOrder.findIndex((sectionId) => sectionId === over.id)
+
+    if (oldIndex < 0 || newIndex < 0) {
+      return
+    }
+
+    await setHomepageContent((prev) => {
+      const normalized = normalizeHomepageContent(prev)
+      return {
+        ...normalized,
+        sectionOrder: arrayMove(normalized.sectionOrder, oldIndex, newIndex),
       }
     })
   }
@@ -1787,7 +1869,7 @@ export function AdminPanel() {
                     <div>
                       <CardTitle className="text-lg">Homepage Content</CardTitle>
                       <CardDescription className="text-xs">
-                        Edit public homepage copy, images, and card positions.
+                        WYSIWYG editor for homepage copy and layout ordering.
                       </CardDescription>
                     </div>
                     <Button variant="outline" size="sm" onClick={resetHomepageContent}>
@@ -1807,6 +1889,88 @@ export function AdminPanel() {
                     rows={2}
                     placeholder="Homepage subheading"
                   />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Page Layout (WYSIWYG)</CardTitle>
+                  <CardDescription className="text-xs">
+                    Drag homepage sections to relocate where each block appears publicly.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <DndContext
+                    sensors={homepageDndSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleHomepageSectionsDragEnd}
+                  >
+                    <SortableContext
+                      items={normalizedHomepageContent.sectionOrder}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {normalizedHomepageContent.sectionOrder.map((sectionId) => {
+                          const section = homepageSectionDefinitions[sectionId]
+                          return (
+                            <SortableHomepageSectionRow
+                              key={sectionId}
+                              sectionId={sectionId}
+                              title={section.title}
+                              description={section.description}
+                            />
+                          )
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Live Preview</CardTitle>
+                  <CardDescription className="text-xs">
+                    See homepage section order and content updates as visitors will.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 rounded-lg border bg-muted/20 p-4">
+                  {normalizedHomepageContent.sectionOrder.map((sectionId) => (
+                    <div key={sectionId} className="rounded-md border bg-background p-4">
+                      {sectionId === 'hero' && (
+                        <div className="text-center space-y-2">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Hero</p>
+                          <h3 className="text-2xl font-semibold">{normalizedHomepageContent.heading}</h3>
+                          <p className="text-sm text-muted-foreground">{normalizedHomepageContent.subheading}</p>
+                        </div>
+                      )}
+
+                      {sectionId === 'features' && (
+                        <div className="space-y-2">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Features</p>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            {normalizedHomepageContent.cards.slice(0, 4).map((card) => (
+                              <div key={card.id} className="rounded border p-2">
+                                <p className="text-sm font-medium">{card.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{card.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {normalizedHomepageContent.cards.length > 4 && (
+                            <p className="text-xs text-muted-foreground">+{normalizedHomepageContent.cards.length - 4} more cards</p>
+                          )}
+                        </div>
+                      )}
+
+                      {sectionId === 'access' && (
+                        <div className="space-y-2">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Access Card</p>
+                          <p className="text-sm font-medium">Access Required</p>
+                          <p className="text-xs text-muted-foreground">PIN entry and access-request controls appear here.</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
