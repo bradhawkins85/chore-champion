@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -26,9 +27,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film, LayoutDashboard, GripVertical } from 'lucide-react'
 import type { WallpaperAsset } from '@/lib/types'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useApiKV } from '@/hooks/use-api-kv'
+import { defaultHomepageContent, normalizeHomepageContent, type HomepageFeatureCard } from '@/lib/homepageContent'
 
 interface Tenant {
   id: string
@@ -115,6 +135,58 @@ interface SubscriptionPricingSettings {
 type SortField = 'id' | 'created_at' | 'user_count' | 'device_count' | 'email' | 'tenant_id' | 'plan' | 'status'
 type SortDirection = 'asc' | 'desc'
 
+interface SortableHomepageCardRowProps {
+  card: HomepageFeatureCard
+  onCardChange: (cardId: string, field: 'title' | 'description' | 'imageUrl', value: string) => void
+}
+
+function SortableHomepageCardRow({ card, onCardChange }: SortableHomepageCardRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
+      className="border border-border/70"
+    >
+      <CardContent className="pt-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-md border p-2 cursor-grab active:cursor-grabbing"
+            aria-label={`Reorder ${card.title}`}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-medium">{card.id}</p>
+        </div>
+        <Input
+          value={card.title}
+          onChange={(event) => onCardChange(card.id, 'title', event.target.value)}
+          placeholder="Card title"
+        />
+        <Textarea
+          value={card.description}
+          onChange={(event) => onCardChange(card.id, 'description', event.target.value)}
+          rows={3}
+          placeholder="Card description"
+        />
+        <Input
+          value={card.imageUrl || ''}
+          onChange={(event) => onCardChange(card.id, 'imageUrl', event.target.value)}
+          placeholder="Image URL (optional)"
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
 export function AdminPanel() {
   const { token, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -141,6 +213,14 @@ export function AdminPanel() {
   const [wallpaperUploading, setWallpaperUploading] = useState(false)
   const [wallpaperFile, setWallpaperFile] = useState<File | null>(null)
   const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = useState<string | null>(null)
+  const [homepageContent, setHomepageContent] = useApiKV('homepageContent', defaultHomepageContent)
+  const normalizedHomepageContent = useMemo(() => normalizeHomepageContent(homepageContent), [homepageContent])
+  const homepageDndSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   // Search and filter states
   const [tenantsSearch, setTenantsSearch] = useState('')
@@ -477,6 +557,51 @@ export function AdminPanel() {
         description: errorMessage
       })
     }
+  }
+
+  const updateHomepageField = async (field: 'heading' | 'subheading', value: string) => {
+    await setHomepageContent((prev) => ({
+      ...normalizeHomepageContent(prev),
+      [field]: value,
+    }))
+  }
+
+  const updateHomepageCard = async (cardId: string, field: 'title' | 'description' | 'imageUrl', value: string) => {
+    await setHomepageContent((prev) => {
+      const normalized = normalizeHomepageContent(prev)
+      return {
+        ...normalized,
+        cards: normalized.cards.map((card) =>
+          card.id === cardId ? { ...card, [field]: value } : card
+        ),
+      }
+    })
+  }
+
+  const resetHomepageContent = async () => {
+    await setHomepageContent(defaultHomepageContent)
+    toast.success('Homepage content reset to defaults')
+  }
+
+  const handleHomepageCardsDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const oldIndex = normalizedHomepageContent.cards.findIndex((card) => card.id === active.id)
+    const newIndex = normalizedHomepageContent.cards.findIndex((card) => card.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) {
+      return
+    }
+
+    await setHomepageContent((prev) => {
+      const normalized = normalizeHomepageContent(prev)
+      return {
+        ...normalized,
+        cards: arrayMove(normalized.cards, oldIndex, newIndex),
+      }
+    })
   }
 
   const saveTenantOverride = async (tenantId: string, inputValue: string) => {
@@ -947,6 +1072,10 @@ export function AdminPanel() {
               <TabsTrigger value="wallpapers" onClick={fetchWallpapers}>
                 <Image className="h-4 w-4 mr-2" />
                 Wallpapers
+              </TabsTrigger>
+              <TabsTrigger value="homepage">
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Homepage Editor
               </TabsTrigger>
             </TabsList>
 
@@ -1649,6 +1778,73 @@ export function AdminPanel() {
                   </ScrollArea>
                 </CardContent>
               </Card>
+
+            <TabsContent value="homepage" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Homepage Content</CardTitle>
+                      <CardDescription className="text-xs">
+                        Edit public homepage copy, images, and card positions.
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={resetHomepageContent}>
+                      Reset Defaults
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Input
+                    value={normalizedHomepageContent.heading}
+                    onChange={(event) => updateHomepageField('heading', event.target.value)}
+                    placeholder="Homepage heading"
+                  />
+                  <Textarea
+                    value={normalizedHomepageContent.subheading}
+                    onChange={(event) => updateHomepageField('subheading', event.target.value)}
+                    rows={2}
+                    placeholder="Homepage subheading"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-lg">Feature Cards</CardTitle>
+                  <CardDescription className="text-xs">
+                    Drag cards to reorder. Update text and image URLs per card.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[60vh]">
+                    <div className="p-6 pt-0">
+                      <DndContext
+                        sensors={homepageDndSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleHomepageCardsDragEnd}
+                      >
+                        <SortableContext
+                          items={normalizedHomepageContent.cards.map((card) => card.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-3">
+                            {normalizedHomepageContent.cards.map((card) => (
+                              <SortableHomepageCardRow
+                                key={card.id}
+                                card={card}
+                                onCardChange={updateHomepageCard}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             </TabsContent>
           </Tabs>
         </div>
