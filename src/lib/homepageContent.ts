@@ -9,7 +9,12 @@ export interface HomepageContent {
   heading: string
   subheading: string
   cards: HomepageFeatureCard[]
+  sectionOrder: HomepageSectionId[]
 }
+
+export type HomepageSectionId = 'hero' | 'features' | 'access'
+
+export const defaultHomepageSectionOrder: HomepageSectionId[] = ['hero', 'features', 'access']
 
 export const defaultHomepageCards: HomepageFeatureCard[] = [
   {
@@ -78,6 +83,7 @@ export const defaultHomepageContent: HomepageContent = {
   heading: 'ChoreQuest',
   subheading: 'Make chores fun and rewarding for the whole family',
   cards: defaultHomepageCards,
+  sectionOrder: defaultHomepageSectionOrder,
 }
 
 export const normalizeHomepageContent = (content?: HomepageContent | null): HomepageContent => {
@@ -92,9 +98,19 @@ export const normalizeHomepageContent = (content?: HomepageContent | null): Home
     ...defaultHomepageCards.map((card) => card.id).filter((id) => !orderedIds.includes(id)),
   ]
 
+  const configuredSectionOrder = Array.isArray(content.sectionOrder) ? content.sectionOrder : []
+  const normalizedSectionOrder: HomepageSectionId[] = [
+    ...configuredSectionOrder.filter(
+      (id, index): id is HomepageSectionId =>
+        defaultHomepageSectionOrder.includes(id as HomepageSectionId) && configuredSectionOrder.indexOf(id) === index,
+    ),
+    ...defaultHomepageSectionOrder.filter((id) => !configuredSectionOrder.includes(id)),
+  ]
+
   return {
     heading: content.heading || defaultHomepageContent.heading,
     subheading: content.subheading || defaultHomepageContent.subheading,
+    sectionOrder: normalizedSectionOrder,
     cards: normalizedIds.map((id) => {
       const defaultCard = defaultHomepageCards.find((card) => card.id === id)
       const savedCard = contentById.get(id)
