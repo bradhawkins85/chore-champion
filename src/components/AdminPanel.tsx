@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -27,32 +26,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film, LayoutDashboard, GripVertical } from 'lucide-react'
+import { ArrowLeft, Users, Database, CreditCard, BarChart, Trash2, RefreshCw, Settings, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Image, Upload, Film, LayoutDashboard } from 'lucide-react'
 import type { WallpaperAsset } from '@/lib/types'
 import { toast } from 'sonner'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { useApiKV } from '@/hooks/use-api-kv'
+import { Editor } from '@tinymce/tinymce-react'
 import {
+  buildHomepageHtmlContent,
   defaultHomepageContent,
   normalizeHomepageContent,
-  type HomepageFeatureCard,
-  type HomepageSectionId,
 } from '@/lib/homepageContent'
 
 interface Tenant {
@@ -140,113 +122,6 @@ interface SubscriptionPricingSettings {
 type SortField = 'id' | 'created_at' | 'user_count' | 'device_count' | 'email' | 'tenant_id' | 'plan' | 'status'
 type SortDirection = 'asc' | 'desc'
 
-interface SortableHomepageCardRowProps {
-  card: HomepageFeatureCard
-  onCardChange: (cardId: string, field: 'title' | 'description' | 'imageUrl', value: string) => void
-}
-
-interface SortableHomepageSectionRowProps {
-  sectionId: HomepageSectionId
-  title: string
-  description: string
-}
-
-const homepageSectionDefinitions: Record<HomepageSectionId, { title: string; description: string }> = {
-  hero: {
-    title: 'Hero Header',
-    description: 'Main heading and subheading area',
-  },
-  features: {
-    title: 'Feature Cards',
-    description: 'Grid of product capabilities',
-  },
-  access: {
-    title: 'Access Card',
-    description: 'PIN and request access panel',
-  },
-}
-
-function SortableHomepageSectionRow({ sectionId, title, description }: SortableHomepageSectionRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionId })
-
-  return (
-    <Card
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.6 : 1,
-      }}
-      className="border border-dashed border-border/80"
-    >
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-medium">{title}</p>
-            <p className="text-xs text-muted-foreground">{description}</p>
-          </div>
-          <button
-            type="button"
-            className="rounded-md border p-2 cursor-grab active:cursor-grabbing"
-            aria-label={`Reorder ${title}`}
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function SortableHomepageCardRow({ card, onCardChange }: SortableHomepageCardRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
-
-  return (
-    <Card
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.6 : 1,
-      }}
-      className="border border-border/70"
-    >
-      <CardContent className="pt-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-md border p-2 cursor-grab active:cursor-grabbing"
-            aria-label={`Reorder ${card.title}`}
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-          <p className="text-sm font-medium">{card.id}</p>
-        </div>
-        <Input
-          value={card.title}
-          onChange={(event) => onCardChange(card.id, 'title', event.target.value)}
-          placeholder="Card title"
-        />
-        <Textarea
-          value={card.description}
-          onChange={(event) => onCardChange(card.id, 'description', event.target.value)}
-          rows={3}
-          placeholder="Card description"
-        />
-        <Input
-          value={card.imageUrl || ''}
-          onChange={(event) => onCardChange(card.id, 'imageUrl', event.target.value)}
-          placeholder="Image URL (optional)"
-        />
-      </CardContent>
-    </Card>
-  )
-}
-
 export function AdminPanel() {
   const { token, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -275,12 +150,6 @@ export function AdminPanel() {
   const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = useState<string | null>(null)
   const [homepageContent, setHomepageContent] = useApiKV('homepageContent', defaultHomepageContent)
   const normalizedHomepageContent = useMemo(() => normalizeHomepageContent(homepageContent), [homepageContent])
-  const homepageDndSensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
 
   // Search and filter states
   const [tenantsSearch, setTenantsSearch] = useState('')
@@ -619,71 +488,19 @@ export function AdminPanel() {
     }
   }
 
-  const updateHomepageField = async (field: 'heading' | 'subheading', value: string) => {
+  const updateHomepageHtmlContent = async (value: string) => {
     await setHomepageContent((prev) => ({
       ...normalizeHomepageContent(prev),
-      [field]: value,
+      htmlContent: value,
     }))
   }
 
-  const updateHomepageCard = async (cardId: string, field: 'title' | 'description' | 'imageUrl', value: string) => {
-    await setHomepageContent((prev) => {
-      const normalized = normalizeHomepageContent(prev)
-      return {
-        ...normalized,
-        cards: normalized.cards.map((card) =>
-          card.id === cardId ? { ...card, [field]: value } : card
-        ),
-      }
-    })
-  }
-
   const resetHomepageContent = async () => {
-    await setHomepageContent(defaultHomepageContent)
+    await setHomepageContent({
+      ...defaultHomepageContent,
+      htmlContent: buildHomepageHtmlContent(defaultHomepageContent),
+    })
     toast.success('Homepage content reset to defaults')
-  }
-
-  const handleHomepageCardsDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) {
-      return
-    }
-
-    const oldIndex = normalizedHomepageContent.cards.findIndex((card) => card.id === active.id)
-    const newIndex = normalizedHomepageContent.cards.findIndex((card) => card.id === over.id)
-    if (oldIndex < 0 || newIndex < 0) {
-      return
-    }
-
-    await setHomepageContent((prev) => {
-      const normalized = normalizeHomepageContent(prev)
-      return {
-        ...normalized,
-        cards: arrayMove(normalized.cards, oldIndex, newIndex),
-      }
-    })
-  }
-
-  const handleHomepageSectionsDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) {
-      return
-    }
-
-    const oldIndex = normalizedHomepageContent.sectionOrder.findIndex((sectionId) => sectionId === active.id)
-    const newIndex = normalizedHomepageContent.sectionOrder.findIndex((sectionId) => sectionId === over.id)
-
-    if (oldIndex < 0 || newIndex < 0) {
-      return
-    }
-
-    await setHomepageContent((prev) => {
-      const normalized = normalizeHomepageContent(prev)
-      return {
-        ...normalized,
-        sectionOrder: arrayMove(normalized.sectionOrder, oldIndex, newIndex),
-      }
-    })
   }
 
   const saveTenantOverride = async (tenantId: string, inputValue: string) => {
@@ -1869,7 +1686,7 @@ export function AdminPanel() {
                     <div>
                       <CardTitle className="text-lg">Homepage Content</CardTitle>
                       <CardDescription className="text-xs">
-                        WYSIWYG editor for homepage copy and layout ordering.
+                        Full WYSIWYG editor for the public homepage content.
                       </CardDescription>
                     </div>
                     <Button variant="outline" size="sm" onClick={resetHomepageContent}>
@@ -1878,52 +1695,19 @@ export function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Input
-                    value={normalizedHomepageContent.heading}
-                    onChange={(event) => updateHomepageField('heading', event.target.value)}
-                    placeholder="Homepage heading"
+                  <Editor
+                    value={normalizedHomepageContent.htmlContent}
+                    onEditorChange={updateHomepageHtmlContent}
+                    init={{
+                      height: 520,
+                      menubar: true,
+                      branding: false,
+                      plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
+                      toolbar:
+                        'undo redo | blocks | bold italic underline forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | link image | code preview',
+                      content_style: 'body { font-family:Inter,Arial,sans-serif; font-size:16px; line-height:1.6 } h1,h2,h3 { font-weight:700; }',
+                    }}
                   />
-                  <Textarea
-                    value={normalizedHomepageContent.subheading}
-                    onChange={(event) => updateHomepageField('subheading', event.target.value)}
-                    rows={2}
-                    placeholder="Homepage subheading"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Page Layout (WYSIWYG)</CardTitle>
-                  <CardDescription className="text-xs">
-                    Drag homepage sections to relocate where each block appears publicly.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <DndContext
-                    sensors={homepageDndSensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleHomepageSectionsDragEnd}
-                  >
-                    <SortableContext
-                      items={normalizedHomepageContent.sectionOrder}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="space-y-3">
-                        {normalizedHomepageContent.sectionOrder.map((sectionId) => {
-                          const section = homepageSectionDefinitions[sectionId]
-                          return (
-                            <SortableHomepageSectionRow
-                              key={sectionId}
-                              sectionId={sectionId}
-                              title={section.title}
-                              description={section.description}
-                            />
-                          )
-                        })}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
                 </CardContent>
               </Card>
 
@@ -1931,81 +1715,14 @@ export function AdminPanel() {
                 <CardHeader>
                   <CardTitle className="text-lg">Live Preview</CardTitle>
                   <CardDescription className="text-xs">
-                    See homepage section order and content updates as visitors will.
+                    Preview of how the homepage content section will render.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 rounded-lg border bg-muted/20 p-4">
-                  {normalizedHomepageContent.sectionOrder.map((sectionId) => (
-                    <div key={sectionId} className="rounded-md border bg-background p-4">
-                      {sectionId === 'hero' && (
-                        <div className="text-center space-y-2">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Hero</p>
-                          <h3 className="text-2xl font-semibold">{normalizedHomepageContent.heading}</h3>
-                          <p className="text-sm text-muted-foreground">{normalizedHomepageContent.subheading}</p>
-                        </div>
-                      )}
-
-                      {sectionId === 'features' && (
-                        <div className="space-y-2">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Features</p>
-                          <div className="grid gap-2 md:grid-cols-2">
-                            {normalizedHomepageContent.cards.slice(0, 4).map((card) => (
-                              <div key={card.id} className="rounded border p-2">
-                                <p className="text-sm font-medium">{card.title}</p>
-                                <p className="text-xs text-muted-foreground line-clamp-2">{card.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                          {normalizedHomepageContent.cards.length > 4 && (
-                            <p className="text-xs text-muted-foreground">+{normalizedHomepageContent.cards.length - 4} more cards</p>
-                          )}
-                        </div>
-                      )}
-
-                      {sectionId === 'access' && (
-                        <div className="space-y-2">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Access Card</p>
-                          <p className="text-sm font-medium">Access Required</p>
-                          <p className="text-xs text-muted-foreground">PIN entry and access-request controls appear here.</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle className="text-lg">Feature Cards</CardTitle>
-                  <CardDescription className="text-xs">
-                    Drag cards to reorder. Update text and image URLs per card.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[60vh]">
-                    <div className="p-6 pt-0">
-                      <DndContext
-                        sensors={homepageDndSensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleHomepageCardsDragEnd}
-                      >
-                        <SortableContext
-                          items={normalizedHomepageContent.cards.map((card) => card.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-3">
-                            {normalizedHomepageContent.cards.map((card) => (
-                              <SortableHomepageCardRow
-                                key={card.id}
-                                card={card}
-                                onCardChange={updateHomepageCard}
-                              />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    </div>
-                  </ScrollArea>
+                <CardContent className="rounded-lg border bg-muted/20 p-4">
+                  <div
+                    className="prose prose-sm max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: normalizedHomepageContent.htmlContent }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
