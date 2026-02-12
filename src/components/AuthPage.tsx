@@ -13,7 +13,7 @@ interface AuthPageProps {
   onBack?: () => void;
 }
 
-export function AuthPage({ onBack }: AuthPageProps = {}) {
+export function AuthPage({ onBack }: AuthPageProps = { onBack: undefined }) {
   const [isLogin, setIsLogin] = useState(true);
   const [showDeviceLinking, setShowDeviceLinking] = useState(false);
   const [email, setEmail] = useState('');

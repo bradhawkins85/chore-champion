@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,8 +27,6 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
-  const [activeFeature, setActiveFeature] = useState(0)
-
   const features = [
     {
       icon: <Trophy className="h-12 w-12" weight="duotone" />,
@@ -222,7 +219,6 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
               whileHover={{ y: -8 }}
-              onHoverStart={() => setActiveFeature(index)}
             >
               <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden group">
                 <div className={`h-1 w-full bg-gradient-to-r ${feature.color}`} />
