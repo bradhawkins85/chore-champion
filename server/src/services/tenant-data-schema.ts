@@ -313,7 +313,6 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
       show_in_up_next BOOLEAN DEFAULT TRUE,
       show_in_calendar BOOLEAN DEFAULT TRUE,
       prerequisite_category_id VARCHAR(36),
-      payload_json JSON,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (tenant_id, id),

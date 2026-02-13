@@ -357,6 +357,17 @@ export async function initDatabase() {
           console.log('Dropped payload_json column from tenant_rewards_v2 table');
         }
 
+        // Drop payload_json column from tenant_categories_v2 if it exists
+        console.log('Checking for payload_json column in tenant_categories_v2...');
+        const [categoriesPayloadColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_categories_v2 LIKE 'payload_json'"
+        );
+        
+        if (categoriesPayloadColumns.length > 0) {
+          await connection.query('ALTER TABLE tenant_categories_v2 DROP COLUMN payload_json');
+          console.log('Dropped payload_json column from tenant_categories_v2 table');
+        }
+
         // Create subscription_plans table
         await connection.query(`
           CREATE TABLE IF NOT EXISTS subscription_plans (
