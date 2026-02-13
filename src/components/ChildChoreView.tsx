@@ -620,16 +620,22 @@ export function ChildChoreView({
               <div>
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
                 
-                <OnThisDay
-                  child={child}
-                  chores={chores}
-                  completions={completions}
-                  assignments={assignments}
-                  categories={categories}
-                  onUpdateLastRefresh={onUpdateCalendarRefresh}
-                />
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0 }}
+                  >
+                    <OnThisDay
+                      child={child}
+                      chores={chores}
+                      completions={completions}
+                      assignments={assignments}
+                      categories={categories}
+                      onUpdateLastRefresh={onUpdateCalendarRefresh}
+                    />
+                  </motion.div>
+                  
                   {pendingChores.map(({ chore, assignment, timeOfDay }, index) => {
                     const isLocked = lockedChoresInfo.has(chore.id)
                     const blockedByCategory = isLocked ? lockedChoresInfo.get(chore.id) : null
@@ -639,7 +645,7 @@ export function ChildChoreView({
                       key={`${chore.id}-${timeOfDay || 'anytime'}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: (index + 1) * 0.05 }}
                     >
                       <Card
                         className={`${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:scale-102'} transition-all hover:shadow-xl h-full`}
