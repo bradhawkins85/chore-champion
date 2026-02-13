@@ -240,6 +240,7 @@ export async function initDatabase() {
         console.log('Checking for missing columns in tenant_categories_v2...');
         const categoryColumnMigrations = [
           { name: 'description', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN description TEXT AFTER name' },
+          { name: 'created_at_timestamp', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER icon' },
         ];
 
         for (const migration of categoryColumnMigrations) {
