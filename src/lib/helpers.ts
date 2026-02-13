@@ -799,11 +799,26 @@ export function getChoreCategoryPointsForChild(
 }
 
 export function getRewardCostForChild(
-  reward: { cost: number; costOverrides?: { childId: string; cost: number }[] },
-  childId: string
+  reward: { cost: number; costOverrides?: { childId: string; cost?: number; costByDay?: { [key: string]: number } }[] },
+  childId: string,
+  date?: Date
 ): number {
   const override = reward.costOverrides?.find(o => o.childId === childId)
-  return override ? override.cost : reward.cost
+  if (!override) {
+    return reward.cost
+  }
+
+  // If costByDay is specified and we have a date, check for day-specific cost
+  if (override.costByDay && date) {
+    const dayOfWeek = getDayOfWeekForDate(date)
+    const dayCost = override.costByDay[dayOfWeek]
+    if (dayCost !== undefined) {
+      return dayCost
+    }
+  }
+
+  // Fall back to cost if specified, otherwise use reward's default cost
+  return override.cost !== undefined ? override.cost : reward.cost
 }
 
 export function isRewardAvailableForChild(

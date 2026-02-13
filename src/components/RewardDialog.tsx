@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, Timer, CalendarBlank, CalendarX, ArrowsLeftRight } from '@phosphor-icons/react'
-import { Reward, Child, Chore, RewardCostOverride, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category } from '@/lib/types'
+import { Plus, Star, Timer, CalendarBlank, CalendarX, ArrowsLeftRight, CalendarDots } from '@phosphor-icons/react'
+import { Reward, Child, Chore, RewardCostOverride, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category, DayOfWeek } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -42,6 +42,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [imageEmoji, setImageEmoji] = useState(reward?.imageEmoji || '🎁')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [costOverrides, setCostOverrides] = useState<RewardCostOverride[]>(reward?.costOverrides || [])
+  const [expandedChildIds, setExpandedChildIds] = useState<Set<string>>(new Set())
   const [hasLimit, setHasLimit] = useState(!!reward?.purchaseLimit)
   const [limitMax, setLimitMax] = useState(reward?.purchaseLimit?.maxPurchases?.toString() || '1')
   const [limitInterval, setLimitInterval] = useState<PurchaseLimitInterval>(reward?.purchaseLimit?.interval || 'day')
@@ -54,6 +55,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [swapFromAmount, setSwapFromAmount] = useState(reward?.swapConfig?.fromAmount?.toString() || '')
   const [swapToAmount, setSwapToAmount] = useState(reward?.swapConfig?.toAmount?.toString() || '')
 
+  const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
   useEffect(() => {
     if (open) {
       if (reward) {
@@ -65,6 +68,11 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         const rewardCategoryIds = reward.categoryIds || []
         setCategoryIds(Array.isArray(rewardCategoryIds) ? [...rewardCategoryIds] : [])
         setCostOverrides(reward.costOverrides || [])
+        // Auto-expand children that have day-specific costs
+        const childrenWithDayCosts = (reward.costOverrides || [])
+          .filter(o => o.costByDay && Object.keys(o.costByDay).length > 0)
+          .map(o => o.childId)
+        setExpandedChildIds(new Set(childrenWithDayCosts))
         setHasLimit(!!reward.purchaseLimit)
         setLimitMax(reward.purchaseLimit?.maxPurchases?.toString() || '1')
         setLimitInterval(reward.purchaseLimit?.interval || 'day')
@@ -83,6 +91,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setImageEmoji('🎁')
         setCategoryIds([])
         setCostOverrides([])
+        setExpandedChildIds(new Set())
         setHasLimit(false)
         setLimitMax('1')
         setLimitInterval('day')
@@ -156,6 +165,7 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setImageEmoji('🎁')
       setCategoryIds([])
       setCostOverrides([])
+      setExpandedChildIds(new Set())
       setHasLimit(false)
       setLimitMax('1')
       setLimitInterval('day')
@@ -577,6 +587,8 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                 <div className="space-y-2">
                   {childrenList.map((child) => {
                     const override = costOverrides.find(o => o.childId === child.id)
+                    const isExpanded = expandedChildIds.has(child.id)
+                    const hasDayCosts = override?.costByDay && Object.keys(override.costByDay).length > 0
 
                     return (
                       <Card key={child.id} className="p-3">
@@ -598,17 +610,104 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
                                 setCostOverrides(current => {
                                   const filtered = current.filter(o => o.childId !== child.id)
                                   if (value === '') {
+                                    // Keep costByDay if it exists
+                                    const existing = current.find(o => o.childId === child.id)
+                                    if (existing?.costByDay) {
+                                      return [...filtered, { childId: child.id, costByDay: existing.costByDay }]
+                                    }
                                     return filtered
                                   }
-                                  return [...filtered, { childId: child.id, cost: parseInt(value) || 0 }]
+                                  const existing = current.find(o => o.childId === child.id)
+                                  return [...filtered, { 
+                                    childId: child.id, 
+                                    cost: parseInt(value) || 0,
+                                    costByDay: existing?.costByDay
+                                  }]
                                 })
                               }}
                               className="w-20"
                               min="0"
                             />
                             <span className="text-sm text-muted-foreground">pts</span>
+                            <Button
+                              type="button"
+                              variant={hasDayCosts ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                setExpandedChildIds(prev => {
+                                  const newSet = new Set(prev)
+                                  if (newSet.has(child.id)) {
+                                    newSet.delete(child.id)
+                                  } else {
+                                    newSet.add(child.id)
+                                  }
+                                  return newSet
+                                })
+                              }}
+                            >
+                              <CalendarDots className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t space-y-2">
+                            <Label className="text-sm font-semibold">Day-specific costs (optional)</Label>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Set different costs for different days of the week. Leave blank to use the default cost above.
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {daysOfWeek.map((day) => {
+                                const dayCost = override?.costByDay?.[day]
+                                return (
+                                  <div key={day} className="flex items-center gap-2">
+                                    <Label className="text-xs capitalize w-16">{day.slice(0, 3)}</Label>
+                                    <Input
+                                      type="number"
+                                      placeholder={override?.cost?.toString() || cost}
+                                      value={dayCost ?? ''}
+                                      onChange={(e) => {
+                                        const value = e.target.value
+                                        setCostOverrides(current => {
+                                          const filtered = current.filter(o => o.childId !== child.id)
+                                          const existing = current.find(o => o.childId === child.id)
+                                          const existingCostByDay = existing?.costByDay || {}
+                                          
+                                          if (value === '') {
+                                            // Remove this day's cost
+                                            const { [day]: _, ...restDays } = existingCostByDay
+                                            const newCostByDay = Object.keys(restDays).length > 0 ? restDays : undefined
+                                            
+                                            // If no cost and no costByDay, remove override entirely
+                                            if (!existing?.cost && !newCostByDay) {
+                                              return filtered
+                                            }
+                                            
+                                            return [...filtered, {
+                                              childId: child.id,
+                                              cost: existing?.cost,
+                                              costByDay: newCostByDay
+                                            }]
+                                          }
+                                          
+                                          return [...filtered, {
+                                            childId: child.id,
+                                            cost: existing?.cost,
+                                            costByDay: {
+                                              ...existingCostByDay,
+                                              [day]: parseInt(value) || 0
+                                            }
+                                          }]
+                                        })
+                                      }}
+                                      className="w-16 text-xs"
+                                      min="0"
+                                    />
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </Card>
                     )
                   })}

@@ -490,7 +490,7 @@ export function ChildChoreView({
             <GoalProgress
               reward={trackedReward}
               currentPoints={totalPoints}
-              targetPoints={getRewardCostForChild(trackedReward, child.id)}
+              targetPoints={getRewardCostForChild(trackedReward, child.id, new Date())}
             />
           </div>
         )}

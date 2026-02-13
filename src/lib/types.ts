@@ -226,9 +226,14 @@ export interface ChoreHistoryEvent {
   rejectedReason?: string
 }
 
+export interface DayOfWeekCost {
+  [key: string]: number // day of week (e.g., 'monday') to cost mapping
+}
+
 export interface RewardCostOverride {
   childId: string
-  cost: number
+  cost?: number // Default cost for all days (backward compatible)
+  costByDay?: DayOfWeekCost // Optional per-day costs
 }
 
 export interface RewardRequirement {
