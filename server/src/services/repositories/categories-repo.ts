@@ -35,7 +35,6 @@ interface CategoryRow extends RowDataPacket {
   show_in_up_next: number | boolean | null;
   show_in_calendar: number | boolean | null;
   prerequisite_category_id: string | null;
-  payload_json: string | null;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
@@ -63,31 +62,25 @@ function safeJsonParse<T>(value: unknown, defaultValue: T): T {
 }
 
 function mapRow(row: CategoryRow): CategoryRecord {
-  // Priority: dedicated columns > payload_json > defaults
-  let legacyData: any = {};
-  if (row.payload_json) {
-    legacyData = safeJsonParse(row.payload_json, {});
-  }
-
   return {
     id: row.id,
     name: row.name ?? '',
-    description: row.description ?? legacyData.description ?? undefined,
-    color: row.color ?? legacyData.color ?? 'oklch(0.6 0.22 290)',
-    icon: row.icon ?? legacyData.icon ?? undefined,
-    createdAt: row.created_at_timestamp ?? legacyData.createdAt ?? Date.now(),
-    order: row.sort_order ?? legacyData.order ?? undefined,
-    exchangeRates: safeJsonParse(row.exchange_rates, legacyData.exchangeRates ?? undefined),
-    completionBonus: safeJsonParse(row.completion_bonus, legacyData.completionBonus ?? undefined),
-    pointsExpiry: safeJsonParse(row.points_expiry, legacyData.pointsExpiry ?? undefined),
+    description: row.description ?? undefined,
+    color: row.color ?? 'oklch(0.6 0.22 290)',
+    icon: row.icon ?? undefined,
+    createdAt: row.created_at_timestamp ?? Date.now(),
+    order: row.sort_order ?? undefined,
+    exchangeRates: safeJsonParse(row.exchange_rates, undefined),
+    completionBonus: safeJsonParse(row.completion_bonus, undefined),
+    pointsExpiry: safeJsonParse(row.points_expiry, undefined),
     // Handle boolean columns with proper null/undefined semantics
     showInUpNext: row.show_in_up_next !== null 
       ? Boolean(row.show_in_up_next) 
-      : (legacyData.showInUpNext !== undefined ? legacyData.showInUpNext : DEFAULT_SHOW_IN_UP_NEXT),
+      : DEFAULT_SHOW_IN_UP_NEXT,
     showInCalendar: row.show_in_calendar !== null 
       ? Boolean(row.show_in_calendar) 
-      : (legacyData.showInCalendar !== undefined ? legacyData.showInCalendar : DEFAULT_SHOW_IN_CALENDAR),
-    prerequisiteCategoryId: row.prerequisite_category_id ?? legacyData.prerequisiteCategoryId ?? undefined,
+      : DEFAULT_SHOW_IN_CALENDAR,
+    prerequisiteCategoryId: row.prerequisite_category_id ?? undefined,
   };
 }
 
@@ -96,7 +89,7 @@ export async function listCategories(tenantId: string, connection?: PoolConnecti
   const [rows] = await executor.query<CategoryRow[]>(
     `SELECT id, name, description, color, icon, created_at_timestamp, sort_order,
             exchange_rates, completion_bonus, points_expiry,
-            show_in_up_next, show_in_calendar, prerequisite_category_id, payload_json
+            show_in_up_next, show_in_calendar, prerequisite_category_id
      FROM tenant_categories_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at_timestamp ASC`,
@@ -111,7 +104,7 @@ export async function getCategoryById(tenantId: string, categoryId: string, conn
   const [rows] = await executor.query<CategoryRow[]>(
     `SELECT id, name, description, color, icon, created_at_timestamp, sort_order,
             exchange_rates, completion_bonus, points_expiry,
-            show_in_up_next, show_in_calendar, prerequisite_category_id, payload_json
+            show_in_up_next, show_in_calendar, prerequisite_category_id
      FROM tenant_categories_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, categoryId]
