@@ -198,72 +198,16 @@ export function OnThisDay({
     return `${diffDays} days ago`
   }
 
-  // If no ICS URL is configured and no events, don't render anything
-  if (!child.icsUrl && events.length === 0 && !isLoadingICS) return null
+  // If no events, don't render anything
+  if (events.length === 0 && !isLoadingICS) return null
 
-  if (isLoadingICS && !isRefreshing) {
-    return (
-      <div className="mb-6">
-        <h2 className="text-xl font-fredoka font-bold mb-3 flex items-center gap-2">
-          <Sparkle className="h-5 w-5 text-accent" weight="fill" />
-          On This Day
-        </h2>
-        <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
-          <CardContent className="p-4">
-            <div className="text-center text-sm text-muted-foreground">
-              Loading calendar events...
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // If ICS URL is configured but no events, show a message with refresh option
-  if (child.icsUrl && events.length === 0 && !isLoadingICS) {
-    return (
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-fredoka font-bold flex items-center gap-2">
-            <Sparkle className="h-5 w-5 text-accent" weight="fill" />
-            On This Day
-          </h2>
-          <div className="flex items-center gap-2">
-            {lastRefreshTime && (
-              <span className="text-xs text-muted-foreground">
-                Updated {formatLastRefreshTime()}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="gap-1 h-7 px-2 text-xs"
-            >
-              <ArrowClockwise 
-                className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
-                weight="bold" 
-              />
-              Refresh
-            </Button>
-          </div>
-        </div>
-        <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
-          <CardContent className="p-4">
-            <div className="text-center text-sm text-muted-foreground">
-              No events found for today
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // If loading initially (not refreshing), don't render
+  if (isLoadingICS && !isRefreshing) return null
 
   const currentEvent = events[currentEventIndex]
   
   // If we have no events at all, don't render
-  if (!currentEvent) return null
+  if (!currentEvent && !isLoadingICS) return null
   
   const today = new Date()
   const yearsAgo = currentEvent.year ? today.getFullYear() - currentEvent.year : undefined
@@ -308,49 +252,41 @@ export function OnThisDay({
   }
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-fredoka font-bold flex items-center gap-2">
-          <Sparkle className="h-5 w-5 text-accent" weight="fill" />
-          On This Day
-        </h2>
-        {child.icsUrl && (
-          <div className="flex items-center gap-2">
-            {lastRefreshTime && (
-              <span className="text-xs text-muted-foreground">
-                Updated {formatLastRefreshTime()}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="gap-1 h-7 px-2 text-xs"
-            >
-              <ArrowClockwise 
-                className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
-                weight="bold" 
-              />
-              Refresh
-            </Button>
+    <Card className="transition-all hover:shadow-xl h-full relative overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-1">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+              <Sparkle className="h-5 w-5 text-white" weight="fill" />
+            </div>
           </div>
-        )}
-      </div>
-      <Card className="relative overflow-hidden bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5 border-2 border-accent/20">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            {events.length > 1 && (
-              <button
-                onClick={handlePrevious}
-                className="flex-shrink-0 p-1.5 rounded-full hover:bg-accent/10 transition-colors"
-                aria-label="Previous event"
-              >
-                <CaretLeft className="h-5 w-5 text-accent" weight="bold" />
-              </button>
-            )}
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="text-xl font-fredoka font-bold">
+                On This Day
+              </h3>
+              {child.icsUrl && lastRefreshTime && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRefresh()
+                  }}
+                  disabled={isRefreshing}
+                  className="gap-1 h-6 px-2 text-xs"
+                  title={`Updated ${formatLastRefreshTime()}`}
+                >
+                  <ArrowClockwise 
+                    className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
+                    weight="bold" 
+                  />
+                </Button>
+              )}
+            </div>
             
-            <div className="flex-1 min-w-0 relative" style={{ minHeight: '80px' }}>
+            <div className="relative" style={{ minHeight: '60px' }}>
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div
                   key={currentEventIndex}
@@ -365,83 +301,75 @@ export function OnThisDay({
                   }}
                   className="absolute inset-0"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-                        <CalendarCheck className="h-6 w-6 text-white" weight="bold" />
-                      </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      {yearsAgo !== undefined ? (
+                        <>
+                          <Badge variant="secondary" className="font-fredoka text-xs h-5">
+                            {yearsAgo} {yearsAgo === 1 ? 'year' : 'years'} ago
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(currentEvent.date).toLocaleDateString('en-US', { 
+                              month: 'long', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="font-fredoka text-xs h-5">
+                          Today
+                        </Badge>
+                      )}
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {yearsAgo !== undefined ? (
-                          <>
-                            <Badge variant="secondary" className="font-fredoka text-xs h-5">
-                              {yearsAgo} {yearsAgo === 1 ? 'year' : 'years'} ago
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(currentEvent.date).toLocaleDateString('en-US', { 
-                                month: 'long', 
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </span>
-                          </>
-                        ) : (
-                          <Badge variant="secondary" className="font-fredoka text-xs h-5">
-                            Today
+                    <h4 className="text-base font-fredoka font-semibold mb-1 text-foreground">
+                      {currentEvent.title}
+                    </h4>
+                    
+                    {currentEvent.description && (
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                        {currentEvent.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {currentEvent.type === 'calendar' && (
+                        <>
+                          <Badge variant="outline" className="font-fredoka text-xs h-5">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatEventTime(currentEvent.date, currentEvent.endDate)}
                           </Badge>
-                        )}
-                      </div>
-                      
-                      <h3 className="text-lg font-fredoka font-bold mb-1 text-foreground">
-                        {currentEvent.title}
-                      </h3>
-                      
-                      {currentEvent.description && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {currentEvent.description}
-                        </p>
+                          {currentEvent.location && (
+                            <Badge variant="outline" className="font-fredoka text-xs h-5">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {currentEvent.location}
+                            </Badge>
+                          )}
+                        </>
                       )}
                       
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {currentEvent.type === 'calendar' && (
-                          <>
-                            <Badge variant="outline" className="font-fredoka text-xs h-5">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatEventTime(currentEvent.date, currentEvent.endDate)}
-                            </Badge>
-                            {currentEvent.location && (
-                              <Badge variant="outline" className="font-fredoka text-xs h-5">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                {currentEvent.location}
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                        
-                        {currentEvent.points !== undefined && (
-                          <Badge className="font-fredoka bg-accent text-white text-xs h-5">
-                            <Star weight="fill" className="h-3 w-3 mr-1" />
-                            {currentEvent.points} points earned
-                          </Badge>
-                        )}
-                        
-                        {categoryBadges.map(category => (
-                          <Badge
-                            key={category.id}
-                            variant="outline"
-                            className="font-fredoka font-semibold border text-xs h-5"
-                            style={{
-                              backgroundColor: `${category.color}20`,
-                              borderColor: category.color,
-                              color: category.color,
-                            }}
-                          >
-                            {category.name}
-                          </Badge>
-                        ))}
-                      </div>
+                      {currentEvent.points !== undefined && (
+                        <Badge className="font-fredoka bg-accent text-white text-xs h-5">
+                          <Star weight="fill" className="h-3 w-3 mr-1" />
+                          {currentEvent.points} points
+                        </Badge>
+                      )}
+                      
+                      {categoryBadges.map(category => (
+                        <Badge
+                          key={category.id}
+                          variant="outline"
+                          className="font-fredoka font-semibold border text-xs h-5"
+                          style={{
+                            backgroundColor: `${category.color}20`,
+                            borderColor: category.color,
+                            color: category.color,
+                          }}
+                        >
+                          {category.name}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
@@ -449,37 +377,52 @@ export function OnThisDay({
             </div>
             
             {events.length > 1 && (
-              <button
-                onClick={handleNext}
-                className="flex-shrink-0 p-1.5 rounded-full hover:bg-accent/10 transition-colors"
-                aria-label="Next event"
-              >
-                <CaretRight className="h-5 w-5 text-accent" weight="bold" />
-              </button>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handlePrevious()
+                  }}
+                  className="p-1 rounded-full hover:bg-accent/10 transition-colors"
+                  aria-label="Previous event"
+                >
+                  <CaretLeft className="h-4 w-4 text-accent" weight="bold" />
+                </button>
+                
+                <div className="flex gap-1.5">
+                  {events.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDirection(index > currentEventIndex ? 1 : -1)
+                        setCurrentEventIndex(index)
+                      }}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        index === currentEventIndex
+                          ? 'bg-accent w-4'
+                          : 'bg-accent/30 hover:bg-accent/50'
+                      }`}
+                      aria-label={`Go to event ${index + 1}`}
+                    />
+                  ))}
+                </div>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleNext()
+                  }}
+                  className="p-1 rounded-full hover:bg-accent/10 transition-colors"
+                  aria-label="Next event"
+                >
+                  <CaretRight className="h-4 w-4 text-accent" weight="bold" />
+                </button>
+              </div>
             )}
           </div>
-          
-          {events.length > 1 && (
-            <div className="flex justify-center gap-1.5 mt-3">
-              {events.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setDirection(index > currentEventIndex ? 1 : -1)
-                    setCurrentEventIndex(index)
-                  }}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    index === currentEventIndex
-                      ? 'bg-accent w-4'
-                      : 'bg-accent/30 hover:bg-accent/50'
-                  }`}
-                  aria-label={`Go to event ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
