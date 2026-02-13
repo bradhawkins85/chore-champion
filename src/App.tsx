@@ -64,7 +64,7 @@ import {
   WallpaperSettings,
   DeviceWallpaperSettingsMap,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState } from '@/lib/helpers'
+import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState, getRewardCostForChild } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
@@ -605,7 +605,7 @@ function App() {
     const needsMigration = safePurchases.some(p => typeof p.cost !== 'number')
     if (!needsMigration) return safePurchases
     
-    const rewardsMap = new Map((migratedRewards || []).map((r) => [r.id, r]))
+    const rewardsMap = new Map<string, Reward>((migratedRewards || []).map((r) => [r.id, r]))
     
     return safePurchases.map((purchase) => {
       if (typeof purchase.cost === 'number') {
@@ -617,8 +617,9 @@ function App() {
         return { ...purchase, cost: 0 }
       }
       
-      const override = reward.costOverrides?.find(o => o.childId === purchase.childId)
-      const cost = override ? override.cost : reward.cost
+      // Use the purchase date to calculate the cost at the time of purchase
+      const purchaseDate = purchase.purchasedAt ? new Date(purchase.purchasedAt) : new Date()
+      const cost = getRewardCostForChild(reward, purchase.childId, purchaseDate)
       
       return { ...purchase, cost }
     })
