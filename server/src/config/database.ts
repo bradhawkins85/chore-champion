@@ -241,6 +241,12 @@ export async function initDatabase() {
         const categoryColumnMigrations = [
           { name: 'description', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN description TEXT AFTER name' },
           { name: 'created_at_timestamp', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER icon' },
+          { name: 'exchange_rates', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN exchange_rates JSON AFTER sort_order' },
+          { name: 'completion_bonus', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN completion_bonus JSON AFTER exchange_rates' },
+          { name: 'points_expiry', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN points_expiry JSON AFTER completion_bonus' },
+          { name: 'show_in_up_next', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN show_in_up_next BOOLEAN DEFAULT TRUE AFTER points_expiry' },
+          { name: 'show_in_calendar', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN show_in_calendar BOOLEAN DEFAULT TRUE AFTER show_in_up_next' },
+          { name: 'prerequisite_category_id', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN prerequisite_category_id VARCHAR(36) AFTER show_in_calendar' },
         ];
 
         for (const migration of categoryColumnMigrations) {
