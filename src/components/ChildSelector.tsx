@@ -295,7 +295,7 @@ export function ChildSelector({
             const childGoal = trackedGoals.find(g => g.childId === child.id)
             const goalReward = childGoal ? rewards.find(r => r.id === childGoal.rewardId) : null
             const currentPoints = childPoints.get(child.id) || 0
-            const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id) : 0
+            const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id, new Date()) : 0
             const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
             const childCategoryPoints = categoryPoints?.get(child.id)
             

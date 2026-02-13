@@ -127,7 +127,7 @@ export function RewardShop({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {rewardsToDisplay.map((reward) => {
-          const customCost = getRewardCostForChild(reward, child.id)
+          const customCost = getRewardCostForChild(reward, child.id, new Date())
           const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
           const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)
           
