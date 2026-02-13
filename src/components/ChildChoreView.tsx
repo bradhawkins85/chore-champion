@@ -588,34 +588,6 @@ export function ChildChoreView({
           </Card>
         ) : (
           <div className="space-y-8">
-            {missedChores.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-fredoka font-bold mb-4 text-destructive flex items-center gap-2">
-                  <Warning className="h-6 w-6" />
-                  Missed Chores
-                </h2>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {missedChores.map(({ chore, timeOfDay }) => (
-                    <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive bg-destructive/10">
-                      <CardContent className="p-3">
-                        <div className="text-center space-y-1">
-                          <div className="flex items-center justify-center gap-2">
-                            {chore.emoji && <span className="text-lg">{chore.emoji}</span>}
-                            <h3 className="text-sm font-fredoka font-semibold text-foreground leading-tight">
-                              {chore.name}
-                            </h3>
-                          </div>
-                          <div className="text-xs font-medium text-destructive">
-                            {timeOfDay === 'am' ? 'Morning' : 'Evening'}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {pendingChores.length > 0 && (
               <div>
                 <h2 className="text-2xl font-fredoka font-bold mb-4">To Do</h2>
@@ -957,6 +929,34 @@ export function ChildChoreView({
                               <ArrowCounterClockwise className="h-4 w-4" />
                             </Button>
                           )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {missedChores.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-fredoka font-bold mb-4 text-destructive flex items-center gap-2">
+                  <Warning className="h-6 w-6" />
+                  Missed Chores
+                </h2>
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {missedChores.map(({ chore, timeOfDay }) => (
+                    <Card key={`${chore.id}-${timeOfDay || 'missed'}`} className="border-destructive bg-destructive/10">
+                      <CardContent className="p-3">
+                        <div className="text-center space-y-1">
+                          <div className="flex items-center justify-center gap-2">
+                            {chore.emoji && <span className="text-lg">{chore.emoji}</span>}
+                            <h3 className="text-sm font-fredoka font-semibold text-foreground leading-tight">
+                              {chore.name}
+                            </h3>
+                          </div>
+                          <div className="text-xs font-medium text-destructive">
+                            {timeOfDay === 'am' ? 'Morning' : 'Evening'}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
