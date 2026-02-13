@@ -1,6 +1,6 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { pool } from '../config/database.js';
-import { deleteChildren, listChildren, replaceChildren } from './repositories/children-repo.js';
+import { deleteChildren, listChildren, replaceChildren, ChildRecord } from './repositories/children-repo.js';
 import { deleteChores, listChores, replaceChores } from './repositories/chores-repo.js';
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
@@ -88,16 +88,13 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         const children = await listChildren(tenantId);
         // Transform 'points' to 'totalPoints' for backward compatibility with frontend
         // Frontend Child interface expects 'totalPoints', backend ChildRecord has both 'points' and 'totalPoints'
-        return children.map((child: any) => {
-          // If totalPoints is missing or 0 but points exists, use points value
-          if ((!child.totalPoints || child.totalPoints === 0) && child.points) {
-            return { ...child, totalPoints: child.points };
-          }
-          // If totalPoints doesn't exist at all, use points (or 0)
-          if (child.totalPoints === undefined || child.totalPoints === null) {
-            return { ...child, totalPoints: child.points ?? 0 };
-          }
-          return child;
+        return children.map((child: ChildRecord) => {
+          // Use nullish coalescing to prefer totalPoints, fall back to points, then 0
+          // This handles null, undefined cases properly without treating 0 as falsy
+          return {
+            ...child,
+            totalPoints: child.totalPoints ?? child.points ?? 0
+          };
         });
       case 'chores':
         const chores = await listChores(tenantId);
