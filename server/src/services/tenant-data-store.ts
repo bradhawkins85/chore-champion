@@ -85,7 +85,20 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
 
     switch (key) {
       case 'children':
-        return listChildren(tenantId);
+        const children = await listChildren(tenantId);
+        // Transform 'points' to 'totalPoints' for backward compatibility with frontend
+        // Frontend Child interface expects 'totalPoints', backend ChildRecord has both 'points' and 'totalPoints'
+        return children.map((child: any) => {
+          // If totalPoints is missing or 0 but points exists, use points value
+          if ((!child.totalPoints || child.totalPoints === 0) && child.points) {
+            return { ...child, totalPoints: child.points };
+          }
+          // If totalPoints doesn't exist at all, use points (or 0)
+          if (child.totalPoints === undefined || child.totalPoints === null) {
+            return { ...child, totalPoints: child.points ?? 0 };
+          }
+          return child;
+        });
       case 'chores':
         const chores = await listChores(tenantId);
         // Transform 'title' to 'name' for backward compatibility with frontend
