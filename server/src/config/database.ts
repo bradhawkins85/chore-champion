@@ -236,6 +236,23 @@ export async function initDatabase() {
 
         console.log('Column migration completed');
 
+        // Add new columns to tenant_categories_v2 table for payload-to-columns migration
+        console.log('Checking for missing columns in tenant_categories_v2...');
+        const categoryColumnMigrations = [
+          { name: 'description', sql: 'ALTER TABLE tenant_categories_v2 ADD COLUMN description TEXT AFTER name' },
+        ];
+
+        for (const migration of categoryColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_categories_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_categories_v2 table`);
+          }
+        }
+
         // Add new columns to tenant_rewards_v2 table for payload-to-columns migration
         console.log('Checking for missing columns in tenant_rewards_v2...');
         
