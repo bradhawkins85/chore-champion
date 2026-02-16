@@ -9,13 +9,13 @@ export interface AssignmentRecord {
   assignedFor?: number | null;
   startDate?: number | null;
   endDate?: number | null;
-  daysOfWeek?: any;  // JSON array
+  daysOfWeek?: unknown;  // JSON array
   repeatPattern?: string | null;
   timeOfDay?: string | null;
-  timeWindow?: any;  // JSON object
-  pointOverrides?: any;  // JSON object
-  categoryPointOverrides?: any;  // JSON object
-  rotationState?: any;  // JSON object
+  timeWindow?: unknown;  // JSON object
+  pointOverrides?: unknown;  // JSON object
+  categoryPointOverrides?: unknown;  // JSON object
+  rotationState?: unknown;  // JSON object
   status?: string | null;
   points?: number;
   sortOrder?: number;
@@ -46,12 +46,12 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
 }
 
 // Helper function to safely parse JSON fields
-function parseJson(value: string | null | undefined) {
+function parseJson(value: string | null | undefined, fieldName: string = 'unknown') {
   if (!value) return null;
   try {
     return typeof value === 'string' ? JSON.parse(value) : value;
   } catch (error) {
-    console.error('Failed to parse JSON value:', value, error);
+    console.error(`Failed to parse JSON value for field "${fieldName}":`, value, error);
     return null;
   }
 }
@@ -71,13 +71,13 @@ function mapRow(row: AssignmentRow): AssignmentRecord {
     assignedFor: row.assigned_for,
     startDate: row.start_date,
     endDate: row.end_date,
-    daysOfWeek: parseJson(row.days_of_week),
+    daysOfWeek: parseJson(row.days_of_week, 'daysOfWeek'),
     repeatPattern: row.repeat_pattern,
     timeOfDay: row.time_of_day,
-    timeWindow: parseJson(row.time_window),
-    pointOverrides: parseJson(row.point_overrides),
-    categoryPointOverrides: parseJson(row.category_point_overrides),
-    rotationState: parseJson(row.rotation_state),
+    timeWindow: parseJson(row.time_window, 'timeWindow'),
+    pointOverrides: parseJson(row.point_overrides, 'pointOverrides'),
+    categoryPointOverrides: parseJson(row.category_point_overrides, 'categoryPointOverrides'),
+    rotationState: parseJson(row.rotation_state, 'rotationState'),
     status: row.status,
     points: row.points ?? 0,
     sortOrder: row.sort_order ?? 0,
