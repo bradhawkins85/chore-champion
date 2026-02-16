@@ -324,48 +324,17 @@ export async function initDatabase() {
           }
         }
 
-        // Drop payload_json column from tenant_children_v2 if it exists
-        console.log('Checking for payload_json column in tenant_children_v2...');
-        const [childrenPayloadColumns] = await connection.query<RowDataPacket[]>(
-          "SHOW COLUMNS FROM tenant_children_v2 LIKE 'payload_json'"
-        );
-        
-        if (childrenPayloadColumns.length > 0) {
-          await connection.query('ALTER TABLE tenant_children_v2 DROP COLUMN payload_json');
-          console.log('Dropped payload_json column from tenant_children_v2 table');
-        }
+        // Keep legacy payload_json columns in place to avoid destructive migrations.
+        // These columns are intentionally preserved during updates so existing data can
+        // always be recovered if a future schema rollout misses a field migration.
+        for (const tableName of ['tenant_children_v2', 'tenant_chores_v2', 'tenant_rewards_v2', 'tenant_categories_v2']) {
+          const [payloadColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'payload_json'`
+          );
 
-        // Drop payload_json column from tenant_chores_v2 if it exists
-        console.log('Checking for payload_json column in tenant_chores_v2...');
-        const [choresPayloadColumns] = await connection.query<RowDataPacket[]>(
-          "SHOW COLUMNS FROM tenant_chores_v2 LIKE 'payload_json'"
-        );
-        
-        if (choresPayloadColumns.length > 0) {
-          await connection.query('ALTER TABLE tenant_chores_v2 DROP COLUMN payload_json');
-          console.log('Dropped payload_json column from tenant_chores_v2 table');
-        }
-
-        // Drop payload_json column from tenant_rewards_v2 if it exists
-        console.log('Checking for payload_json column in tenant_rewards_v2...');
-        const [rewardsPayloadColumns] = await connection.query<RowDataPacket[]>(
-          "SHOW COLUMNS FROM tenant_rewards_v2 LIKE 'payload_json'"
-        );
-        
-        if (rewardsPayloadColumns.length > 0) {
-          await connection.query('ALTER TABLE tenant_rewards_v2 DROP COLUMN payload_json');
-          console.log('Dropped payload_json column from tenant_rewards_v2 table');
-        }
-
-        // Drop payload_json column from tenant_categories_v2 if it exists
-        console.log('Checking for payload_json column in tenant_categories_v2...');
-        const [categoriesPayloadColumns] = await connection.query<RowDataPacket[]>(
-          "SHOW COLUMNS FROM tenant_categories_v2 LIKE 'payload_json'"
-        );
-        
-        if (categoriesPayloadColumns.length > 0) {
-          await connection.query('ALTER TABLE tenant_categories_v2 DROP COLUMN payload_json');
-          console.log('Dropped payload_json column from tenant_categories_v2 table');
+          if (payloadColumns.length > 0) {
+            console.log(`Preserving legacy payload_json column on ${tableName} to prevent data loss during updates`);
+          }
         }
 
         // Create subscription_plans table
