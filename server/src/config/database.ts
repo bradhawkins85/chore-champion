@@ -407,6 +407,30 @@ export async function initDatabase() {
           console.log('Added schedule_type column to tenant_child_availability_v2 table');
         }
 
+        const [startDateColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'start_date'"
+        );
+        
+        if (startDateColumnRows.length === 0) {
+          // start_date column doesn't exist, add it after schedule_type
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN start_date BIGINT NULL AFTER schedule_type'
+          );
+          console.log('Added start_date column to tenant_child_availability_v2 table');
+        }
+
+        const [endDateColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'end_date'"
+        );
+        
+        if (endDateColumnRows.length === 0) {
+          // end_date column doesn't exist, add it after start_date
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN end_date BIGINT NULL AFTER start_date'
+          );
+          console.log('Added end_date column to tenant_child_availability_v2 table');
+        }
+
         // Keep legacy payload_json columns in place to avoid destructive migrations.
         // These columns are intentionally preserved during updates so existing data can
         // always be recovered if a future schema rollout misses a field migration.
