@@ -5,6 +5,9 @@ import { deleteChores, listChores, replaceChores } from './repositories/chores-r
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
 import { deleteCategories, listCategories, replaceCategories } from './repositories/categories-repo.js';
+import { deleteAssignments, listAssignments, replaceAssignments } from './repositories/assignments-repo.js';
+import { deleteCompletions, listCompletions, replaceCompletions } from './repositories/completions-repo.js';
+import { deleteChildAvailability, listChildAvailability, replaceChildAvailability } from './repositories/child-availability-repo.js';
 import { getTableForKey, getTableModeForKey } from './tenant-data-schema.js';
 
 // Supported keys that map to normalized v2 tables
@@ -193,6 +196,12 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         return listCategories(tenantId);
       case 'ip-access-requests':
         return listIpAccessRequests(tenantId);
+      case 'assignments':
+        return listAssignments(tenantId);
+      case 'completions':
+        return listCompletions(tenantId);
+      case 'child-availability':
+        return listChildAvailability(tenantId);
       default:
         return getGenericTableTenantData(key, tenantId);
     }
@@ -301,6 +310,15 @@ async function setNormalizedTenantData(
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
+      case 'assignments':
+        await replaceAssignments(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
+      case 'completions':
+        await replaceCompletions(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
+      case 'child-availability':
+        await replaceChildAvailability(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
       default:
         await setGenericTableTenantData(key, tenantId, value, connection);
         return;
@@ -395,6 +413,15 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
       break;
     case 'ip-access-requests':
       await deleteIpAccessRequests(tenantId);
+      break;
+    case 'assignments':
+      await deleteAssignments(tenantId);
+      break;
+    case 'completions':
+      await deleteCompletions(tenantId);
+      break;
+    case 'child-availability':
+      await deleteChildAvailability(tenantId);
       break;
     default:
       await deleteGenericTableTenantData(key, tenantId);
