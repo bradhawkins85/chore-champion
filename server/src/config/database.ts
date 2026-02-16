@@ -431,6 +431,90 @@ export async function initDatabase() {
           console.log('Added end_date column to tenant_child_availability_v2 table');
         }
 
+        const [dayOfWeekColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'day_of_week'"
+        );
+        
+        if (dayOfWeekColumnRows.length === 0) {
+          // day_of_week column doesn't exist, add it after end_date
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN day_of_week TINYINT NULL AFTER end_date'
+          );
+          console.log('Added day_of_week column to tenant_child_availability_v2 table');
+        }
+
+        const [startTimeColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'start_time'"
+        );
+        
+        if (startTimeColumnRows.length === 0) {
+          // start_time column doesn't exist, add it after day_of_week
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN start_time VARCHAR(20) AFTER day_of_week'
+          );
+          console.log('Added start_time column to tenant_child_availability_v2 table');
+        }
+
+        const [endTimeColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'end_time'"
+        );
+        
+        if (endTimeColumnRows.length === 0) {
+          // end_time column doesn't exist, add it after start_time
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN end_time VARCHAR(20) AFTER start_time'
+          );
+          console.log('Added end_time column to tenant_child_availability_v2 table');
+        }
+
+        const [repeatPatternColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'repeat_pattern'"
+        );
+        
+        if (repeatPatternColumnRows.length === 0) {
+          // repeat_pattern column doesn't exist, add it after end_time
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN repeat_pattern VARCHAR(50) AFTER end_time'
+          );
+          console.log('Added repeat_pattern column to tenant_child_availability_v2 table');
+        }
+
+        const [noteColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'note'"
+        );
+        
+        if (noteColumnRows.length === 0) {
+          // note column doesn't exist, add it after repeat_pattern
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN note TEXT AFTER repeat_pattern'
+          );
+          console.log('Added note column to tenant_child_availability_v2 table');
+        }
+
+        const [isAvailableColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'is_available'"
+        );
+        
+        if (isAvailableColumnRows.length === 0) {
+          // is_available column doesn't exist, add it after note
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN is_available BOOLEAN DEFAULT TRUE AFTER note'
+          );
+          console.log('Added is_available column to tenant_child_availability_v2 table');
+        }
+
+        const [sortOrderColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'sort_order'"
+        );
+        
+        if (sortOrderColumnRows.length === 0) {
+          // sort_order column doesn't exist, add it after is_available
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN sort_order INT DEFAULT 0 AFTER is_available'
+          );
+          console.log('Added sort_order column to tenant_child_availability_v2 table');
+        }
+
         // Keep legacy payload_json columns in place to avoid destructive migrations.
         // These columns are intentionally preserved during updates so existing data can
         // always be recovered if a future schema rollout misses a field migration.
