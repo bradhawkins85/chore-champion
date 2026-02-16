@@ -39,7 +39,7 @@
 ### Backend (Server Directory)
 - **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ESM modules
-- **Database**: MySQL 2 with mysql2 driver
+- **Database**: MySQL 8.0 with mysql2 driver
 - **Authentication**: JWT with bcrypt
 - **Email**: Nodemailer for SMTP
 - **Payments**: Stripe SDK
