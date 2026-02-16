@@ -395,6 +395,18 @@ export async function initDatabase() {
           console.log('Added type column to tenant_child_availability_v2 table');
         }
 
+        const [scheduleTypeColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'schedule_type'"
+        );
+        
+        if (scheduleTypeColumnRows.length === 0) {
+          // schedule_type column doesn't exist, add it after type
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN schedule_type VARCHAR(20) AFTER type'
+          );
+          console.log('Added schedule_type column to tenant_child_availability_v2 table');
+        }
+
         // Keep legacy payload_json columns in place to avoid destructive migrations.
         // These columns are intentionally preserved during updates so existing data can
         // always be recovered if a future schema rollout misses a field migration.
