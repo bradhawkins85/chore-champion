@@ -5,6 +5,9 @@ import { deleteChores, listChores, replaceChores } from './repositories/chores-r
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
 import { deleteCategories, listCategories, replaceCategories } from './repositories/categories-repo.js';
+import { deleteAssignments, listAssignments, replaceAssignments } from './repositories/assignments-repo.js';
+import { deleteCompletions, listCompletions, replaceCompletions } from './repositories/completions-repo.js';
+import { deleteChildAvailability, listChildAvailability, replaceChildAvailability } from './repositories/child-availability-repo.js';
 import { getTableForKey, getTableModeForKey } from './tenant-data-schema.js';
 
 // Supported keys that map to normalized v2 tables
@@ -41,8 +44,70 @@ const migratedTenants = new Set<string>();
 
 const migratedGenericKeys = new Set<string>();
 
+// Track which tenants have had their payload_json data migrated to proper columns
+const migratedPayloadJsonKeys = new Set<string>();
+
 function getMigrationMarker(tenantId: string, key: string): string {
   return `${tenantId}:${key}`;
+}
+
+/**
+ * Migrate data from payload_json column to proper table columns for assignments, completions, and child-availability.
+ * This handles the case where data was incorrectly saved to payload_json before the fix.
+ */
+async function migratePayloadJsonToColumns(key: string, tenantId: string): Promise<void> {
+  const marker = getMigrationMarker(tenantId, key);
+  if (migratedPayloadJsonKeys.has(marker)) {
+    return;
+  }
+
+  try {
+    const tableName = getTableForKey(key);
+    if (!tableName) {
+      migratedPayloadJsonKeys.add(marker);
+      return;
+    }
+
+    // Only migrate for the three affected tables
+    if (!['assignments', 'completions', 'child-availability'].includes(key)) {
+      migratedPayloadJsonKeys.add(marker);
+      return;
+    }
+
+    // Check if there are records with non-null payload_json
+    const [rows] = await pool.query<(RowDataPacket & { id: string; payload_json?: string })[]>(
+      `SELECT id, payload_json FROM ${tableName} WHERE tenant_id = ? AND payload_json IS NOT NULL AND payload_json != 'null'`,
+      [tenantId]
+    );
+
+    if (rows.length === 0) {
+      migratedPayloadJsonKeys.add(marker);
+      return;
+    }
+
+    console.log(`Migrating ${rows.length} ${key} records from payload_json to proper columns for tenant ${tenantId}`);
+
+    // Parse payload_json and re-save using the repository functions
+    const records = rows.map(row => {
+      try {
+        return JSON.parse(row.payload_json || '{}');
+      } catch (error) {
+        console.error(`Failed to parse payload_json for ${key} record ${row.id}:`, error);
+        return null;
+      }
+    }).filter(r => r !== null);
+
+    if (records.length > 0) {
+      // Re-save the data which will populate the proper columns
+      await setNormalizedTenantData(key as NormalizedKey, tenantId, records);
+      console.log(`Successfully migrated ${records.length} ${key} records for tenant ${tenantId}`);
+    }
+
+    migratedPayloadJsonKeys.add(marker);
+  } catch (error) {
+    console.error(`Error during payload_json migration for key "${key}" and tenant ${tenantId}:`, error);
+    // Don't throw - continue with normal operation even if migration fails
+  }
 }
 
 async function migrateGenericKeyFromKVStore(key: string, tenantId: string): Promise<void> {
@@ -165,6 +230,11 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
       await migrateCategoriesFromKVStore(tenantId);
     }
 
+    // Run migration for assignments, completions, and child-availability from payload_json to columns
+    if (['assignments', 'completions', 'child-availability'].includes(key)) {
+      await migratePayloadJsonToColumns(key, tenantId);
+    }
+
     switch (key) {
       case 'children':
         const children = await listChildren(tenantId);
@@ -193,6 +263,12 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         return listCategories(tenantId);
       case 'ip-access-requests':
         return listIpAccessRequests(tenantId);
+      case 'assignments':
+        return listAssignments(tenantId);
+      case 'completions':
+        return listCompletions(tenantId);
+      case 'child-availability':
+        return listChildAvailability(tenantId);
       default:
         return getGenericTableTenantData(key, tenantId);
     }
@@ -301,6 +377,15 @@ async function setNormalizedTenantData(
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
+      case 'assignments':
+        await replaceAssignments(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
+      case 'completions':
+        await replaceCompletions(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
+      case 'child-availability':
+        await replaceChildAvailability(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
       default:
         await setGenericTableTenantData(key, tenantId, value, connection);
         return;
@@ -395,6 +480,15 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
       break;
     case 'ip-access-requests':
       await deleteIpAccessRequests(tenantId);
+      break;
+    case 'assignments':
+      await deleteAssignments(tenantId);
+      break;
+    case 'completions':
+      await deleteCompletions(tenantId);
+      break;
+    case 'child-availability':
+      await deleteChildAvailability(tenantId);
       break;
     default:
       await deleteGenericTableTenantData(key, tenantId);
