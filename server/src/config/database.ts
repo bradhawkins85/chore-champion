@@ -381,6 +381,20 @@ export async function initDatabase() {
           }
         }
 
+        // Add missing column to tenant_child_availability_v2 table
+        console.log('Checking for missing columns in tenant_child_availability_v2...');
+        const [typeColumnRows] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'type'"
+        );
+        
+        if (typeColumnRows.length === 0) {
+          // type column doesn't exist, add it after child_id
+          await connection.query(
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN type VARCHAR(20) AFTER child_id'
+          );
+          console.log('Added type column to tenant_child_availability_v2 table');
+        }
+
         // Keep legacy payload_json columns in place to avoid destructive migrations.
         // These columns are intentionally preserved during updates so existing data can
         // always be recovered if a future schema rollout misses a field migration.
