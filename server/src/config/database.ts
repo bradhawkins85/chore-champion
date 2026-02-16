@@ -383,11 +383,11 @@ export async function initDatabase() {
 
         // Add missing column to tenant_child_availability_v2 table
         console.log('Checking for missing columns in tenant_child_availability_v2...');
-        const [typeColumns] = await connection.query<RowDataPacket[]>(
+        const [typeColumnRows] = await connection.query<RowDataPacket[]>(
           "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'type'"
         );
         
-        if (typeColumns.length === 0) {
+        if (typeColumnRows.length === 0) {
           // type column doesn't exist, add it after child_id
           await connection.query(
             'ALTER TABLE tenant_child_availability_v2 ADD COLUMN type VARCHAR(20) AFTER child_id'
