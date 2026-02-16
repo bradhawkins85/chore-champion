@@ -5,9 +5,27 @@ import { deleteChores, listChores, replaceChores } from './repositories/chores-r
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
 import { deleteCategories, listCategories, replaceCategories } from './repositories/categories-repo.js';
+import { getTableForKey, getTableModeForKey } from './tenant-data-schema.js';
 
 // Supported keys that map to normalized v2 tables
-const NORMALIZED_KEYS = ['children', 'chores', 'rewards', 'categories', 'ip-access-requests'] as const;
+const NORMALIZED_KEYS = [
+  'children',
+  'chores',
+  'assignments',
+  'completions',
+  'rewards',
+  'purchases',
+  'chore-history',
+  'dismissed-missed-chores',
+  'tracked-goals',
+  'categories',
+  'point-swaps',
+  'bonus-completions',
+  'child-availability',
+  'parent-pin',
+  'ip-restrictions',
+  'ip-access-requests',
+] as const;
 type NormalizedKey = (typeof NORMALIZED_KEYS)[number];
 
 function isNormalizedKey(key: string): key is NormalizedKey {
@@ -20,6 +38,70 @@ function isNormalizedKey(key: string): key is NormalizedKey {
 // 2. The migration is fast and causes no issues if run multiple times
 // 3. Most tenants will only trigger this once during the upgrade window
 const migratedTenants = new Set<string>();
+
+const migratedGenericKeys = new Set<string>();
+
+function getMigrationMarker(tenantId: string, key: string): string {
+  return `${tenantId}:${key}`;
+}
+
+async function migrateGenericKeyFromKVStore(key: string, tenantId: string): Promise<void> {
+  const marker = getMigrationMarker(tenantId, key);
+  if (migratedGenericKeys.has(marker)) {
+    return;
+  }
+
+  try {
+    const tableName = getTableForKey(key);
+    const tableMode = getTableModeForKey(key);
+    if (!tableName || !tableMode) {
+      migratedGenericKeys.add(marker);
+      return;
+    }
+
+    if (tableMode === 'collection') {
+      const [existingRows] = await pool.query<RowDataPacket[]>(
+        `SELECT id FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
+        [tenantId]
+      );
+      if (existingRows.length > 0) {
+        migratedGenericKeys.add(marker);
+        return;
+      }
+    } else {
+      const [existingRows] = await pool.query<RowDataPacket[]>(
+        `SELECT tenant_id FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
+        [tenantId]
+      );
+      if (existingRows.length > 0) {
+        migratedGenericKeys.add(marker);
+        return;
+      }
+    }
+
+    const [kvRows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
+      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+      [key, tenantId]
+    );
+
+    if (!kvRows.length || !kvRows[0].value_data) {
+      migratedGenericKeys.add(marker);
+      return;
+    }
+
+    try {
+      const parsedValue = JSON.parse(kvRows[0].value_data);
+      await setGenericTableTenantData(key, tenantId, parsedValue);
+      console.log(`Migrated key "${key}" from kv_store to ${tableName} for tenant ${tenantId}`);
+    } catch (parseError) {
+      console.error(`Failed to parse legacy key "${key}" for tenant ${tenantId}:`, parseError);
+    }
+
+    migratedGenericKeys.add(marker);
+  } catch (error) {
+    console.error(`Error during migration for key "${key}" and tenant ${tenantId}:`, error);
+  }
+}
 
 /**
  * Migrates legacy category data from kv_store to tenant_categories_v2 table.
@@ -111,12 +193,76 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         return listCategories(tenantId);
       case 'ip-access-requests':
         return listIpAccessRequests(tenantId);
+      default:
+        return getGenericTableTenantData(key, tenantId);
     }
   } catch (error) {
     console.error(`Error getting normalized tenant data for key "${key}" (tenantId: ${tenantId}):`, error);
     console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     throw error;
   }
+}
+
+type GenericCollectionRow = RowDataPacket & { id: string; payload_json?: string | null };
+type GenericSingletonRow = RowDataPacket & {
+  pin_hash?: string | null;
+  pin_hint?: string | null;
+  enabled?: number | null;
+  mode?: string | null;
+};
+
+async function getGenericTableTenantData(key: string, tenantId: string): Promise<unknown | null> {
+  const tableName = getTableForKey(key);
+  const tableMode = getTableModeForKey(key);
+  if (!tableName || !tableMode) {
+    return null;
+  }
+  await migrateGenericKeyFromKVStore(key, tenantId);
+
+
+  if (tableMode === 'collection') {
+    const [rows] = await pool.query<GenericCollectionRow[]>(
+      `SELECT id, payload_json FROM ${tableName} WHERE tenant_id = ? ORDER BY created_at ASC, id ASC`,
+      [tenantId]
+    );
+
+    return rows.map((row) => {
+      if (row.payload_json) {
+        try {
+          return JSON.parse(row.payload_json);
+        } catch {
+          return { id: row.id };
+        }
+      }
+      return { id: row.id };
+    });
+  }
+
+  const [rows] = await pool.query<GenericSingletonRow[]>(
+    `SELECT pin_hash, pin_hint, enabled, mode FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
+    [tenantId]
+  );
+
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  if (key === 'parent-pin') {
+    return {
+      pinHash: row.pin_hash,
+      pinHint: row.pin_hint,
+    };
+  }
+
+  if (key === 'ip-restrictions') {
+    return {
+      enabled: Boolean(row.enabled),
+      mode: row.mode ?? 'allow-list',
+    };
+  }
+
+  return row;
 }
 
 async function setNormalizedTenantData(
@@ -149,6 +295,9 @@ async function setNormalizedTenantData(
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
+      default:
+        await setGenericTableTenantData(key, tenantId, value, connection);
+        return;
     }
   } catch (error) {
     console.error(`Error setting normalized tenant data for key "${key}" (tenantId: ${tenantId}):`, error);
@@ -156,6 +305,72 @@ async function setNormalizedTenantData(
     console.error('Value type:', typeof value, 'Is array:', Array.isArray(value));
     throw error;
   }
+}
+
+function getRecordId(record: unknown, index: number): string {
+  if (record && typeof record === 'object' && 'id' in (record as Record<string, unknown>)) {
+    const id = (record as Record<string, unknown>).id;
+    if (typeof id === 'string' && id.length > 0) {
+      return id;
+    }
+  }
+  return `generated-${index}`;
+}
+
+async function setGenericTableTenantData(
+  key: string,
+  tenantId: string,
+  value: unknown,
+  connection?: PoolConnection
+): Promise<void> {
+  const tableName = getTableForKey(key);
+  const tableMode = getTableModeForKey(key);
+  if (!tableName || !tableMode) {
+    throw new Error(`No table configuration found for key "${key}"`);
+  }
+
+  const executor = connection ?? pool;
+
+  if (tableMode === 'collection') {
+    const records = Array.isArray(value) ? value : [];
+
+    await executor.query(`DELETE FROM ${tableName} WHERE tenant_id = ?`, [tenantId]);
+
+    for (let index = 0; index < records.length; index++) {
+      const record = records[index];
+      await executor.query(
+        `INSERT INTO ${tableName} (tenant_id, id, payload_json)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json), updated_at = CURRENT_TIMESTAMP`,
+        [tenantId, getRecordId(record, index), JSON.stringify(record)]
+      );
+    }
+    return;
+  }
+
+  if (key === 'parent-pin') {
+    const parentPin = value as Record<string, unknown>;
+    await executor.query(
+      `INSERT INTO ${tableName} (tenant_id, pin_hash, pin_hint)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), pin_hint = VALUES(pin_hint), updated_at = CURRENT_TIMESTAMP`,
+      [tenantId, parentPin?.pinHash ?? null, parentPin?.pinHint ?? null]
+    );
+    return;
+  }
+
+  if (key === 'ip-restrictions') {
+    const restrictions = value as Record<string, unknown>;
+    await executor.query(
+      `INSERT INTO ${tableName} (tenant_id, enabled, mode)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), mode = VALUES(mode), updated_at = CURRENT_TIMESTAMP`,
+      [tenantId, restrictions?.enabled ? 1 : 0, (restrictions?.mode as string | undefined) ?? 'allow-list']
+    );
+    return;
+  }
+
+  throw new Error(`Unsupported singleton key "${key}"`);
 }
 
 async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string): Promise<void> {
@@ -175,7 +390,18 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
     case 'ip-access-requests':
       await deleteIpAccessRequests(tenantId);
       break;
+    default:
+      await deleteGenericTableTenantData(key, tenantId);
+      break;
   }
+}
+
+async function deleteGenericTableTenantData(key: string, tenantId: string): Promise<void> {
+  const tableName = getTableForKey(key);
+  if (!tableName) {
+    return;
+  }
+  await pool.query(`DELETE FROM ${tableName} WHERE tenant_id = ?`, [tenantId]);
 }
 
 // Get tenant data - only supports normalized keys in v2 tables

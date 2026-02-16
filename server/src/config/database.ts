@@ -164,6 +164,63 @@ export async function initDatabase() {
         await createTenantDataTables(connection);
         console.log('Created tenant data tables successfully');
 
+        const tenantPayloadTables = [
+          'tenant_assignments_v2',
+          'tenant_completions_v2',
+          'tenant_purchases_v2',
+          'tenant_chore_history_v2',
+          'tenant_dismissed_missed_chores_v2',
+          'tenant_tracked_goals_v2',
+          'tenant_point_swaps_v2',
+          'tenant_bonus_completions_v2',
+          'tenant_child_availability_v2',
+        ];
+
+        for (const tableName of tenantPayloadTables) {
+          const [createdAtColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'created_at'`
+          );
+          if (createdAtColumns.length === 0) {
+            await connection.query(`ALTER TABLE ${tableName} ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+            console.log(`Added created_at column to ${tableName}`);
+          }
+
+          const [updatedAtColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'updated_at'`
+          );
+          if (updatedAtColumns.length === 0) {
+            await connection.query(`ALTER TABLE ${tableName} ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+            console.log(`Added updated_at column to ${tableName}`);
+          }
+
+          const [payloadColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'payload_json'`
+          );
+          if (payloadColumns.length > 0 && payloadColumns[0].Null === 'NO') {
+            await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN payload_json JSON NULL`);
+            console.log(`Updated payload_json to allow NULL on ${tableName}`);
+          }
+        }
+
+        for (const tableName of ['tenant_parent_pin_v2', 'tenant_ip_restrictions_v2', 'tenant_ip_access_requests_v2']) {
+          const [createdAtColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'created_at'`
+          );
+          if (createdAtColumns.length === 0) {
+            await connection.query(`ALTER TABLE ${tableName} ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+            console.log(`Added created_at column to ${tableName}`);
+          }
+
+          const [updatedAtColumns] = await connection.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM ${tableName} LIKE 'updated_at'`
+          );
+          if (updatedAtColumns.length === 0) {
+            await connection.query(`ALTER TABLE ${tableName} ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+            console.log(`Added updated_at column to ${tableName}`);
+          }
+        }
+
+
         // Add emoji column to tenant_chores_v2 table if it doesn't exist
         const [choreColumns] = await connection.query<RowDataPacket[]>(
           "SHOW COLUMNS FROM tenant_chores_v2 LIKE 'emoji'"
