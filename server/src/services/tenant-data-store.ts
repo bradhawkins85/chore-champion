@@ -238,17 +238,15 @@ async function getGenericTableTenantData(key: string, tenantId: string): Promise
     });
   }
 
-  const [rows] = await pool.query<GenericSingletonRow[]>(
-    `SELECT pin_hash, pin_hint, enabled, mode FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
-    [tenantId]
-  );
-
-  const row = rows[0];
-  if (!row) {
-    return null;
-  }
-
   if (key === 'parent-pin') {
+    const [rows] = await pool.query<GenericSingletonRow[]>(
+      `SELECT pin_hash, pin_hint FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
+      [tenantId]
+    );
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
     return {
       pinHash: row.pin_hash,
       pinHint: row.pin_hint,
@@ -256,13 +254,21 @@ async function getGenericTableTenantData(key: string, tenantId: string): Promise
   }
 
   if (key === 'ip-restrictions') {
+    const [rows] = await pool.query<GenericSingletonRow[]>(
+      `SELECT enabled, mode FROM ${tableName} WHERE tenant_id = ? LIMIT 1`,
+      [tenantId]
+    );
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
     return {
       enabled: Boolean(row.enabled),
       mode: row.mode ?? 'allow-list',
     };
   }
 
-  return row;
+  return null;
 }
 
 async function setNormalizedTenantData(
