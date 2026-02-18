@@ -484,7 +484,7 @@ export async function initDatabase() {
         if (repeatPatternColumnRows.length === 0) {
           // repeat_pattern column doesn't exist, add it after end_time
           await connection.query(
-            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN repeat_pattern VARCHAR(50) AFTER end_time'
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN repeat_pattern VARCHAR(255) AFTER end_time'
           );
           console.log('Added repeat_pattern column to tenant_child_availability_v2 table');
         }
@@ -535,7 +535,7 @@ export async function initDatabase() {
           { name: 'start_date', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN start_date BIGINT NULL AFTER assigned_for' },
           { name: 'end_date', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN end_date BIGINT NULL AFTER start_date' },
           { name: 'days_of_week', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN days_of_week JSON AFTER end_date' },
-          { name: 'repeat_pattern', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN repeat_pattern VARCHAR(50) AFTER days_of_week' },
+          { name: 'repeat_pattern', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN repeat_pattern VARCHAR(255) AFTER days_of_week' },
           { name: 'time_of_day', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN time_of_day VARCHAR(10) AFTER repeat_pattern' },
           { name: 'time_window', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN time_window JSON AFTER time_of_day' },
           { name: 'point_overrides', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN point_overrides JSON AFTER time_window' },
@@ -554,6 +554,37 @@ export async function initDatabase() {
           if (cols.length === 0) {
             await connection.query(migration.sql);
             console.log(`Added ${migration.name} column to tenant_assignments_v2 table`);
+          }
+        }
+
+        // Expand repeat_pattern column size to accommodate longer JSON strings
+        console.log('Checking repeat_pattern column size in tenant_assignments_v2 and tenant_child_availability_v2...');
+        
+        // Check tenant_assignments_v2
+        const [assignmentRepeatPatternCols] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_assignments_v2 LIKE 'repeat_pattern'"
+        );
+        if (assignmentRepeatPatternCols.length > 0) {
+          const colType = assignmentRepeatPatternCols[0].Type;
+          if (colType === 'varchar(50)') {
+            await connection.query(
+              'ALTER TABLE tenant_assignments_v2 MODIFY COLUMN repeat_pattern VARCHAR(255)'
+            );
+            console.log('Expanded repeat_pattern column to VARCHAR(255) in tenant_assignments_v2 table');
+          }
+        }
+
+        // Check tenant_child_availability_v2
+        const [availabilityRepeatPatternCols] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'repeat_pattern'"
+        );
+        if (availabilityRepeatPatternCols.length > 0) {
+          const colType = availabilityRepeatPatternCols[0].Type;
+          if (colType === 'varchar(50)') {
+            await connection.query(
+              'ALTER TABLE tenant_child_availability_v2 MODIFY COLUMN repeat_pattern VARCHAR(255)'
+            );
+            console.log('Expanded repeat_pattern column to VARCHAR(255) in tenant_child_availability_v2 table');
           }
         }
 
