@@ -515,6 +515,68 @@ export async function initDatabase() {
           console.log('Added sort_order column to tenant_child_availability_v2 table');
         }
 
+        // Add missing columns to tenant_assignments_v2 table
+        console.log('Checking for missing columns in tenant_assignments_v2...');
+        const assignmentColumnMigrations = [
+          { name: 'chore_id', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN chore_id VARCHAR(36) AFTER tenant_id' },
+          { name: 'child_id', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN child_id VARCHAR(36) AFTER chore_id' },
+          { name: 'assigned_at', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN assigned_at BIGINT NULL AFTER child_id' },
+          { name: 'assigned_for', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN assigned_for BIGINT NULL AFTER assigned_at' },
+          { name: 'start_date', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN start_date BIGINT NULL AFTER assigned_for' },
+          { name: 'end_date', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN end_date BIGINT NULL AFTER start_date' },
+          { name: 'days_of_week', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN days_of_week JSON AFTER end_date' },
+          { name: 'repeat_pattern', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN repeat_pattern VARCHAR(50) AFTER days_of_week' },
+          { name: 'time_of_day', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN time_of_day VARCHAR(10) AFTER repeat_pattern' },
+          { name: 'time_window', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN time_window JSON AFTER time_of_day' },
+          { name: 'point_overrides', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN point_overrides JSON AFTER time_window' },
+          { name: 'category_point_overrides', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN category_point_overrides JSON AFTER point_overrides' },
+          { name: 'rotation_state', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN rotation_state JSON AFTER category_point_overrides' },
+          { name: 'status', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN status VARCHAR(50) AFTER rotation_state' },
+          { name: 'points', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN points INT DEFAULT 0 AFTER status' },
+          { name: 'sort_order', sql: 'ALTER TABLE tenant_assignments_v2 ADD COLUMN sort_order INT DEFAULT 0 AFTER points' },
+        ];
+
+        for (const migration of assignmentColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_assignments_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_assignments_v2 table`);
+          }
+        }
+
+        // Add missing columns to tenant_completions_v2 table
+        console.log('Checking for missing columns in tenant_completions_v2...');
+        const completionColumnMigrations = [
+          { name: 'chore_id', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN chore_id VARCHAR(36) AFTER tenant_id' },
+          { name: 'child_id', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN child_id VARCHAR(36) AFTER chore_id' },
+          { name: 'assignment_id', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN assignment_id VARCHAR(36) AFTER child_id' },
+          { name: 'completed_at', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN completed_at BIGINT NULL AFTER assignment_id' },
+          { name: 'undone_at', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN undone_at BIGINT NULL AFTER completed_at' },
+          { name: 'overridden', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN overridden BOOLEAN DEFAULT FALSE AFTER undone_at' },
+          { name: 'approval_status', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN approval_status VARCHAR(50) AFTER overridden' },
+          { name: 'approved_at', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN approved_at BIGINT NULL AFTER approval_status' },
+          { name: 'approved_by', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN approved_by VARCHAR(36) AFTER approved_at' },
+          { name: 'rejected_reason', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN rejected_reason TEXT AFTER approved_by' },
+          { name: 'time_of_day', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN time_of_day VARCHAR(10) AFTER rejected_reason' },
+          { name: 'status', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN status VARCHAR(50) AFTER time_of_day' },
+          { name: 'points_awarded', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN points_awarded INT DEFAULT 0 AFTER status' },
+          { name: 'sort_order', sql: 'ALTER TABLE tenant_completions_v2 ADD COLUMN sort_order INT DEFAULT 0 AFTER points_awarded' },
+        ];
+
+        for (const migration of completionColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_completions_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_completions_v2 table`);
+          }
+        }
+
         // Keep legacy payload_json columns in place to avoid destructive migrations.
         // These columns are intentionally preserved during updates so existing data can
         // always be recovered if a future schema rollout misses a field migration.
