@@ -317,6 +317,16 @@ export async function initDatabase() {
           }
         }
 
+        // Add undone_at column to tenant_completions_v2 table if missing
+        console.log('Checking for missing columns in tenant_completions_v2...');
+        const [undoneAtColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_completions_v2 LIKE 'undone_at'"
+        );
+        if (undoneAtColumns.length === 0) {
+          await connection.query('ALTER TABLE tenant_completions_v2 ADD COLUMN undone_at BIGINT NULL AFTER completed_at');
+          console.log('Added undone_at column to tenant_completions_v2 table');
+        }
+
         // Add new columns to tenant_rewards_v2 table for payload-to-columns migration
         console.log('Checking for missing columns in tenant_rewards_v2...');
         
