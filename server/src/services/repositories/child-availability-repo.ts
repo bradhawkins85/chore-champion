@@ -11,7 +11,7 @@ export interface ChildAvailabilityRecord {
   dayOfWeek?: number | null;
   startTime?: string | null;
   endTime?: string | null;
-  repeatPattern?: string | null;
+  repeatPattern?: unknown;  // JSON object
   note?: string | null;
   isAvailable?: boolean | null;
   sortOrder?: number;
@@ -37,6 +37,23 @@ function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
+// Helper function to safely parse JSON fields
+function parseJson(value: string | null | undefined, fieldName: string = 'unknown') {
+  if (!value) return null;
+  try {
+    return typeof value === 'string' ? JSON.parse(value) : value;
+  } catch (error) {
+    console.error(`Failed to parse JSON value for field "${fieldName}":`, value, error);
+    return null;
+  }
+}
+
+// Helper function to safely stringify JSON fields
+function stringifyJson(value: any) {
+  if (value === null || value === undefined) return null;
+  return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
 function mapRow(row: ChildAvailabilityRow): ChildAvailabilityRecord {
   return {
     id: row.id,
@@ -48,7 +65,7 @@ function mapRow(row: ChildAvailabilityRow): ChildAvailabilityRecord {
     dayOfWeek: row.day_of_week,
     startTime: row.start_time,
     endTime: row.end_time,
-    repeatPattern: row.repeat_pattern,
+    repeatPattern: parseJson(row.repeat_pattern, 'repeatPattern'),
     note: row.note,
     isAvailable: row.is_available !== null ? Boolean(row.is_available) : null,
     sortOrder: row.sort_order ?? 0,
@@ -113,7 +130,7 @@ export async function upsertChildAvailability(tenantId: string, availability: Ch
       availability.dayOfWeek ?? null,
       availability.startTime ?? null,
       availability.endTime ?? null,
-      availability.repeatPattern ?? null,
+      stringifyJson(availability.repeatPattern),
       availability.note ?? null,
       availability.isAvailable ?? null,
       availability.sortOrder ?? 0,
@@ -143,7 +160,7 @@ export async function replaceChildAvailability(tenantId: string, availabilities:
         availability.dayOfWeek ?? null,
         availability.startTime ?? null,
         availability.endTime ?? null,
-        availability.repeatPattern ?? null,
+        stringifyJson(availability.repeatPattern),
         availability.note ?? null,
         availability.isAvailable ?? null,
         sortOrder,
