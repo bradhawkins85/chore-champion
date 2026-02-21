@@ -211,9 +211,10 @@ function isAuthFailure(status: number): boolean {
   return status === 401 || status === 403;
 }
 
-export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>] {
+export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>, boolean] {
   const [value, setValue] = useState<T>(defaultValue);
   const [useApi, setUseApi] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const defaultValueRef = useRef(defaultValue);
   const useApiRef = useRef(useApi);
   // Track auth token to re-fetch data when it changes (e.g., after login)
@@ -300,6 +301,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     }
 
     async function syncValue(forceApiCheck = false) {
+      setIsLoaded(false);
       const available = await checkApiAvailability(forceApiCheck);
       if (!mounted) return;
 
@@ -309,6 +311,10 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         await loadValueFromApi();
       } else {
         await loadValueFromStorage();
+      }
+
+      if (mounted) {
+        setIsLoaded(true);
       }
     }
 
@@ -397,7 +403,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     }
   }, [key, useApi]);
 
-  return [value, updateValue];
+  return [value, updateValue, isLoaded];
 }
 
 // Migration utility: export all localStorage data to API

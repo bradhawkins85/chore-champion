@@ -42,12 +42,13 @@ function generateNewOrder(childIds: string[], previousOrder: string[]): string[]
 }
 
 export function DailyOrderCard({ children }: DailyOrderCardProps) {
-  const [dailyOrderState, setDailyOrderState] = useKV<DailyOrderState | null>('daily-order-state', null)
+  const [dailyOrderState, setDailyOrderState, isLoaded] = useKV<DailyOrderState | null>('daily-order-state', null)
 
   const activeChildren = children.filter(c => c.isActive !== false)
   const activeChildIdKey = activeChildren.map(c => c.id).sort().join(',')
 
   useEffect(() => {
+    if (!isLoaded) return
     if (activeChildren.length === 0) return
 
     const today = getTodayDateString()
@@ -62,9 +63,8 @@ export function DailyOrderCard({ children }: DailyOrderCardProps) {
         previousOrder,
       })
     }
-  // activeChildIdKey tracks child additions, removals, and ID changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChildIdKey, dailyOrderState?.date, setDailyOrderState])
+  }, [activeChildIdKey, dailyOrderState?.date, isLoaded, setDailyOrderState])
 
   if (activeChildren.length < 2) return null
 
