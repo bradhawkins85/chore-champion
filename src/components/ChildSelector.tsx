@@ -9,6 +9,7 @@ import { Gear, Trophy, Clock, SpeakerHigh, Fingerprint } from '@phosphor-icons/r
 import { Child, GoalTracker, Reward, Category, ChoreAssignment, Chore, ChoreCompletion, WeatherSettings, SpeechSettings, BiometricSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, PushNotificationSettings, WallpaperSettings, DeviceWallpaperSettingsMap, WeatherData } from '@/lib/types'
 import { getRewardCostForChild, getNextUpcomingChore, formatTime12Hour, formatDuration, getInitialsFromName, hasChildActivity, getWeeklyChoreMessage } from '@/lib/helpers'
 import { WeatherDisplay } from '@/components/WeatherDisplay'
+import { DailyOrderCard } from '@/components/DailyOrderCard'
 import { SchoolHolidayCountdownCard } from '@/components/SchoolHolidayCountdownCard'
 import { NotificationSetupCard } from '@/components/NotificationSetupCard'
 import { isStandalone } from '@/lib/pwaHelper'
@@ -257,7 +258,7 @@ export function ChildSelector({
           {formatDateTime(currentDateTime)}
         </motion.p>
 
-        {(weatherSettings || schoolHolidayCountdownSettings?.enabled || shouldShowNotificationCard()) && (
+        {(weatherSettings || schoolHolidayCountdownSettings?.enabled || shouldShowNotificationCard() || filteredChildrenList.filter(c => c.isActive !== false).length >= 2) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -269,6 +270,9 @@ export function ChildSelector({
                 <WeatherDisplay settings={weatherSettings} />
               </div>
             )}
+            <div className="flex w-full md:flex-1">
+              <DailyOrderCard children={filteredChildrenList} />
+            </div>
             {shouldShowNotificationCard() && (
               <div className="flex w-full md:flex-1">
                 <NotificationSetupCard
