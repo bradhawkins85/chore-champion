@@ -10,7 +10,7 @@ export interface AssignmentRecord {
   startDate?: number | null;
   endDate?: number | null;
   daysOfWeek?: unknown;  // JSON array
-  repeatPattern?: string | null;
+  repeatPattern?: unknown;  // JSON object
   timeOfDay?: string | null;
   timeWindow?: unknown;  // JSON object
   pointOverrides?: unknown;  // JSON object
@@ -72,7 +72,7 @@ function mapRow(row: AssignmentRow): AssignmentRecord {
     startDate: row.start_date,
     endDate: row.end_date,
     daysOfWeek: parseJson(row.days_of_week, 'daysOfWeek'),
-    repeatPattern: row.repeat_pattern,
+    repeatPattern: parseJson(row.repeat_pattern, 'repeatPattern'),
     timeOfDay: row.time_of_day,
     timeWindow: parseJson(row.time_window, 'timeWindow'),
     pointOverrides: parseJson(row.point_overrides, 'pointOverrides'),
@@ -148,7 +148,7 @@ export async function upsertAssignment(tenantId: string, assignment: AssignmentR
       assignment.startDate ?? null,
       assignment.endDate ?? null,
       stringifyJson(assignment.daysOfWeek),
-      assignment.repeatPattern ?? null,
+      stringifyJson(assignment.repeatPattern),
       assignment.timeOfDay ?? null,
       stringifyJson(assignment.timeWindow),
       stringifyJson(assignment.pointOverrides),
@@ -183,7 +183,7 @@ export async function replaceAssignments(tenantId: string, assignments: Assignme
         assignment.startDate ?? null,
         assignment.endDate ?? null,
         stringifyJson(assignment.daysOfWeek),
-        assignment.repeatPattern ?? null,
+        stringifyJson(assignment.repeatPattern),
         assignment.timeOfDay ?? null,
         stringifyJson(assignment.timeWindow),
         stringifyJson(assignment.pointOverrides),
