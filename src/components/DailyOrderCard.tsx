@@ -1,16 +1,6 @@
-import { useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListNumbers } from '@phosphor-icons/react'
 import { Child } from '@/lib/types'
-import { useApiKV as useKV } from '@/hooks/use-api-kv'
-
-const MAX_SHUFFLE_ATTEMPTS = 20
-
-interface DailyOrderState {
-  date: string
-  order: string[]
-  previousOrder: string[]
-}
 
 interface DailyOrderCardProps {
   children: Child[]
@@ -21,65 +11,45 @@ function getTodayDateString(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-function shuffleArray<T>(array: T[]): T[] {
+function hashString(str: string): number {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i)
+    hash = hash | 0 // Keep as 32-bit integer
+  }
+  return hash >>> 0
+}
+
+// Linear Congruential Generator using Numerical Recipes parameters
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = Math.imul(1664525, s) + 1013904223 | 0
+    return (s >>> 0) / 4294967296
+  }
+}
+
+function shuffleWithSeed<T>(array: T[], seed: number): T[] {
   const shuffled = [...array]
+  const rand = seededRandom(seed)
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rand() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   return shuffled
 }
 
-function generateNewOrder(childIds: string[], previousOrder: string[]): string[] {
-  if (childIds.length <= 1) return [...childIds]
-  let newOrder = shuffleArray(childIds)
-  let attempts = 0
-  while (attempts < MAX_SHUFFLE_ATTEMPTS && newOrder.join(',') === previousOrder.join(',')) {
-    newOrder = shuffleArray(childIds)
-    attempts++
-  }
-  return newOrder
-}
-
 export function DailyOrderCard({ children }: DailyOrderCardProps) {
-  const [dailyOrderState, setDailyOrderState, isLoaded] = useKV<DailyOrderState | null>('daily-order-state', null)
-
   const activeChildren = children.filter(c => c.isActive !== false)
-  const activeChildIdKey = activeChildren.map(c => c.id).sort().join(',')
-
-  useEffect(() => {
-    if (!isLoaded) return
-    if (activeChildren.length === 0) return
-
-    const today = getTodayDateString()
-    const childIds = activeChildIdKey.split(',').filter(Boolean)
-
-    if (!dailyOrderState || dailyOrderState.date !== today) {
-      const previousOrder = dailyOrderState?.order ?? []
-      const newOrder = generateNewOrder(childIds, previousOrder)
-      setDailyOrderState({
-        date: today,
-        order: newOrder,
-        previousOrder,
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChildIdKey, dailyOrderState?.date, isLoaded, setDailyOrderState])
 
   if (activeChildren.length < 2) return null
 
   const today = getTodayDateString()
-  let orderedChildren: Child[]
-
-  if (dailyOrderState && dailyOrderState.date === today && dailyOrderState.order.length > 0) {
-    const childMap = new Map(activeChildren.map(c => [c.id, c]))
-    const validIds = dailyOrderState.order.filter(id => childMap.has(id))
-    orderedChildren = validIds.map(id => childMap.get(id)!)
-    const newChildren = activeChildren.filter(c => !dailyOrderState.order.includes(c.id))
-    orderedChildren = [...orderedChildren, ...newChildren]
-  } else {
-    orderedChildren = activeChildren
-  }
+  const sortedIds = activeChildren.map(c => c.id).sort()
+  const seed = hashString(`${today}:${sortedIds.join(',')}`)
+  const orderedIds = shuffleWithSeed(sortedIds, seed)
+  const childMap = new Map(activeChildren.map(c => [c.id, c]))
+  const orderedChildren = orderedIds.map(id => childMap.get(id)!)
 
   return (
     <Card className="w-full h-full">
