@@ -11,6 +11,17 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Event emitter for auth token changes
 const authTokenListeners = new Set<() => void>();
 
+// Event emitter for manual data refresh requests
+const refreshListeners = new Set<() => void>();
+
+/**
+ * Triggers all active useApiKV hooks to re-fetch their data from the API.
+ * Call this when navigating between pages to ensure fresh data is displayed.
+ */
+export function refreshAllKVData() {
+  refreshListeners.forEach(listener => listener());
+}
+
 // Track if API is available
 let apiAvailable: boolean | null = null;
 let apiCheckTimestamp: number | null = null;
@@ -219,6 +230,8 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   const useApiRef = useRef(useApi);
   // Track auth token to re-fetch data when it changes (e.g., after login)
   const [authToken, setAuthToken] = useState<string | null>(getAuthToken());
+  // Track refresh requests triggered by page navigation
+  const [refreshCount, setRefreshCount] = useState<number>(0);
 
   useEffect(() => {
     defaultValueRef.current = defaultValue;
@@ -238,6 +251,19 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
     return () => {
       authTokenListeners.delete(handleAuthTokenChange);
+    };
+  }, []);
+
+  // Listen for manual refresh requests (e.g., on page navigation)
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshCount(c => c + 1);
+    };
+
+    refreshListeners.add(handleRefresh);
+
+    return () => {
+      refreshListeners.delete(handleRefresh);
     };
   }, []);
 
@@ -336,7 +362,7 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
       mounted = false;
       window.removeEventListener('storage', handleStorageUpdate);
     };
-  }, [key, authToken]);
+  }, [key, authToken, refreshCount]);
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {

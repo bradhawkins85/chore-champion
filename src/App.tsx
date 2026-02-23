@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
-import { useApiKV as useKV } from '@/hooks/use-api-kv'
+import { useApiKV as useKV, refreshAllKVData } from '@/hooks/use-api-kv'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Gear } from '@phosphor-icons/react'
@@ -377,6 +377,19 @@ function App() {
       setParentPin(normalizedParentPin)
     }
   }, [parentPin, normalizedParentPin, setParentPin])
+
+  // Refresh all KV data when navigating between pages to ensure fresh data is displayed.
+  // This covers transitions like switching between parent mode and child mode,
+  // selecting a different child, or returning from sub-pages.
+  // Skip the initial mount since useApiKV already fetches data on initialization.
+  const hasNavigated = useRef(false)
+  useEffect(() => {
+    if (!hasNavigated.current) {
+      hasNavigated.current = true
+      return
+    }
+    refreshAllKVData()
+  }, [mode, selectedChild?.id, showCalendar, showRewardShop, showPointsHistory])
 
   // Validate and fix pinSecurity data structure - one-time migration
   useEffect(() => {
