@@ -17,6 +17,7 @@ import { PointsHistoryView } from '@/components/PointsHistoryView'
 import { CalendarView } from '@/components/CalendarView'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
+import { RefreshButton } from '@/components/RefreshButton'
 import { AuthPage } from '@/components/AuthPage'
 import { AcceptInvitationPage } from '@/components/AcceptInvitationPage'
 import { DeviceLinkingScreen } from '@/components/DeviceLinkingScreen'
@@ -2458,6 +2459,7 @@ Please log in to ChoreQuest to approve or reject this completion.
       <Toaster />
       <PWAInstallPrompt />
       <OfflineIndicator />
+      <RefreshButton />
     </div>
   )
 }
