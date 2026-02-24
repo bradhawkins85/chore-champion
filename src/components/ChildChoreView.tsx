@@ -70,6 +70,7 @@ export function ChildChoreView({
   currentDeviceId,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
+  const [onThisDayHasContent, setOnThisDayHasContent] = useState(false)
 
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
@@ -597,6 +598,7 @@ export function ChildChoreView({
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0 }}
+                    className={onThisDayHasContent ? undefined : 'hidden'}
                   >
                     <OnThisDay
                       child={child}
@@ -605,6 +607,7 @@ export function ChildChoreView({
                       assignments={assignments}
                       categories={categories}
                       onUpdateLastRefresh={onUpdateCalendarRefresh}
+                      onHasContent={setOnThisDayHasContent}
                     />
                   </motion.div>
                   

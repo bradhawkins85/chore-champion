@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,7 @@ interface OnThisDayProps {
   assignments: ChoreAssignment[]
   categories: Category[]
   onUpdateLastRefresh?: (timestamp: number) => void
+  onHasContent?: (hasContent: boolean) => void
 }
 
 export function OnThisDay({
@@ -24,6 +25,7 @@ export function OnThisDay({
   assignments,
   categories,
   onUpdateLastRefresh,
+  onHasContent,
 }: OnThisDayProps) {
   const [currentEventIndex, setCurrentEventIndex] = useState(0)
   const [direction, setDirection] = useState(0)
@@ -33,6 +35,10 @@ export function OnThisDay({
   const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(
     child.calendarLastRefresh || null
   )
+  const onHasContentRef = useRef(onHasContent)
+  useEffect(() => {
+    onHasContentRef.current = onHasContent
+  })
 
   const loadICSFeed = async (showToast = false) => {
     if (!child.icsUrl) {
@@ -153,6 +159,11 @@ export function OnThisDay({
       return 0
     })
   }, [historicalDates, child.id, completions, chores, assignments, icsEvents])
+
+  useEffect(() => {
+    const hasContent = events.length > 0 && !(isLoadingICS && !isRefreshing)
+    onHasContentRef.current?.(hasContent)
+  }, [events.length, isLoadingICS, isRefreshing])
 
   useEffect(() => {
     if (events.length <= 1) return
