@@ -335,9 +335,6 @@ export function ChildSelector({
                     <h2 className="text-3xl font-fredoka font-bold mb-2">
                       {child.name}
                     </h2>
-                    <p className="text-2xl font-fredoka text-accent mb-3">
-                      {currentPoints}
-                    </p>
                     
                     {childCategoryPoints && categories.length > 0 && (
                       <div className="flex flex-wrap justify-center gap-2 mb-3">
