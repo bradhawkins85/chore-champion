@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Calendar, Star, CalendarBlank, CalendarCheck, PencilSimple, Repeat } from '@phosphor-icons/react'
+import { Calendar, CalendarBlank, CalendarCheck, PencilSimple, Repeat } from '@phosphor-icons/react'
 import {
   Table,
   TableBody,
@@ -203,7 +203,6 @@ export function AssignChoresView({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Star weight="fill" className="h-3.5 w-3.5 text-accent" />
                           <span className="font-fredoka font-semibold">{chore.points}</span>
                         </div>
                       </TableCell>

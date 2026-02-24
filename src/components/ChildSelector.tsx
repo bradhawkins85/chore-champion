@@ -336,7 +336,7 @@ export function ChildSelector({
                       {child.name}
                     </h2>
                     <p className="text-2xl font-fredoka text-accent mb-3">
-                      {currentPoints} ⭐
+                      {currentPoints}
                     </p>
                     
                     {childCategoryPoints && categories.length > 0 && (
