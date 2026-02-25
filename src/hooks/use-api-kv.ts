@@ -228,6 +228,11 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const defaultValueRef = useRef(defaultValue);
   const useApiRef = useRef(useApi);
+  // Track the latest committed value synchronously so updateValue can compute
+  // the next value without relying on React's async reconciliation cycle.
+  const currentValueRef = useRef<T>(defaultValue);
+  // Keep currentValueRef in sync with state on every render
+  currentValueRef.current = value;
   // Track auth token to re-fetch data when it changes (e.g., after login)
   const [authToken, setAuthToken] = useState<string | null>(getAuthToken());
   // Track refresh requests triggered by page navigation
@@ -366,15 +371,19 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 
   // Update function - supports both direct values and updater functions
   const updateValue = useCallback(async (newValueOrUpdater: T | ((prevValue: T) => T)) => {
-    // Compute the new value using setState's functional form to avoid race conditions
-    // Initialize with defaultValue as fallback (setValue executes synchronously, so this should never be used)
-    let computedValue: T = defaultValueRef.current;
-    setValue(prev => {
-      computedValue = typeof newValueOrUpdater === 'function' 
-        ? (newValueOrUpdater as (prevValue: T) => T)(prev)
-        : newValueOrUpdater;
-      return computedValue;
-    });
+    // Compute the new value synchronously using currentValueRef so it is
+    // available immediately for the API call.  We cannot rely on React's
+    // setState updater callback here because React 18 calls that callback
+    // during the reconciliation phase (asynchronously), which happens AFTER
+    // queueRequest has already evaluated the request body - resulting in the
+    // default value (e.g. []) being sent to the API instead of the real data.
+    const computedValue: T = typeof newValueOrUpdater === 'function'
+      ? (newValueOrUpdater as (prevValue: T) => T)(currentValueRef.current)
+      : newValueOrUpdater;
+    // Update the ref immediately so rapid successive calls before a re-render
+    // each see the latest value rather than the stale state.
+    currentValueRef.current = computedValue;
+    setValue(computedValue);
     
     // Save to API or localStorage (outside of setState to keep it pure)
     const apiIsAvailable = useApi || await checkApiAvailability(true);
