@@ -1257,7 +1257,6 @@ export function getNextUpcomingChore(
   categoriesMap?: Map<string, Category>,
   childAvailability: ChildAvailabilityEntry[] = []
 ): { chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' } | null {
-  const currentMinutes = getCurrentTimeInMinutes()
   const currentTimeOfDay = getCurrentTimeOfDay()
   const now = new Date()
   
@@ -1327,7 +1326,7 @@ export function getNextUpcomingChore(
       const completed = isChoreCompletedToday(completions, chore.id, childId, effectiveTimeOfDay)
       if (completed) return null
 
-      let sortTime = currentMinutes
+      let sortTime = 0
       if (effectiveTimeWindow) {
         const startMinutes = timeToMinutes(effectiveTimeWindow.startTime)
         if (startMinutes !== Infinity) {
