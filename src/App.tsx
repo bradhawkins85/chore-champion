@@ -2188,7 +2188,7 @@ Please log in to ChoreQuest to approve or reject this completion.
 
   return (
     <div className="h-screen overflow-y-auto bg-background">
-      {isCheckingIP ? (
+      {isCheckingIP && !ipAccessGranted ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-fredoka font-bold mb-2">Loading...</h2>
