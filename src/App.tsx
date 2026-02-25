@@ -505,7 +505,7 @@ function App() {
     
     let needsAnyMigration = false
     for (const chore of safeChores) {
-      if (!chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints) {
+      if (!chore.timeOfDay || !chore.completionType || !Array.isArray(chore.categoryIds) || !chore.categoryPoints) {
         needsAnyMigration = true
         break
       }
@@ -518,14 +518,14 @@ function App() {
     const firstCategoryId = safeCategories[0]?.id
     
     return safeChores.map((chore) => {
-      const needsMigration = !chore.timeOfDay || !chore.completionType || !chore.categoryIds || !chore.categoryPoints
+      const needsMigration = !chore.timeOfDay || !chore.completionType || !Array.isArray(chore.categoryIds) || !chore.categoryPoints
       
       if (needsMigration) {
         const migratedChore: Chore = {
           ...chore,
           timeOfDay: chore.timeOfDay || 'anytime',
           completionType: chore.completionType || 'individual',
-          categoryIds: chore.categoryIds || (firstCategoryId ? [firstCategoryId] : []),
+          categoryIds: Array.isArray(chore.categoryIds) ? chore.categoryIds : (firstCategoryId ? [firstCategoryId] : []),
         }
         
         if (!chore.categoryPoints && migratedChore.categoryIds.length > 0) {

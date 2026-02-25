@@ -1118,7 +1118,7 @@ export function getChildPointsByCategory(
     .filter((c) => c.childId === childId && isCompletionApproved(c))
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
-      if (!chore || !chore.categoryIds.includes(categoryId)) return sum
+      if (!chore || !Array.isArray(chore.categoryIds) || !chore.categoryIds.includes(categoryId)) return sum
       
       const assignment = assignments?.find(a => a.childId === childId && a.choreId === c.choreId)
       const chorePoints = getChoreCategoryPointsForChild(chore, assignment, childId, categoryId)
@@ -1491,7 +1491,7 @@ export function getAllChoresInCategoryForChild(
 
   childAssignments.forEach((assignment) => {
     const chore = choresMap.get(assignment.choreId)
-    if (!chore || !chore.categoryIds.includes(categoryId)) return
+    if (!chore || !Array.isArray(chore.categoryIds) || !chore.categoryIds.includes(categoryId)) return
 
     const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
 
@@ -1690,7 +1690,7 @@ export function getExpiredPointsByCategory(
     .filter((c) => c.childId === childId && isCompletionApproved(c) && c.completedAt < expiryStartTime)
     .reduce((sum, c) => {
       const chore = choresMap.get(c.choreId)
-      if (!chore || !chore.categoryIds.includes(categoryId)) return sum
+      if (!chore || !Array.isArray(chore.categoryIds) || !chore.categoryIds.includes(categoryId)) return sum
       
       const assignment = assignments?.find(a => a.childId === childId && a.choreId === c.choreId)
       const chorePoints = getChoreCategoryPointsForChild(chore, assignment, childId, categoryId)
