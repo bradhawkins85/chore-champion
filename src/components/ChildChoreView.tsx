@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild, getResetPeriodStart } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -104,11 +104,14 @@ export function ChildChoreView({
   const isAvailableToday = isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), 'anytime')
 
   const pendingApprovalCompletions = useMemo(() => {
-    return completions.filter((c) => 
-      c.childId === child.id && 
-      c.approvalStatus === 'pending'
-    )
-  }, [completions, child.id])
+    const choresMap = new Map(chores.map(c => [c.id, c]))
+    return completions.filter((c) => {
+      if (c.childId !== child.id || c.approvalStatus !== 'pending') return false
+      const chore = choresMap.get(c.choreId)
+      const periodStart = getResetPeriodStart(chore?.frequency)
+      return c.completedAt >= periodStart
+    })
+  }, [completions, child.id, chores])
 
   // Check which chores are locked due to unmet prerequisites
   const lockedChoresInfo = useMemo(() => {
@@ -147,12 +150,15 @@ export function ChildChoreView({
     const missed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
     const unavailable: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
-    // Helper function to check if a chore has a pending approval completion
+    // Helper function to check if a chore has a pending approval completion within the current reset period
     const hasPendingApproval = (choreId: string, timeOfDay?: 'am' | 'pm'): boolean => {
+      const chore = childChores.find(c => c.id === choreId)
+      const periodStart = getResetPeriodStart(chore?.frequency)
       return completions.some((c) =>
         c.childId === child.id &&
         c.choreId === choreId &&
         c.approvalStatus === 'pending' &&
+        c.completedAt >= periodStart &&
         (!timeOfDay || c.timeOfDay === timeOfDay)
       )
     }
