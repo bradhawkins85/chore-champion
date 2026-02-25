@@ -1017,8 +1017,10 @@ export function sortChoresWithLockPriority<T extends { chore: { id: string; desi
     }
 
     // Within the same lock and time-of-day status, sort by desired time
-    const timeA = timeToMinutes(a.chore.desiredTime)
-    const timeB = timeToMinutes(b.chore.desiredTime)
+    // Chores without a desiredTime have no specific schedule, so they apply "now"
+    // and should appear before chores with an explicit later time
+    const timeA = a.chore.desiredTime ? timeToMinutes(a.chore.desiredTime) : 0
+    const timeB = b.chore.desiredTime ? timeToMinutes(b.chore.desiredTime) : 0
     return timeA - timeB
   })
 }
