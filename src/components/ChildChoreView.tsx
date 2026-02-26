@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild, getResetPeriodStart } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableAtTimestamp, isRotationalChoreVisibleToChild, getResetPeriodStart } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -87,7 +87,7 @@ export function ChildChoreView({
       // Check if the chore is active today considering school holidays
       if (!isChoreActiveTodayWithHolidays(c, assignment, schoolHolidays)) return false
 
-      if (!isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), effectiveTimeOfDay)) return false
+      if (!isChildAvailableAtTimestamp(child.id, childAvailability, Date.now())) return false
       
       // Check weather conditions
       if (!shouldShowChore(c, currentWeather || null)) return false
@@ -101,7 +101,7 @@ export function ChildChoreView({
     })
 
   const currentTimeOfDay = getCurrentTimeOfDay()
-  const isAvailableToday = isChildAvailableForTimeOfDay(child.id, childAvailability, new Date(), 'anytime')
+  const isAvailableToday = isChildAvailableAtTimestamp(child.id, childAvailability, Date.now())
 
   const pendingApprovalCompletions = useMemo(() => {
     const choresMap = new Map(chores.map(c => [c.id, c]))

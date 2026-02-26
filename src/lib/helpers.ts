@@ -1846,13 +1846,12 @@ export function hasChildActivity(
 ): boolean {
   // Check if child has any chores assigned for today
   const today = new Date()
+  const now = today.getTime()
   const hasChores = assignments.some((assignment) => {
     if (assignment.childId !== childId || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
       return false
     }
-    const chore = choresMap.get(assignment.choreId)
-    const effectiveTimeOfDay = assignment.timeOfDay || chore?.timeOfDay || 'anytime'
-    return isChildAvailableForTimeOfDay(childId, childAvailability, today, effectiveTimeOfDay)
+    return isChildAvailableAtTimestamp(childId, childAvailability, now)
   })
   
   if (hasChores) {
