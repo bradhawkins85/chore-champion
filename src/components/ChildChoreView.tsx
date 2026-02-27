@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ interface ChildChoreViewProps {
   wallpaperSettings: WallpaperSettings
   deviceWallpaperSettings: DeviceWallpaperSettingsMap
   currentDeviceId: string
+  autoReturnOnIdle?: boolean
 }
 
 export function ChildChoreView({
@@ -68,9 +69,55 @@ export function ChildChoreView({
   wallpaperSettings,
   deviceWallpaperSettings,
   currentDeviceId,
+  autoReturnOnIdle = false,
 }: ChildChoreViewProps) {
   const [celebrating, setCelebrating] = useState<{ points: number; animation: CelebrationAnimation } | null>(null)
   const [onThisDayHasContent, setOnThisDayHasContent] = useState(false)
+  const [idleCountdown, setIdleCountdown] = useState<number | null>(null)
+
+  const IDLE_TIMEOUT = 30
+  const COUNTDOWN_START = 10
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const countdownValueRef = useRef<number>(0)
+
+  const resetIdleTimer = useCallback(() => {
+    if (!autoReturnOnIdle) return
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+    setIdleCountdown(null)
+    idleTimerRef.current = setTimeout(() => {
+      countdownValueRef.current = COUNTDOWN_START
+      setIdleCountdown(COUNTDOWN_START)
+      countdownIntervalRef.current = setInterval(() => {
+        countdownValueRef.current -= 1
+        if (countdownValueRef.current <= 0) {
+          if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+          setIdleCountdown(null)
+          onBack()
+        } else {
+          setIdleCountdown(countdownValueRef.current)
+        }
+      }, 1000)
+    }, (IDLE_TIMEOUT - COUNTDOWN_START) * 1000)
+  }, [autoReturnOnIdle, onBack])
+
+  useEffect(() => {
+    if (!autoReturnOnIdle) {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+      setIdleCountdown(null)
+      return
+    }
+    resetIdleTimer()
+    const events = ['touchstart', 'mousedown', 'keydown', 'scroll']
+    events.forEach((e) => window.addEventListener(e, resetIdleTimer))
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+      events.forEach((e) => window.removeEventListener(e, resetIdleTimer))
+    }
+  }, [autoReturnOnIdle, resetIdleTimer])
 
   const assignedChoreIds = new Set(
     assignments.filter((a) => a.childId === child.id).map((a) => a.choreId)
@@ -482,6 +529,12 @@ export function ChildChoreView({
               Back
             </Button>
           </div>
+          {idleCountdown !== null && (
+            <div className="flex items-center justify-end gap-2 mt-2 text-sm text-muted-foreground">
+              <Timer className="h-4 w-4" />
+              <span>Returning to main screen in {idleCountdown}s… (tap to stay)</span>
+            </div>
+          )}
         </div>
 
         {!isAvailableToday && (

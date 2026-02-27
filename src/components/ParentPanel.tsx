@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -213,6 +215,8 @@ interface ParentPanelProps {
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onUpdateBlockParentModeOnLinkedDevices: (value: boolean) => void
+  autoReturnOnIdle: boolean
+  onUpdateAutoReturnOnIdle: (value: boolean) => void
   onUpdateWallpaperSettings: (settings: WallpaperSettings) => void
   onUpdateDeviceWallpaperSettings: (settings: DeviceWallpaperSettingsMap) => void
   onAddReportTemplate: (templateData: Omit<ReportTemplate, 'id' | 'createdAt'>) => void
@@ -301,6 +305,8 @@ export function ParentPanel({
   onUpdateHideChildrenWithNoActivity,
   blockParentModeOnLinkedDevices,
   onUpdateBlockParentModeOnLinkedDevices,
+  autoReturnOnIdle,
+  onUpdateAutoReturnOnIdle,
   onUpdateWallpaperSettings,
   onUpdateDeviceWallpaperSettings,
   onAddReportTemplate,
@@ -1434,6 +1440,26 @@ export function ParentPanel({
                 settings={speechSettings}
                 onUpdate={onUpdateSpeechSettings}
               />
+
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-start justify-between space-x-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="auto-return-on-idle" className="text-base font-fredoka font-semibold text-lg">
+                        Auto-Return on Idle
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically return to the main screen after 30 seconds of inactivity on a child's chore list. The timer resets whenever the screen is touched.
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-return-on-idle"
+                      checked={autoReturnOnIdle}
+                      onCheckedChange={onUpdateAutoReturnOnIdle}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-4">

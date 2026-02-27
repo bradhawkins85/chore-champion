@@ -195,6 +195,7 @@ function App() {
   })
   const [hideChildrenWithNoActivity, setHideChildrenWithNoActivity] = useKV<boolean>('hide-children-with-no-activity', false)
   const [blockParentModeOnLinkedDevices, setBlockParentModeOnLinkedDevices] = useKV<boolean>('block-parent-mode-on-linked-devices', false)
+  const [autoReturnOnIdle, setAutoReturnOnIdle] = useKV<boolean>('auto-return-on-idle', false)
   const [gettingStartedState, setGettingStartedState] = useKV<GettingStartedState>('getting-started-state', {
     dismissed: false,
     tasks: [
@@ -2286,6 +2287,8 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
           blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
+          autoReturnOnIdle={autoReturnOnIdle || false}
+          onUpdateAutoReturnOnIdle={(value: boolean) => setAutoReturnOnIdle(value)}
           onUpdateWallpaperSettings={(settings) => setWallpaperSettings(settings)}
           onUpdateDeviceWallpaperSettings={(settings) => setDeviceWallpaperSettings(settings)}
           onAddReportTemplate={handleAddReportTemplate}
@@ -2392,6 +2395,7 @@ Please log in to ChoreQuest to approve or reject this completion.
               handleSwapPoints(selectedChild.id, fromCategoryId, toCategoryId, fromAmount, toAmount)
             }
             onUpdateCalendarRefresh={(timestamp) => handleUpdateCalendarRefresh(selectedChild.id, timestamp)}
+            autoReturnOnIdle={autoReturnOnIdle || false}
           />
         )
       ) : (
