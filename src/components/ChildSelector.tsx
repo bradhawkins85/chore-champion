@@ -270,9 +270,11 @@ export function ChildSelector({
                 <WeatherDisplay settings={weatherSettings} />
               </div>
             )}
-            <div className="flex w-full md:flex-1">
-              <DailyOrderCard children={filteredChildrenList} />
-            </div>
+            {filteredChildrenList.filter(c => c.isActive !== false).length >= 2 && (
+              <div className="flex w-full md:flex-1">
+                <DailyOrderCard children={filteredChildrenList} />
+              </div>
+            )}
             {shouldShowNotificationCard() && (
               <div className="flex w-full md:flex-1">
                 <NotificationSetupCard
