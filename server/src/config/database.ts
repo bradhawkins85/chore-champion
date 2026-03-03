@@ -484,9 +484,21 @@ export async function initDatabase() {
         if (repeatPatternColumnRows.length === 0) {
           // repeat_pattern column doesn't exist, add it after end_time
           await connection.query(
-            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN repeat_pattern VARCHAR(50) AFTER end_time'
+            'ALTER TABLE tenant_child_availability_v2 ADD COLUMN repeat_pattern TEXT AFTER end_time'
           );
           console.log('Added repeat_pattern column to tenant_child_availability_v2 table');
+        }
+
+        const [repeatPatternColumns] = await connection.query<RowDataPacket[]>(
+          "SHOW COLUMNS FROM tenant_child_availability_v2 LIKE 'repeat_pattern'"
+        );
+
+        if (repeatPatternColumns.length > 0) {
+          const repeatPatternType = String(repeatPatternColumns[0].Type || '').toLowerCase();
+          if (repeatPatternType.startsWith('varchar')) {
+            await connection.query('ALTER TABLE tenant_child_availability_v2 MODIFY COLUMN repeat_pattern TEXT AFTER end_time');
+            console.log('Updated repeat_pattern column type to TEXT in tenant_child_availability_v2 table');
+          }
         }
 
         const [noteColumnRows] = await connection.query<RowDataPacket[]>(

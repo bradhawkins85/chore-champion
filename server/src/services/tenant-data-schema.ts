@@ -387,7 +387,7 @@ const TABLE_CONFIGS: Record<string, TenantTableConfig> = {
       day_of_week TINYINT NULL,
       start_time VARCHAR(20),
       end_time VARCHAR(20),
-      repeat_pattern VARCHAR(50),
+      repeat_pattern TEXT,
       note TEXT,
       is_available BOOLEAN DEFAULT TRUE,
       sort_order INT DEFAULT 0,
