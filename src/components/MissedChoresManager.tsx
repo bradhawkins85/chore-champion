@@ -83,7 +83,7 @@ export function MissedChoresManager({
             missed.push({ child, chore, timeOfDay: 'am' })
           }
         } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
-          const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
+          const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id, chore.timeWindow)
           
           if (isMissedChore && !isDismissed(chore.timeOfDay)) {
             if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, chore.timeOfDay)) {
@@ -91,8 +91,16 @@ export function MissedChoresManager({
             }
             missed.push({ child, chore, timeOfDay: chore.timeOfDay })
           }
-        } else if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'anytime')) {
-          return
+        } else {
+          if (!isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'anytime')) {
+            return
+          }
+          if (chore.timeWindow) {
+            const isMissedChore = isChoreMissed('anytime', completions, chore.id, child.id, chore.timeWindow)
+            if (isMissedChore && !isDismissed(undefined)) {
+              missed.push({ child, chore })
+            }
+          }
         }
       })
     })

@@ -339,12 +339,28 @@ export function isChoreMissed(
   timeOfDay: ChoreTimeOfDay,
   completions: ChoreCompletion[],
   choreId: string,
-  childId: string
+  childId: string,
+  timeWindow?: { startTime: string; endTime: string }
 ): boolean {
   const currentTimeOfDay = getCurrentTimeOfDay()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
+  // Check if the time window has closed for this chore
+  if (timeWindow) {
+    const windowStatus = getTimeWindowStatus({ timeWindow })
+    if (windowStatus.isAfter) {
+      const completedToday = completions.some(
+        (c) =>
+          c.choreId === choreId &&
+          c.childId === childId &&
+          c.completedAt >= today.getTime() &&
+          !c.undoneAt
+      )
+      return !completedToday
+    }
+  }
+
   if (timeOfDay === 'am' && currentTimeOfDay === 'pm') {
     const completedToday = completions.some(
       (c) =>
