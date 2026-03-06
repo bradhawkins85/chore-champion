@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CheckCircle, Circle, Calendar, ShoppingCart, SunHorizon, MoonStars, Warning, Users, Trophy, ArrowCounterClockwise, Clock, Timer, ClockClockwise, ChartLine, Lock } from '@phosphor-icons/react'
 import { Child, Chore, ChoreAssignment, ChoreCompletion, CelebrationSettings, CelebrationAnimation, Reward, GoalTracker, Category, WeatherData, SchoolHoliday, ChildAvailabilityEntry, WallpaperSettings, DeviceWallpaperSettingsMap } from '@/lib/types'
-import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableAtTimestamp, isRotationalChoreVisibleToChild, getResetPeriodStart } from '@/lib/helpers'
+import { isChoreCompleted, isChoreActive, isChoreAvailableNow, isChoreMissed, getCurrentTimeOfDay, isChoreCompletedForTimeOfDay, getChorePointsForChild, getChoreCategoryPointsForChild, sortChoresByDesiredTime, sortChoresWithLockPriority, getRandomCelebrationAnimation, getTimeWindowStatus, formatTime12Hour, getRewardCostForChild, formatDuration, getCategoryCompletionProgress, getShareableChoreCompletionCount, isShareableChoreFullyCompleted, hasChildCompletedShareableChore, getInitialsFromName, isPrerequisiteCategoryCompleted, isChoreActiveTodayWithHolidays, isChildAvailableAtTimestamp, isChildAvailableForTimeOfDay, isRotationalChoreVisibleToChild, getResetPeriodStart } from '@/lib/helpers'
 import { shouldShowChore } from '@/lib/weatherChoreHelper'
 import { ChoreCompletionCelebration } from './Celebration'
 import { GoalProgress } from './GoalProgress'
@@ -197,6 +197,9 @@ export function ChildChoreView({
     const missed: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' }> = []
     const unavailable: Array<{ chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm'; windowStatus: ReturnType<typeof getTimeWindowStatus> }> = []
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     // Helper function to check if a chore has a pending approval completion within the current reset period
     const hasPendingApproval = (choreId: string, timeOfDay?: 'am' | 'pm'): boolean => {
       const chore = childChores.find(c => c.id === choreId)
@@ -238,9 +241,7 @@ export function ChildChoreView({
           } else {
             if (amCompleted) {
               completed.push({ chore, assignment, timeOfDay: 'am' })
-            } else if (amFull) {
-              missed.push({ chore, assignment, timeOfDay: 'am' })
-            } else {
+            } else if (isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'am')) {
               missed.push({ chore, assignment, timeOfDay: 'am' })
             }
             
@@ -267,12 +268,14 @@ export function ChildChoreView({
           if (isCompleted) {
             completed.push({ chore, assignment, timeOfDay })
           } else if (isFull) {
-            if (isMissedChore) {
+            if (isMissedChore && isChildAvailableForTimeOfDay(child.id, childAvailability, today, timeOfDay)) {
               missed.push({ chore, assignment, timeOfDay })
             }
             return
           } else if (isMissedChore) {
-            missed.push({ chore, assignment, timeOfDay })
+            if (isChildAvailableForTimeOfDay(child.id, childAvailability, today, timeOfDay)) {
+              missed.push({ chore, assignment, timeOfDay })
+            }
           } else if (isAvailable) {
             if (!windowStatus.isWithinWindow) {
               unavailable.push({ chore, assignment, timeOfDay, windowStatus })
@@ -344,7 +347,9 @@ export function ChildChoreView({
           }
         } else {
           if (!amCompleted) {
-            missed.push({ chore, assignment, timeOfDay: 'am' })
+            if (isChildAvailableForTimeOfDay(child.id, childAvailability, today, 'am')) {
+              missed.push({ chore, assignment, timeOfDay: 'am' })
+            }
           } else {
             completed.push({ chore, assignment, timeOfDay: 'am' })
           }
@@ -365,7 +370,9 @@ export function ChildChoreView({
         const isAvailable = isChoreAvailableNow(chore.timeOfDay)
         
         if (isMissedChore) {
-          missed.push({ chore, assignment, timeOfDay: chore.timeOfDay })
+          if (isChildAvailableForTimeOfDay(child.id, childAvailability, today, chore.timeOfDay)) {
+            missed.push({ chore, assignment, timeOfDay: chore.timeOfDay })
+          }
         } else if (!isCompleted && isAvailable) {
           if (!windowStatus.isWithinWindow) {
             unavailable.push({ chore, assignment, timeOfDay: chore.timeOfDay, windowStatus })
@@ -395,7 +402,7 @@ export function ChildChoreView({
       missedChores: missed,
       unavailableChores: unavailable
     }
-  }, [childChores, completions, child.id, currentTimeOfDay, categories, assignments, chores])
+  }, [childChores, completions, child.id, currentTimeOfDay, categories, assignments, chores, childAvailability])
 
   const initials = getInitialsFromName(child.name)
 
