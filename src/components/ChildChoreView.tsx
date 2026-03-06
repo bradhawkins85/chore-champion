@@ -262,7 +262,7 @@ export function ChildChoreView({
           const timeOfDay = chore.timeOfDay
           const isCompleted = hasChildCompletedShareableChore(completions, chore.id, child.id, timeOfDay, chore.resetPeriod)
           const isFull = isShareableChoreFullyCompleted(completions, chore.id, chore.maxCompletions, timeOfDay, chore.resetPeriod)
-          const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
+          const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id, chore.timeWindow)
           const isAvailable = isChoreAvailableNow(chore.timeOfDay)
           
           if (isCompleted) {
@@ -278,7 +278,11 @@ export function ChildChoreView({
             }
           } else if (isAvailable) {
             if (!windowStatus.isWithinWindow) {
-              unavailable.push({ chore, assignment, timeOfDay, windowStatus })
+              if (windowStatus.isAfter) {
+                missed.push({ chore, assignment, timeOfDay })
+              } else {
+                unavailable.push({ chore, assignment, timeOfDay, windowStatus })
+              }
             } else if (!hasPendingApproval(chore.id, timeOfDay)) {
               pending.push({ chore, assignment, timeOfDay })
             }
@@ -294,7 +298,11 @@ export function ChildChoreView({
             return
           } else {
             if (!windowStatus.isWithinWindow) {
-              unavailable.push({ chore, assignment, windowStatus })
+              if (windowStatus.isAfter) {
+                missed.push({ chore, assignment })
+              } else {
+                unavailable.push({ chore, assignment, windowStatus })
+              }
             } else if (!hasPendingApproval(chore.id)) {
               pending.push({ chore, assignment })
             }
@@ -366,7 +374,7 @@ export function ChildChoreView({
         }
       } else if (chore.timeOfDay === 'am' || chore.timeOfDay === 'pm') {
         const isCompleted = isChoreCompleted(completions, chore.id, child.id, chore.frequency, chore.timeOfDay)
-        const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id)
+        const isMissedChore = isChoreMissed(chore.timeOfDay, completions, chore.id, child.id, chore.timeWindow)
         const isAvailable = isChoreAvailableNow(chore.timeOfDay)
         
         if (isMissedChore) {
@@ -375,7 +383,11 @@ export function ChildChoreView({
           }
         } else if (!isCompleted && isAvailable) {
           if (!windowStatus.isWithinWindow) {
-            unavailable.push({ chore, assignment, timeOfDay: chore.timeOfDay, windowStatus })
+            if (windowStatus.isAfter) {
+              missed.push({ chore, assignment, timeOfDay: chore.timeOfDay })
+            } else {
+              unavailable.push({ chore, assignment, timeOfDay: chore.timeOfDay, windowStatus })
+            }
           } else if (!hasPendingApproval(chore.id, chore.timeOfDay)) {
             pending.push({ chore, assignment, timeOfDay: chore.timeOfDay })
           }
@@ -388,7 +400,11 @@ export function ChildChoreView({
           completed.push({ chore, assignment })
         } else {
           if (!windowStatus.isWithinWindow) {
-            unavailable.push({ chore, assignment, windowStatus })
+            if (windowStatus.isAfter) {
+              missed.push({ chore, assignment })
+            } else {
+              unavailable.push({ chore, assignment, windowStatus })
+            }
           } else if (!hasPendingApproval(chore.id)) {
             pending.push({ chore, assignment })
           }
