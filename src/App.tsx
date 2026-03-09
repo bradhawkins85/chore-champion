@@ -1127,7 +1127,7 @@ function App() {
     }
   }
 
-  const handlePurchaseReward = (childId: string, rewardId: string, cost: number) => {
+  const handlePurchaseReward = async (childId: string, rewardId: string, cost: number) => {
     const reward = safeRewards.find((r) => r.id === rewardId)
     if (!reward) return
 
@@ -1192,7 +1192,7 @@ function App() {
       fulfilled: false,
       cost,
     }
-    setPurchases((current) => [...(current || []), newPurchase])
+    await setPurchases((current) => [...(current || []), newPurchase])
     
     sendRewardPurchaseEmail(childId, rewardId)
     
@@ -1203,8 +1203,8 @@ function App() {
     }
   }
 
-  const handleFulfillPurchase = (purchaseId: string) => {
-    setPurchases((current) =>
+  const handleFulfillPurchase = async (purchaseId: string) => {
+    await setPurchases((current) =>
       (current || []).map((p) =>
         p.id === purchaseId ? { ...p, fulfilled: true } : p
       )
@@ -1212,8 +1212,8 @@ function App() {
     toast.success('Reward marked as fulfilled!')
   }
 
-  const handleUnfulfillPurchase = (purchaseId: string) => {
-    setPurchases((current) =>
+  const handleUnfulfillPurchase = async (purchaseId: string) => {
+    await setPurchases((current) =>
       (current || []).map((p) =>
         p.id === purchaseId ? { ...p, fulfilled: false } : p
       )
