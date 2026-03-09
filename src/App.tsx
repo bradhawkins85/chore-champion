@@ -2354,8 +2354,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             onPurchase={(rewardId) => {
               const reward = (migratedRewards || []).find((r) => r.id === rewardId)
               if (reward) {
-                const override = reward.costOverrides?.find(o => o.childId === selectedChild.id)
-                const cost = override?.cost ?? reward.cost
+                const cost = getRewardCostForChild(reward, selectedChild.id, new Date())
                 handlePurchaseReward(selectedChild.id, rewardId, cost)
               }
             }}
