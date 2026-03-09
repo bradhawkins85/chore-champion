@@ -5,6 +5,7 @@ import { deleteChores, listChores, replaceChores } from './repositories/chores-r
 import { deleteIpAccessRequests, listIpAccessRequests, replaceIpAccessRequests } from './repositories/ip-access-repo.js';
 import { deleteRewards, listRewards, replaceRewards } from './repositories/rewards-repo.js';
 import { deleteCategories, listCategories, replaceCategories } from './repositories/categories-repo.js';
+import { deletePurchases, listPurchases, replacePurchases } from './repositories/purchases-repo.js';
 import { deleteAssignments, listAssignments, replaceAssignments } from './repositories/assignments-repo.js';
 import { deleteCompletions, listCompletions, replaceCompletions } from './repositories/completions-repo.js';
 import { deleteChildAvailability, listChildAvailability, replaceChildAvailability } from './repositories/child-availability-repo.js';
@@ -261,6 +262,8 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         return listRewards(tenantId);
       case 'categories':
         return listCategories(tenantId);
+      case 'purchases':
+        return listPurchases(tenantId);
       case 'ip-access-requests':
         return listIpAccessRequests(tenantId);
       case 'assignments':
@@ -374,6 +377,9 @@ async function setNormalizedTenantData(
       case 'categories':
         await replaceCategories(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
+      case 'purchases':
+        await replacePurchases(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
+        return;
       case 'ip-access-requests':
         await replaceIpAccessRequests(tenantId, Array.isArray(value) ? (value as any[]) : [], connection);
         return;
@@ -477,6 +483,9 @@ async function deleteNormalizedTenantData(key: NormalizedKey, tenantId: string):
       break;
     case 'categories':
       await deleteCategories(tenantId);
+      break;
+    case 'purchases':
+      await deletePurchases(tenantId);
       break;
     case 'ip-access-requests':
       await deleteIpAccessRequests(tenantId);
