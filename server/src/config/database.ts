@@ -202,6 +202,22 @@ export async function initDatabase() {
           }
         }
 
+        // Add missing columns to tenant_purchases_v2 (added in purchases repository migration)
+        const purchaseColumnMigrations = [
+          { name: 'sort_order', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN sort_order INT DEFAULT 0' },
+          { name: 'points_spent', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN points_spent INT DEFAULT 0' },
+        ];
+        for (const migration of purchaseColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_purchases_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_purchases_v2 table`);
+          }
+        }
+
         for (const tableName of ['tenant_parent_pin_v2', 'tenant_ip_restrictions_v2', 'tenant_ip_access_requests_v2']) {
           const [createdAtColumns] = await connection.query<RowDataPacket[]>(
             `SHOW COLUMNS FROM ${tableName} LIKE 'created_at'`

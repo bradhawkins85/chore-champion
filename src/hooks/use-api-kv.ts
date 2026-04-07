@@ -323,6 +323,11 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
             if (mounted) {
               setValue(defaultValueRef.current);
             }
+          } else {
+            // Unexpected server error (e.g. 500) - fall back to localStorage
+            // so locally-tracked data (e.g. goal tracking) is not lost
+            console.error(`API returned ${response.status} for key "${key}", falling back to localStorage`);
+            await loadValueFromStorage();
           }
         } catch (error) {
           console.error('Error loading from API:', error);
