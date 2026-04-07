@@ -142,9 +142,9 @@ export function ChildSelector({
     
     return childrenList.filter(child => {
       const hasICSEvents = childICSEventsMap.get(child.id) || false
-      return hasChildActivity(child.id, assignments, choresMap, completions, hasICSEvents, childAvailability)
+      return hasChildActivity(child.id, assignments, choresMap, completions, hasICSEvents, childAvailability, schoolHolidays)
     })
-  }, [childrenList, hideChildrenWithNoActivity, assignments, chores, completions, childICSEventsMap, childAvailability])
+  }, [childrenList, hideChildrenWithNoActivity, assignments, chores, completions, childICSEventsMap, childAvailability, schoolHolidays])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -307,7 +307,7 @@ export function ChildSelector({
             
             const choresMap = new Map(chores.map(c => [c.id, c]))
             const categoriesMap = new Map(categories.map((category) => [category.id, category]))
-            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions, categoriesMap, childAvailability)
+            const nextChore = getNextUpcomingChore(child.id, assignments, choresMap, completions, categoriesMap, childAvailability, schoolHolidays)
 
             return (
               <motion.div
