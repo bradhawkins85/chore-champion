@@ -116,7 +116,7 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: ComponentProps<typeof RechartsPrimitive.Tooltip> &
+}: RechartsPrimitive.TooltipContentProps<number | string, string> &
   ComponentProps<"div"> & {
     hideLabel?: boolean
     hideIndicator?: boolean
@@ -191,7 +191,7 @@ function ChartTooltipContent({
               )}
             >
               {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, item.name, item, index, (item as { payload?: unknown }).payload)
+                formatter(item.value, item.name, item, index, payload)
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -254,8 +254,9 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
-}: ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+}: ComponentProps<"div"> & {
+    payload?: ReadonlyArray<RechartsPrimitive.LegendPayload>
+    verticalAlign?: "top" | "bottom" | "middle"
     hideIcon?: boolean
     nameKey?: string
   }) {
