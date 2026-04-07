@@ -2339,6 +2339,7 @@ Please log in to ChoreQuest to approve or reject this completion.
             child={selectedChild}
             rewards={activeRewards}
             chores={activeChores}
+            assignments={safeAssignments}
             completions={safeCompletions}
             purchases={migratedPurchases}
             trackedGoal={safeTrackedGoals.find(g => g.childId === selectedChild.id)}

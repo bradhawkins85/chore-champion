@@ -43,6 +43,8 @@ function isNormalizedKey(key: string): key is NormalizedKey {
 // 3. Most tenants will only trigger this once during the upgrade window
 const migratedTenants = new Set<string>();
 
+const migratedPurchaseTenants = new Set<string>();
+
 const migratedGenericKeys = new Set<string>();
 
 // Track which tenants have had their payload_json data migrated to proper columns
@@ -170,6 +172,54 @@ async function migrateGenericKeyFromKVStore(key: string, tenantId: string): Prom
 }
 
 /**
+ * Migrates legacy purchase data from kv_store to tenant_purchases_v2 table.
+ * This is a one-time migration per tenant that runs when purchases are first accessed.
+ */
+async function migratePurchasesFromKVStore(tenantId: string): Promise<void> {
+  if (migratedPurchaseTenants.has(tenantId)) {
+    return;
+  }
+
+  try {
+    // Check if tenant_purchases_v2 is empty for this tenant
+    const [existingPurchases] = await pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM tenant_purchases_v2 WHERE tenant_id = ?',
+      [tenantId]
+    );
+
+    const purchaseCount = existingPurchases[0]?.count ?? 0;
+
+    // Only migrate if the v2 table is empty (to avoid overwriting current data)
+    if (purchaseCount === 0) {
+      const [kvRows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
+        'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
+        ['purchases', tenantId]
+      );
+
+      if (kvRows.length > 0 && kvRows[0].value_data) {
+        console.log('Migrating purchases from kv_store to tenant_purchases_v2 for tenant', tenantId);
+        try {
+          const legacyPurchases = JSON.parse(kvRows[0].value_data);
+          if (Array.isArray(legacyPurchases) && legacyPurchases.length > 0) {
+            await replacePurchases(tenantId, legacyPurchases);
+            console.log('Successfully migrated', legacyPurchases.length, 'purchases for tenant', tenantId);
+          } else {
+            console.log('No purchases found in kv_store for tenant', tenantId);
+          }
+        } catch (parseError) {
+          console.error('Failed to parse legacy purchases for tenant', tenantId, ':', parseError);
+        }
+      }
+    }
+
+    migratedPurchaseTenants.add(tenantId);
+  } catch (error) {
+    console.error('Error during purchases migration for tenant', tenantId, ':', error);
+    // Don't throw - continue with normal operation even if migration fails
+  }
+}
+
+/**
  * Migrates legacy category data from kv_store to tenant_categories_v2 table.
  * This is a one-time migration per tenant that runs when categories are first accessed.
  */
@@ -229,6 +279,11 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
     // Run migration for categories before reading
     if (key === 'categories') {
       await migrateCategoriesFromKVStore(tenantId);
+    }
+
+    // Run migration for purchases before reading
+    if (key === 'purchases') {
+      await migratePurchasesFromKVStore(tenantId);
     }
 
     // Run migration for assignments, completions, and child-availability from payload_json to columns
