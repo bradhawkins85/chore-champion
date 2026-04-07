@@ -757,6 +757,7 @@ export function ChoreDialog({
                         >
                           <Checkbox
                             checked={defaultDays.includes(day.value)}
+                            onClick={(event) => event.stopPropagation()}
                             onCheckedChange={() => toggleDefaultDay(day.value)}
                           />
                           <span className="text-sm">{day.label}</span>
