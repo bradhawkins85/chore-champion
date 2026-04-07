@@ -297,11 +297,16 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
         // Transform 'points' to 'totalPoints' for backward compatibility with frontend
         // Frontend Child interface expects 'totalPoints', backend ChildRecord has both 'points' and 'totalPoints'
         return children.map((child: ChildRecord) => {
-          // Use nullish coalescing to prefer totalPoints, fall back to points, then 0
-          // This handles null, undefined cases properly without treating 0 as falsy
+          // Prefer non-zero totalPoints, but fall back to points for legacy rows where totalPoints defaults to 0
+          // This keeps backward compatibility with older data that only persisted points_balance
+          const normalizedTotalPoints =
+            child.totalPoints != null && child.totalPoints !== 0
+              ? child.totalPoints
+              : (child.points ?? 0);
+
           return {
             ...child,
-            totalPoints: child.totalPoints ?? child.points ?? 0
+            totalPoints: normalizedTotalPoints
           };
         });
       case 'chores':
