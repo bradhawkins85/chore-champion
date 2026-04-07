@@ -1271,7 +1271,8 @@ export function getNextUpcomingChore(
   choresMap: Map<string, Chore>,
   completions: ChoreCompletion[],
   categoriesMap?: Map<string, Category>,
-  childAvailability: ChildAvailabilityEntry[] = []
+  childAvailability: ChildAvailabilityEntry[] = [],
+  schoolHolidays: SchoolHoliday[] = []
 ): { chore: Chore; assignment: ChoreAssignment; timeOfDay?: 'am' | 'pm' } | null {
   const currentTimeOfDay = getCurrentTimeOfDay()
   const now = new Date()
@@ -1285,6 +1286,7 @@ export function getNextUpcomingChore(
       const chore = choresMap.get(assignment.choreId)
       if (!chore) return null
       if (!shouldShowChoreInUpNext(chore, categoriesMap)) return null
+      if (!isChoreActiveTodayWithHolidays(chore, assignment, schoolHolidays)) return null
 
       const effectiveTimeOfDay = assignment.timeOfDay || chore.timeOfDay || 'anytime'
       const effectiveTimeWindow = assignment.timeWindow || chore.timeWindow
@@ -1858,13 +1860,18 @@ export function hasChildActivity(
   choresMap: Map<string, Chore>,
   completions: ChoreCompletion[],
   hasICSEvents: boolean,
-  childAvailability: ChildAvailabilityEntry[] = []
+  childAvailability: ChildAvailabilityEntry[] = [],
+  schoolHolidays: SchoolHoliday[] = []
 ): boolean {
   // Check if child has any chores assigned for today
   const today = new Date()
   const now = today.getTime()
   const hasChores = assignments.some((assignment) => {
     if (assignment.childId !== childId || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
+      return false
+    }
+    const chore = choresMap.get(assignment.choreId)
+    if (chore && !isChoreActiveTodayWithHolidays(chore, assignment, schoolHolidays)) {
       return false
     }
     return isChildAvailableAtTimestamp(childId, childAvailability, now)
