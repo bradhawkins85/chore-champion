@@ -274,50 +274,6 @@ async function migrateCategoriesFromKVStore(tenantId: string): Promise<void> {
   }
 }
 
-/**
- * Migrates legacy purchase data from kv_store to tenant_purchases_v2 table.
- * This is a one-time migration per tenant that runs when purchases are first accessed.
- */
-async function migratePurchasesFromKVStore(tenantId: string): Promise<void> {
-  if (migratedPurchaseTenants.has(tenantId)) {
-    return;
-  }
-
-  try {
-    const [kvRows] = await pool.query<(RowDataPacket & { value_data?: string })[]>(
-      'SELECT value_data FROM kv_store WHERE key_name = ? AND tenant_id = ?',
-      ['purchases', tenantId]
-    );
-
-    if (kvRows.length > 0 && kvRows[0].value_data) {
-      const [existingPurchases] = await pool.query<RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM tenant_purchases_v2 WHERE tenant_id = ?',
-        [tenantId]
-      );
-
-      const purchaseCount = existingPurchases[0]?.count ?? 0;
-
-      // Only migrate if the v2 table is empty (to avoid overwriting newer writes)
-      if (purchaseCount === 0) {
-        try {
-          const legacyPurchases = JSON.parse(kvRows[0].value_data);
-
-          if (Array.isArray(legacyPurchases) && legacyPurchases.length > 0) {
-            await replacePurchases(tenantId, legacyPurchases);
-            console.log(`Successfully migrated ${legacyPurchases.length} purchases for tenant ${tenantId}`);
-          }
-        } catch (parseError) {
-          console.error(`Failed to parse legacy purchases for tenant ${tenantId}:`, parseError);
-        }
-      }
-    }
-
-    migratedPurchaseTenants.add(tenantId);
-  } catch (error) {
-    console.error(`Error during purchase migration for tenant ${tenantId}:`, error);
-  }
-}
-
 async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Promise<unknown | null> {
   try {
     // Run migration for categories before reading
