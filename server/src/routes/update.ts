@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const execAsync = promisify(exec);
 const router = Router();
 
 // Update endpoint - triggers the update script
-router.post('/update', async (req, res) => {
+router.post('/update', requireAdmin, async (req, res) => {
   try {
     // Check if we're running in a Docker container
     const isDocker = await checkIfDocker();
