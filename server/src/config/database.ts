@@ -206,6 +206,7 @@ export async function initDatabase() {
         const purchaseColumnMigrations = [
           { name: 'sort_order', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN sort_order INT DEFAULT 0' },
           { name: 'points_spent', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN points_spent INT DEFAULT 0' },
+          { name: 'status', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN status VARCHAR(50) DEFAULT NULL' },
         ];
         for (const migration of purchaseColumnMigrations) {
           const [cols] = await connection.query<RowDataPacket[]>(
