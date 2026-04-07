@@ -14,6 +14,7 @@ import ipAccessRoutes from './routes/ip-access.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscriptions.js';
 import wallpaperRoutes from './routes/wallpapers.js';
+import weatherRoutes from './routes/weather.js';
 import path from 'path';
 
 dotenv.config();
@@ -113,6 +114,7 @@ app.use('/api/ip-access', requireDb, ipAccessRoutes);
 app.use('/api/admin', requireDb, adminRoutes);
 app.use('/api/subscriptions', requireDb, subscriptionRoutes);
 app.use('/api/wallpapers', requireDb, wallpaperRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {

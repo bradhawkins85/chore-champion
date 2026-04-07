@@ -6,9 +6,8 @@ export async function fetchWeatherData(
   unit: 'celsius' | 'fahrenheit' = 'fahrenheit'
 ): Promise<WeatherData | null> {
   try {
-    const temperatureUnit = unit === 'celsius' ? 'celsius' : 'fahrenheit'
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&temperature_unit=${temperatureUnit}&timezone=auto`
+      `/api/weather/forecast?latitude=${latitude}&longitude=${longitude}&unit=${unit}`
     )
     
     if (!response.ok) {
@@ -44,7 +43,7 @@ export async function geocodeLocation(locationName: string): Promise<{
 } | null> {
   try {
     const response = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`
+      `/api/weather/geocode?name=${encodeURIComponent(locationName)}`
     )
     
     if (!response.ok) {
@@ -91,7 +90,7 @@ export async function getCurrentLocation(): Promise<{
         // Reverse geocode to get location name
         try {
           const response = await fetch(
-            `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&count=1&language=en&format=json`
+            `/api/weather/reverse-geocode?latitude=${latitude}&longitude=${longitude}`
           )
           
           if (!response.ok) {
