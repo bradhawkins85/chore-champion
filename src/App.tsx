@@ -65,7 +65,7 @@ import {
   WallpaperSettings,
   DeviceWallpaperSettingsMap,
 } from '@/lib/types'
-import { getChildTotalPoints, getChildAvailablePoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState, getRewardCostForChild } from '@/lib/helpers'
+import { getChildTotalPoints, canPurchaseReward, DEFAULT_CATEGORIES, getChildPointsByCategory, isRewardActive, getChildAvailablePointsByCategory, areAllCategoryChoresCompleted, hasBonusBeenClaimedToday, getUserIPAddress, isIPAllowed, isPrerequisiteCategoryCompleted, getUpdatedRotationState, getRewardCostForChild } from '@/lib/helpers'
 import { DEFAULT_REPORT_TEMPLATES } from '@/lib/reportHelpers'
 import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
@@ -2346,12 +2346,6 @@ Please log in to ChoreQuest to approve or reject this completion.
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
             categories={safeCategories}
             swaps={safePointSwaps}
-            availablePoints={getChildAvailablePoints(
-              childPoints.get(selectedChild.id) || 0,
-              migratedPurchases
-                .filter((p) => p.childId === selectedChild.id)
-                .map((p) => ({ cost: p.cost }))
-            )}
             onPurchase={(rewardId) => {
               const reward = (migratedRewards || []).find((r) => r.id === rewardId)
               if (reward) {

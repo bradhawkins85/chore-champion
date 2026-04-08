@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, Trash, Star, Timer, EyeSlash, Eye, CalendarBlank, CalendarX } from '@phosphor-icons/react'
+import { Pencil, Trash, Timer, EyeSlash, Eye, CalendarBlank, CalendarX } from '@phosphor-icons/react'
 import { Reward, Child, Chore, Category } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
 import { isRewardActive, formatDate } from '@/lib/helpers'
@@ -105,8 +105,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
               )}
             </div>
             <Badge variant="secondary" className="flex items-center gap-1 font-fredoka">
-              <Star weight="fill" className="h-3 w-3" />
-              {reward.cost}
+              {reward.cost} {reward.categoryIds.map(catId => categories.find(c => c.id === catId)?.name).filter(Boolean).join(' / ')}
             </Badge>
           </div>
           <div className="flex items-center gap-2 mt-3">
