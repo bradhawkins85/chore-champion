@@ -105,7 +105,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
               )}
             </div>
             <Badge variant="secondary" className="flex items-center gap-1 font-fredoka">
-              {reward.cost}{reward.categoryIds.length > 0 && ` ${reward.categoryIds.map(catId => categories.find(c => c.id === catId)?.name).filter(Boolean).join(' / ')}`}
+              {reward.cost} {reward.categoryIds.map(catId => categories.find(c => c.id === catId)?.name).filter(Boolean).join(' / ')}
             </Badge>
           </div>
           <div className="flex items-center gap-2 mt-3">
