@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, Trash, Timer, EyeSlash, Eye, CalendarBlank, CalendarX } from '@phosphor-icons/react'
+import { Pencil, Trash, Timer, EyeSlash, Eye, CalendarBlank, CalendarX, Sun } from '@phosphor-icons/react'
 import { Reward, Child, Chore, Category } from '@/lib/types'
 import { RewardDialog } from './RewardDialog'
 import { isRewardActive, formatDate } from '@/lib/helpers'
@@ -19,6 +19,15 @@ interface RewardCardProps {
 
 export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchaseCount = 0, childrenList = [], chores = [], categories }: RewardCardProps) {
   const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0)
+  const hasMetadata = !!(
+    hasCustomizations ||
+    reward.purchaseLimit ||
+    reward.startDate ||
+    reward.expiryDate ||
+    reward.onlyOnSchoolHolidays ||
+    reward.inactiveOnSchoolHolidays ||
+    reward.holidayCostOverride !== undefined
+  )
   
   const getLimitText = () => {
     if (!reward.purchaseLimit) return null
@@ -76,7 +85,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                   })}
                 </div>
               )}
-              {(hasCustomizations || reward.purchaseLimit || reward.startDate || reward.expiryDate) && (
+      {hasMetadata && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {reward.costOverrides && reward.costOverrides.length > 0 && (
                     <Badge variant="outline" className="text-xs">
@@ -99,6 +108,24 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                     <Badge variant={isExpired ? "destructive" : "outline"} className="text-xs flex items-center gap-1">
                       <CalendarX className="h-3 w-3" />
                       {isExpired ? 'Expired' : 'Expires'} {formatDate(reward.expiryDate)}
+                    </Badge>
+                  )}
+                  {reward.onlyOnSchoolHolidays && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <Sun className="h-3 w-3" />
+                      Holiday only
+                    </Badge>
+                  )}
+                  {reward.inactiveOnSchoolHolidays && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <Sun className="h-3 w-3" />
+                      No holidays
+                    </Badge>
+                  )}
+                  {reward.holidayCostOverride !== undefined && !reward.inactiveOnSchoolHolidays && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <Sun className="h-3 w-3" />
+                      Holiday: {reward.holidayCostOverride} pts
                     </Badge>
                   )}
                 </div>

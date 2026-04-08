@@ -775,6 +775,23 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Add missing columns to tenant_rewards_v2 for school holiday availability
+        const rewardHolidayColumnMigrations = [
+          { name: 'inactive_on_school_holidays', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN inactive_on_school_holidays TINYINT(1) DEFAULT 0' },
+          { name: 'only_on_school_holidays', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN only_on_school_holidays TINYINT(1) DEFAULT 0' },
+          { name: 'holiday_cost_override', sql: 'ALTER TABLE tenant_rewards_v2 ADD COLUMN holiday_cost_override INT NULL' },
+        ];
+        for (const migration of rewardHolidayColumnMigrations) {
+          const [cols] = await connection.query<RowDataPacket[]>(
+            'SHOW COLUMNS FROM tenant_rewards_v2 LIKE ?',
+            [migration.name]
+          );
+          if (cols.length === 0) {
+            await connection.query(migration.sql);
+            console.log(`Added ${migration.name} column to tenant_rewards_v2 table`);
+          }
+        }
+
         // Insert default subscription plans if they don't exist
         await connection.query(`
           INSERT IGNORE INTO subscription_plans (id, name, tier, description, max_children, max_devices, max_chores, max_rewards, price_per_child_aud, base_price, billing_interval, features, is_active)

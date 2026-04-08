@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Star, ShoppingCart, ArrowLeft, LockKey, Timer, ArrowsLeftRight } from '@phosphor-icons/react'
-import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category, PointSwap } from '@/lib/types'
+import { Child, Reward, Chore, ChoreCompletion, RewardPurchase, GoalTracker, Category, PointSwap, SchoolHoliday } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { getRewardCostForChild, isRewardAvailableForChild, canPurchaseReward, getChildPointsByCategory, getChildAvailablePointsByCategory, isRewardActive } from '@/lib/helpers'
 import { useMemo, useState, useCallback } from 'react'
@@ -21,6 +21,7 @@ interface RewardShopProps {
   categories?: Category[]
   assignments?: any[]
   swaps?: PointSwap[]
+  schoolHolidays?: SchoolHoliday[]
 }
 
 export function RewardShop({
@@ -36,6 +37,7 @@ export function RewardShop({
   categories = [],
   assignments = [],
   swaps = [],
+  schoolHolidays = [],
 }: RewardShopProps) {
   // Sort categories by order field first to determine default tab
   const sortedCategories = useMemo(() => {
@@ -95,8 +97,8 @@ export function RewardShop({
 
   // Filter active rewards
   const activeRewards = useMemo(() => {
-    return rewards.filter(r => !r.disabled && isRewardActive(r))
-  }, [rewards])
+    return rewards.filter(r => !r.disabled && isRewardActive(r, schoolHolidays))
+  }, [rewards, schoolHolidays])
 
   // Get rewards for a specific category
   const getRewardsForCategory = useCallback((categoryId: string | null) => {
@@ -127,7 +129,7 @@ export function RewardShop({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {rewardsToDisplay.map((reward) => {
-          const customCost = getRewardCostForChild(reward, child.id, new Date())
+          const customCost = getRewardCostForChild(reward, child.id, new Date(), schoolHolidays)
           const requirementsMet = isRewardAvailableForChild(reward, child.id, completions, choresMap)
           const purchaseLimitCheck = canPurchaseReward(reward, child.id, purchases)
           
