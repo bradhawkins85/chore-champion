@@ -341,7 +341,7 @@ export function HelpMenu() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Data Storage</h4>
-                  <p className="text-muted-foreground">Choose between browser localStorage or MySQL database for centralized storage across devices.</p>
+                  <p className="text-muted-foreground">All data is stored in the MySQL database for centralized access across all devices.</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Docker Deployment</h4>
@@ -418,7 +418,7 @@ export function HelpMenu() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Backup Your Data</h4>
-                  <p className="text-muted-foreground">If using Docker, enable automated backups. If using localStorage, export data regularly.</p>
+                  <p className="text-muted-foreground">Enable automated database backups in Docker to protect your data.</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
