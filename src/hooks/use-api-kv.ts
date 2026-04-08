@@ -159,21 +159,11 @@ async function checkApiAvailability(forceRefresh = false): Promise<boolean> {
         headers: getAuthHeaders(),
       });
       
-      // API is available if we get 200 OK
-      // Auth failures (401/403) mean token is invalid/expired or view-only
-      // In those cases, fall back to localStorage
-      if (isAuthFailure(response.status)) {
-        console.warn('API authentication failed, falling back to localStorage');
-        apiAvailable = false;
-        apiCheckTimestamp = now;
-        return false;
-      }
-      
       apiAvailable = response.ok;
       apiCheckTimestamp = now;
       return apiAvailable;
     } catch (error) {
-      console.warn('API not available, falling back to localStorage');
+      console.warn('API not available:', error);
       apiAvailable = false;
       apiCheckTimestamp = now;
       return false;
@@ -224,10 +214,8 @@ function isAuthFailure(status: number): boolean {
 
 export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((prevValue: T) => T)) => Promise<void>, boolean] {
   const [value, setValue] = useState<T>(defaultValue);
-  const [useApi, setUseApi] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const defaultValueRef = useRef(defaultValue);
-  const useApiRef = useRef(useApi);
   // Track the latest committed value synchronously so updateValue can compute
   // the next value without relying on React's async reconciliation cycle.
   const currentValueRef = useRef<T>(defaultValue);
@@ -241,10 +229,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   useEffect(() => {
     defaultValueRef.current = defaultValue;
   }, [defaultValue]);
-
-  useEffect(() => {
-    useApiRef.current = useApi;
-  }, [useApi]);
 
   // Listen for auth token changes
   useEffect(() => {
@@ -276,27 +260,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
   useEffect(() => {
     let mounted = true;
 
-    async function loadValueFromStorage() {
-      const stored = localStorage.getItem(key);
-      if (!stored || !mounted) {
-        if (mounted) {
-          setValue(defaultValueRef.current);
-        }
-        return;
-      }
-
-      try {
-        const parsedValue = JSON.parse(stored);
-        if (mounted) {
-          setValue(validateLoadedValue(parsedValue, defaultValueRef.current));
-        }
-      } catch {
-        if (mounted) {
-          setValue(defaultValueRef.current);
-        }
-      }
-    }
-
     async function loadValueFromApi() {
       await queueRequest(async () => {
         try {
@@ -315,38 +278,54 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
             apiAvailable = false;
             apiCheckTimestamp = Date.now();
             if (mounted) {
-              setUseApi(false);
+              setValue(defaultValueRef.current);
+              toast.error('Session expired', {
+                description: 'Please log in again to view your data.'
+              });
             }
-            await loadValueFromStorage();
           } else if (response.status === 404) {
-            // Legacy: Key not found (older API versions returned 404)
+            // Key not found — use default value (no data stored yet)
             if (mounted) {
               setValue(defaultValueRef.current);
             }
           } else {
-            // Unexpected server error (e.g. 500) - fall back to localStorage
-            // so locally-tracked data (e.g. goal tracking) is not lost
-            console.error(`API returned ${response.status} for key "${key}", falling back to localStorage`);
-            await loadValueFromStorage();
+            // Unexpected server error
+            console.error(`API returned ${response.status} for key "${key}"`);
+            if (mounted) {
+              setValue(defaultValueRef.current);
+              toast.error('Server error', {
+                description: 'Data could not be loaded from the server.'
+              });
+            }
           }
         } catch (error) {
           console.error('Error loading from API:', error);
-          await loadValueFromStorage();
+          if (mounted) {
+            setValue(defaultValueRef.current);
+            toast.error('Unable to reach server', {
+              description: 'Check your connection and try again.'
+            });
+          }
         }
       });
     }
 
-    async function syncValue(forceApiCheck = false) {
+    async function syncValue() {
       setIsLoaded(false);
-      const available = await checkApiAvailability(forceApiCheck);
+      const available = await checkApiAvailability();
       if (!mounted) return;
-
-      setUseApi(available);
 
       if (available) {
         await loadValueFromApi();
       } else {
-        await loadValueFromStorage();
+        setValue(defaultValueRef.current);
+        // Only show an error when the user has a token but the API is unreachable,
+        // not during the initial unauthenticated state.
+        if (getAuthToken()) {
+          toast.error('Unable to reach server', {
+            description: 'Check your connection and try again.'
+          });
+        }
       }
 
       if (mounted) {
@@ -357,10 +336,6 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     syncValue();
 
     const handleStorageUpdate = (event: StorageEvent) => {
-      if (event.key === key && !useApiRef.current) {
-        syncValue();
-      }
-
       if (event.key === 'auth_token') {
         notifyAuthTokenChange();
       }
@@ -389,15 +364,10 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
     // each see the latest value rather than the stale state.
     currentValueRef.current = computedValue;
     setValue(computedValue);
-    
-    // Save to API or localStorage (outside of setState to keep it pure)
-    const apiIsAvailable = useApi || await checkApiAvailability(true);
+
+    const apiIsAvailable = await checkApiAvailability(true);
 
     if (apiIsAvailable) {
-      if (!useApi) {
-        setUseApi(true);
-      }
-
       // Save to API and await the result (queued to prevent out-of-order writes)
       try {
         await queueRequest(async () => {
@@ -411,8 +381,9 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
             if (isAuthFailure(response.status)) {
               apiAvailable = false;
               apiCheckTimestamp = Date.now();
-              setUseApi(false);
-              localStorage.setItem(key, JSON.stringify(computedValue));
+              toast.error('Session expired', {
+                description: 'Changes could not be saved. Please log in again.'
+              });
               return;
             }
             throw new Error('Failed to save to API');
@@ -420,79 +391,17 @@ export function useApiKV<T>(key: string, defaultValue: T): [T, (value: T | ((pre
         });
       } catch (error) {
         console.error('Error saving to API:', error);
-        // Fallback to localStorage to ensure data is not lost
-        try {
-          localStorage.setItem(key, JSON.stringify(computedValue));
-          // Display user-friendly error message after successful localStorage save
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          toast.error('Failed to save data to server', {
-            description: `Unable to save to server: ${errorMessage}. Data saved locally as backup.`
-          });
-        } catch (localStorageError) {
-          console.error('Error saving to localStorage fallback:', localStorageError);
-          // Both API and localStorage failed - show more severe error
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          toast.error('Failed to save data', {
-            description: `Unable to save to server: ${errorMessage}. Local storage also unavailable.`
-          });
-        }
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error('Failed to save to server', {
+          description: `Changes were not saved: ${errorMessage}`
+        });
       }
     } else {
-      // Save to localStorage
-      localStorage.setItem(key, JSON.stringify(computedValue));
+      toast.error('Unable to reach server', {
+        description: 'Changes could not be saved. Check your connection and try again.'
+      });
     }
-  }, [key, useApi]);
+  }, [key]);
 
   return [value, updateValue, isLoaded];
-}
-
-// Migration utility: export all localStorage data to API
-export async function migrateToApi(): Promise<boolean> {
-  const available = await checkApiAvailability();
-  if (!available) {
-    console.error('API not available for migration');
-    return false;
-  }
-
-  try {
-    // Get all localStorage data
-    const data: Record<string, any> = {};
-    const skipped: string[] = [];
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            data[key] = JSON.parse(value);
-          } catch {
-            // Skip non-JSON values
-            skipped.push(key);
-          }
-        }
-      }
-    }
-
-    if (skipped.length > 0) {
-      console.warn('Migration: Skipped non-JSON values for keys:', skipped);
-    }
-
-    // Send to API
-    const response = await fetch(`${API_URL}/kv`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error('Migration failed');
-    }
-
-    console.log('Migration completed successfully');
-    return true;
-  } catch (error) {
-    console.error('Error during migration:', error);
-    return false;
-  }
 }
