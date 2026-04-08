@@ -457,6 +457,11 @@ export function ChildChoreView({
     return rewards.find(r => r.id === trackedGoal.rewardId)
   }, [trackedGoal, rewards])
 
+  const goalCurrentPoints = useMemo(() => {
+    if (!trackedReward || !categoryPoints || trackedReward.categoryIds.length === 0) return totalPoints
+    return trackedReward.categoryIds.reduce((sum, catId) => sum + (categoryPoints.get(catId) || 0), 0)
+  }, [trackedReward, categoryPoints, totalPoints])
+
   const categoriesWithBonuses = useMemo(() => {
     return categories.filter(cat => cat.completionBonus)
   }, [categories])
@@ -572,7 +577,7 @@ export function ChildChoreView({
           <div className="mb-8">
             <GoalProgress
               reward={trackedReward}
-              currentPoints={totalPoints}
+              currentPoints={goalCurrentPoints}
               targetPoints={getRewardCostForChild(trackedReward, child.id, new Date())}
             />
           </div>
