@@ -71,7 +71,9 @@ export function RewardShop({
         choresMap,
         child.id,
         category.id,
-        assignments
+        assignments,
+        undefined,
+        category
       )
       const childSwaps = swaps.filter(s => s.childId === child.id)
       const availablePoints = getChildAvailablePointsByCategory(
