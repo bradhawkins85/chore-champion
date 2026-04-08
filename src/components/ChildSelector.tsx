@@ -300,10 +300,12 @@ export function ChildSelector({
 
             const childGoal = trackedGoals.find(g => g.childId === child.id)
             const goalReward = childGoal ? rewards.find(r => r.id === childGoal.rewardId) : null
-            const currentPoints = childPoints.get(child.id) || 0
-            const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id, new Date()) : 0
-            const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
             const childCategoryPoints = categoryPoints?.get(child.id)
+            const targetPoints = goalReward ? getRewardCostForChild(goalReward, child.id, new Date()) : 0
+            const currentPoints = goalReward && childCategoryPoints && goalReward.categoryIds.length > 0
+              ? Math.max(0, ...goalReward.categoryIds.map(catId => childCategoryPoints.get(catId) || 0))
+              : childPoints.get(child.id) || 0
+            const progress = goalReward ? Math.min((currentPoints / targetPoints) * 100, 100) : 0
             
             const choresMap = new Map(chores.map(c => [c.id, c]))
             const categoriesMap = new Map(categories.map((category) => [category.id, category]))
