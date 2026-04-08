@@ -70,7 +70,7 @@ import { DeviceSettings } from './DeviceSettings'
 import { SubscriptionSettings } from './SubscriptionSettings'
 import { WallpaperSettingsPanel } from './WallpaperSettingsPanel'
 import { generateICSFeed, downloadICSFile } from '@/lib/icsHelper'
-import { isChoreActive, isChoreActiveToday, isChildAvailableForTimeOfDay, formatTime12Hour } from '@/lib/helpers'
+import { isChoreActive, isChoreActiveToday, isChoreActiveTodayWithHolidays, isChildAvailableForTimeOfDay, formatTime12Hour } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 const welcomeCardIds = ['children', 'chores', 'approvals', 'missed', 'rewards', 'purchases']
@@ -408,7 +408,7 @@ export function ParentPanel({
 
       childAssignments.forEach((assignment) => {
         const chore = chores.find((c) => c.id === assignment.choreId)
-        if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) return
+        if (!chore || !isChoreActive(assignment) || !isChoreActiveTodayWithHolidays(chore, assignment, schoolHolidays)) return
         const isDismissed = (timeOfDay?: 'am' | 'pm') =>
           dismissedMissedChores.some(
             (d) =>
@@ -455,7 +455,7 @@ export function ParentPanel({
     })
 
     return count
-  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
+  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability, schoolHolidays])
 
   // Auto-update getting started tasks based on actual progress
   useEffect(() => {
@@ -893,6 +893,7 @@ export function ParentPanel({
                 completions={completions}
                 dismissedMissedChores={dismissedMissedChores}
                 childAvailability={childAvailability}
+                schoolHolidays={schoolHolidays}
                 onOverrideComplete={onOverrideComplete}
                 onDismissMissed={onDismissMissed}
               />
