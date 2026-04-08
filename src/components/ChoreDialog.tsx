@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus, PencilSimple } from '@phosphor-icons/react'
+import { Sparkle, User, Info, Check, CloudSun, SpeakerHigh, Plus, PencilSimple, CalendarPlus, Trash } from '@phosphor-icons/react'
 import { Chore, ChoreFrequency, ChoreTimeOfDay, ChoreCompletionType, ChoreResetPeriod, Child, ChoreAssignment, Category, CategoryPoints, ApprovalConfig, WeatherConditionFilter, WeatherConditionRequirement, RotationMode, RotationOrder, DayOfWeek, RepeatPattern, TimeWindow, ChorePointOverride, CategoryPointOverride } from '@/lib/types'
 import { choreTemplates, choreCategories, getTemplatesByCategory, ChoreTemplate } from '@/lib/choreTemplates'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
@@ -117,6 +117,7 @@ export function ChoreDialog({
   const [speakDescription, setSpeakDescription] = useState(editChore?.speakDescription ?? true)
   const [inactiveOnSchoolHolidays, setInactiveOnSchoolHolidays] = useState(editChore?.inactiveOnSchoolHolidays ?? false)
   const [onlyOnSchoolHolidays, setOnlyOnSchoolHolidays] = useState(editChore?.onlyOnSchoolHolidays ?? false)
+  const [specificDates, setSpecificDates] = useState<number[]>(editChore?.specificDates ?? [])
   const [rotationMode, setRotationMode] = useState<RotationMode>(editChore?.rotationConfig?.mode || 'one-child-per-interval')
   const [rotationOrder, setRotationOrder] = useState<RotationOrder>(editChore?.rotationConfig?.order || 'specific')
   const [rotationChildOrder, setRotationChildOrder] = useState<string[]>(editChore?.rotationConfig?.childOrder || [])
@@ -153,6 +154,7 @@ export function ChoreDialog({
       setSpeakDescription(editChore.speakDescription ?? true)
       setInactiveOnSchoolHolidays(editChore.inactiveOnSchoolHolidays ?? false)
       setOnlyOnSchoolHolidays(editChore.onlyOnSchoolHolidays ?? false)
+      setSpecificDates(editChore.specificDates ?? [])
       setRotationMode(editChore.rotationConfig?.mode || 'one-child-per-interval')
       setRotationOrder(editChore.rotationConfig?.order || 'specific')
       setRotationChildOrder(editChore.rotationConfig?.childOrder || [])
@@ -186,6 +188,7 @@ export function ChoreDialog({
       setSpeakDescription(true)
       setInactiveOnSchoolHolidays(false)
       setOnlyOnSchoolHolidays(false)
+      setSpecificDates([])
       setRotationMode('one-child-per-interval')
       setRotationOrder('specific')
       setRotationChildOrder([])
@@ -285,6 +288,7 @@ export function ChoreDialog({
     choreData.speakDescription = true
     choreData.inactiveOnSchoolHolidays = false
     choreData.onlyOnSchoolHolidays = false
+    choreData.specificDates = []
 
     onSave(choreData)
     // Keep modal open by not calling onOpenChange(false)
@@ -379,6 +383,9 @@ export function ChoreDialog({
     choreData.speakDescription = speakDescription
     choreData.inactiveOnSchoolHolidays = inactiveOnSchoolHolidays
     choreData.onlyOnSchoolHolidays = onlyOnSchoolHolidays
+    if (specificDates.length > 0) {
+      choreData.specificDates = specificDates
+    }
 
     if (completionType === 'rotational') {
       choreData.rotationConfig = {
@@ -418,6 +425,7 @@ export function ChoreDialog({
       setSpeakDescription(true)
       setInactiveOnSchoolHolidays(false)
       setOnlyOnSchoolHolidays(false)
+      setSpecificDates([])
       setRotationMode('one-child-per-interval')
       setRotationOrder('specific')
       setRotationChildOrder([])
@@ -1739,6 +1747,57 @@ export function ChoreDialog({
                       School holidays can be managed in the Parent Panel settings
                     </AlertDescription>
                   </Alert>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <CalendarPlus className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <Label className="text-base font-fredoka font-semibold">
+                    Specific Dates
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Chore will also appear on these dates regardless of schedule or holiday settings
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pl-4 border-l-2 border-muted">
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="specific-date-input"
+                    type="date"
+                    className="w-auto"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const ts = new Date(`${e.target.value}T00:00:00`).getTime()
+                        if (!specificDates.includes(ts)) {
+                          setSpecificDates([...specificDates, ts].sort((a, b) => a - b))
+                        }
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">Select a date to add</span>
+                </div>
+                {specificDates.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {specificDates.map((ts) => (
+                      <Badge key={ts} variant="secondary" className="flex items-center gap-1 pr-1">
+                        {new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <button
+                          type="button"
+                          className="ml-1 hover:text-destructive"
+                          onClick={() => setSpecificDates(specificDates.filter((d) => d !== ts))}
+                          aria-label="Remove date"
+                        >
+                          <Trash className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

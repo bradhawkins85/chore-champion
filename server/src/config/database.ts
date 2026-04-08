@@ -295,7 +295,8 @@ export async function initDatabase() {
           { name: 'speak_description', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN speak_description BOOLEAN DEFAULT TRUE AFTER weather_conditions' },
           { name: 'inactive_on_school_holidays', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN inactive_on_school_holidays BOOLEAN DEFAULT FALSE AFTER speak_description' },
           { name: 'only_on_school_holidays', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN only_on_school_holidays BOOLEAN DEFAULT FALSE AFTER inactive_on_school_holidays' },
-          { name: 'rotation_config', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN rotation_config JSON AFTER only_on_school_holidays' },
+          { name: 'specific_dates', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN specific_dates JSON AFTER only_on_school_holidays' },
+          { name: 'rotation_config', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN rotation_config JSON AFTER specific_dates' },
           { name: 'created_at_timestamp', sql: 'ALTER TABLE tenant_chores_v2 ADD COLUMN created_at_timestamp BIGINT NULL AFTER rotation_config' },
         ];
 
