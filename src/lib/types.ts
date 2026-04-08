@@ -272,6 +272,9 @@ export interface Reward {
     fromAmount: number
     toAmount: number
   }
+  inactiveOnSchoolHolidays?: boolean
+  onlyOnSchoolHolidays?: boolean
+  holidayCostOverride?: number
 }
 
 export interface RewardPurchase {

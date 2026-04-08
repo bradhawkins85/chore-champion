@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Star, Timer, CalendarBlank, CalendarX, ArrowsLeftRight, CalendarDots } from '@phosphor-icons/react'
+import { Plus, Star, Timer, CalendarBlank, CalendarX, ArrowsLeftRight, CalendarDots, Sun } from '@phosphor-icons/react'
 import { Reward, Child, Chore, RewardCostOverride, PurchaseLimit, PurchaseLimitInterval, PurchaseLimitScope, Category, DayOfWeek } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -54,6 +54,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
   const [swapToCategoryId, setSwapToCategoryId] = useState(reward?.swapConfig?.toCategoryId || '')
   const [swapFromAmount, setSwapFromAmount] = useState(reward?.swapConfig?.fromAmount?.toString() || '')
   const [swapToAmount, setSwapToAmount] = useState(reward?.swapConfig?.toAmount?.toString() || '')
+  const [inactiveOnSchoolHolidays, setInactiveOnSchoolHolidays] = useState(reward?.inactiveOnSchoolHolidays || false)
+  const [onlyOnSchoolHolidays, setOnlyOnSchoolHolidays] = useState(reward?.onlyOnSchoolHolidays || false)
+  const [holidayCostOverride, setHolidayCostOverride] = useState(reward?.holidayCostOverride?.toString() || '')
 
   const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -83,6 +86,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setSwapToCategoryId(reward.swapConfig?.toCategoryId || '')
         setSwapFromAmount(reward.swapConfig?.fromAmount?.toString() || '')
         setSwapToAmount(reward.swapConfig?.toAmount?.toString() || '')
+        setInactiveOnSchoolHolidays(reward.inactiveOnSchoolHolidays || false)
+        setOnlyOnSchoolHolidays(reward.onlyOnSchoolHolidays || false)
+        setHolidayCostOverride(reward.holidayCostOverride?.toString() || '')
       } else {
         setIsPointSwap(false)
         setName('')
@@ -102,6 +108,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         setSwapToCategoryId('')
         setSwapFromAmount('')
         setSwapToAmount('')
+        setInactiveOnSchoolHolidays(false)
+        setOnlyOnSchoolHolidays(false)
+        setHolidayCostOverride('')
       }
     }
   }, [open, reward, reward?.categoryIds])
@@ -153,6 +162,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
         fromAmount: parseInt(swapFromAmount, 10),
         toAmount: parseInt(swapToAmount, 10),
       } : undefined,
+      inactiveOnSchoolHolidays: inactiveOnSchoolHolidays || undefined,
+      onlyOnSchoolHolidays: onlyOnSchoolHolidays || undefined,
+      holidayCostOverride: holidayCostOverride ? parseInt(holidayCostOverride, 10) : undefined,
     }
 
     onSave(rewardData)
@@ -176,6 +188,9 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
       setSwapToCategoryId('')
       setSwapFromAmount('')
       setSwapToAmount('')
+      setInactiveOnSchoolHolidays(false)
+      setOnlyOnSchoolHolidays(false)
+      setHolidayCostOverride('')
     }
     setOpen(false)
   }
@@ -471,6 +486,68 @@ export function RewardDialog({ reward, onSave, trigger, childrenList = [], chore
             )}
           </div>
           
+          <Separator />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sun className="h-5 w-5 text-muted-foreground" />
+              <Label className="text-base font-fredoka font-semibold">School Holiday Availability</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Control whether this {isPointSwap ? 'swap' : 'reward'} is available during school holidays
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Only available on school holidays</Label>
+                  <p className="text-xs text-muted-foreground">Hidden during normal school term</p>
+                </div>
+                <Switch
+                  checked={onlyOnSchoolHolidays}
+                  onCheckedChange={(checked) => {
+                    setOnlyOnSchoolHolidays(checked)
+                    if (checked) setInactiveOnSchoolHolidays(false)
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Inactive on school holidays</Label>
+                  <p className="text-xs text-muted-foreground">Hidden during school holiday periods</p>
+                </div>
+                <Switch
+                  checked={inactiveOnSchoolHolidays}
+                  onCheckedChange={(checked) => {
+                    setInactiveOnSchoolHolidays(checked)
+                    if (checked) {
+                      setOnlyOnSchoolHolidays(false)
+                      setHolidayCostOverride('')
+                    }
+                  }}
+                />
+              </div>
+              {!inactiveOnSchoolHolidays && (
+                <div>
+                  <Label htmlFor="holiday-cost-override" className="text-sm font-medium">Holiday cost override (optional)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      id="holiday-cost-override"
+                      type="number"
+                      min="0"
+                      value={holidayCostOverride}
+                      onChange={(e) => setHolidayCostOverride(e.target.value)}
+                      placeholder={cost || '0'}
+                      className="w-28"
+                    />
+                    <span className="text-sm text-muted-foreground">pts during holidays</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to use the standard cost during holidays
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {!isPointSwap && (
             <>
           <div>

@@ -22,6 +22,9 @@ export interface RewardRecord {
   swapConfig?: any;
   disabled?: boolean;
   isActive?: boolean;
+  inactiveOnSchoolHolidays?: boolean;
+  onlyOnSchoolHolidays?: boolean;
+  holidayCostOverride?: number | null;
 }
 
 interface RewardRow extends RowDataPacket {
@@ -43,6 +46,9 @@ interface RewardRow extends RowDataPacket {
   expiry_date: number | null;
   is_point_swap: number | boolean | null;
   swap_config: string | null;
+  inactive_on_school_holidays: number | boolean | null;
+  only_on_school_holidays: number | boolean | null;
+  holiday_cost_override: number | null;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
@@ -161,6 +167,9 @@ function mapRow(row: RewardRow): RewardRecord {
     expiryDate: row.expiry_date,
     isPointSwap: Boolean(row.is_point_swap ?? false),
     swapConfig: safeJsonParse(row.swap_config, undefined),
+    inactiveOnSchoolHolidays: Boolean(row.inactive_on_school_holidays ?? false) || undefined,
+    onlyOnSchoolHolidays: Boolean(row.only_on_school_holidays ?? false) || undefined,
+    holidayCostOverride: row.holiday_cost_override ?? undefined,
   };
 }
 
@@ -169,7 +178,8 @@ export async function listRewards(tenantId: string, connection?: PoolConnection)
   const [rows] = await executor.query<RewardRow[]>(
     `SELECT id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
             created_at_timestamp, category_ids, cost_overrides, requirements, purchase_limit,
-            start_date, expiry_date, is_point_swap, swap_config
+            start_date, expiry_date, is_point_swap, swap_config,
+            inactive_on_school_holidays, only_on_school_holidays, holiday_cost_override
      FROM tenant_rewards_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -185,7 +195,8 @@ export async function getRewardById(tenantId: string, rewardId: string, connecti
   const [rows] = await executor.query<RewardRow[]>(
     `SELECT id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
             created_at_timestamp, category_ids, cost_overrides, requirements, purchase_limit,
-            start_date, expiry_date, is_point_swap, swap_config
+            start_date, expiry_date, is_point_swap, swap_config,
+            inactive_on_school_holidays, only_on_school_holidays, holiday_cost_override
      FROM tenant_rewards_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, rewardId]
@@ -213,8 +224,9 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
     `INSERT INTO tenant_rewards_v2
     (id, tenant_id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
      created_at_timestamp, category_ids, cost_overrides, requirements, purchase_limit,
-     start_date, expiry_date, is_point_swap, swap_config)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     start_date, expiry_date, is_point_swap, swap_config,
+     inactive_on_school_holidays, only_on_school_holidays, holiday_cost_override)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       title = VALUES(title),
@@ -232,7 +244,10 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
       start_date = VALUES(start_date),
       expiry_date = VALUES(expiry_date),
       is_point_swap = VALUES(is_point_swap),
-      swap_config = VALUES(swap_config)`,
+      swap_config = VALUES(swap_config),
+      inactive_on_school_holidays = VALUES(inactive_on_school_holidays),
+      only_on_school_holidays = VALUES(only_on_school_holidays),
+      holiday_cost_override = VALUES(holiday_cost_override)`,
     [
       reward.id,
       tenantId,
@@ -253,6 +268,9 @@ export async function upsertReward(tenantId: string, reward: any, connection?: P
       reward.expiryDate ?? null,
       reward.isPointSwap ?? false,
       reward.swapConfig ? JSON.stringify(reward.swapConfig) : null,
+      reward.inactiveOnSchoolHolidays ?? false,
+      reward.onlyOnSchoolHolidays ?? false,
+      reward.holidayCostOverride ?? null,
     ]
   );
 }
@@ -277,8 +295,9 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
       `INSERT INTO tenant_rewards_v2
       (id, tenant_id, name, title, description, cost_points, image_emoji, is_active, stock_count, sort_order,
        created_at_timestamp, category_ids, cost_overrides, requirements, purchase_limit,
-       start_date, expiry_date, is_point_swap, swap_config)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       start_date, expiry_date, is_point_swap, swap_config,
+       inactive_on_school_holidays, only_on_school_holidays, holiday_cost_override)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reward.id,
         tenantId,
@@ -299,6 +318,9 @@ export async function replaceRewards(tenantId: string, rewards: any[], connectio
         reward.expiryDate ?? null,
         reward.isPointSwap ?? false,
         reward.swapConfig ? JSON.stringify(reward.swapConfig) : null,
+        reward.inactiveOnSchoolHolidays ?? false,
+        reward.onlyOnSchoolHolidays ?? false,
+        reward.holidayCostOverride ?? null,
       ]
     );
   }

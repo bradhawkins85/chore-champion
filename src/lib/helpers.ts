@@ -815,10 +815,19 @@ export function getChoreCategoryPointsForChild(
 }
 
 export function getRewardCostForChild(
-  reward: { cost: number; costOverrides?: { childId: string; cost?: number; costByDay?: { [key: string]: number } }[] },
+  reward: { cost: number; costOverrides?: { childId: string; cost?: number; costByDay?: { [key: string]: number } }[]; holidayCostOverride?: number },
   childId: string,
-  date?: Date
+  date?: Date,
+  schoolHolidays: SchoolHoliday[] = []
 ): number {
+  // Apply holiday cost override when today is a school holiday
+  if (reward.holidayCostOverride !== undefined && date) {
+    const isHoliday = isDateOnSchoolHoliday(date, schoolHolidays)
+    if (isHoliday) {
+      return reward.holidayCostOverride
+    }
+  }
+
   const override = reward.costOverrides?.find(o => o.childId === childId)
   if (!override) {
     return reward.cost
@@ -1391,7 +1400,10 @@ function shouldShowChoreInUpNext(chore: Chore, categoriesMap?: Map<string, Categ
   return !chore.categoryIds.some((categoryId) => categoriesMap.get(categoryId)?.showInUpNext === false)
 }
 
-export function isRewardActive(reward: { startDate?: number; expiryDate?: number }): boolean {
+export function isRewardActive(
+  reward: { startDate?: number; expiryDate?: number; inactiveOnSchoolHolidays?: boolean; onlyOnSchoolHolidays?: boolean },
+  schoolHolidays: SchoolHoliday[] = []
+): boolean {
   const now = Date.now()
   
   if (reward.startDate && now < reward.startDate) {
@@ -1399,6 +1411,16 @@ export function isRewardActive(reward: { startDate?: number; expiryDate?: number
   }
   
   if (reward.expiryDate && now > reward.expiryDate) {
+    return false
+  }
+
+  const isHoliday = isDateOnSchoolHoliday(new Date(), schoolHolidays)
+
+  if (reward.onlyOnSchoolHolidays && !isHoliday) {
+    return false
+  }
+
+  if (reward.inactiveOnSchoolHolidays && isHoliday) {
     return false
   }
   

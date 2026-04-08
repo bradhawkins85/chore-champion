@@ -2346,10 +2346,11 @@ Please log in to ChoreQuest to approve or reject this completion.
             onToggleGoalTracking={(rewardId) => handleToggleGoalTracking(selectedChild.id, rewardId)}
             categories={safeCategories}
             swaps={safePointSwaps}
+            schoolHolidays={schoolHolidays || []}
             onPurchase={(rewardId) => {
               const reward = (migratedRewards || []).find((r) => r.id === rewardId)
               if (reward) {
-                const cost = getRewardCostForChild(reward, selectedChild.id, new Date())
+                const cost = getRewardCostForChild(reward, selectedChild.id, new Date(), schoolHolidays || [])
                 handlePurchaseReward(selectedChild.id, rewardId, cost)
               }
             }}
