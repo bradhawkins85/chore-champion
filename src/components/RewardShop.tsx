@@ -11,7 +11,6 @@ import { useMemo, useState, useCallback } from 'react'
 interface RewardShopProps {
   child: Child
   rewards: Reward[]
-  availablePoints: number
   onPurchase: (rewardId: string) => void
   onBack: () => void
   chores?: Chore[]
@@ -27,7 +26,6 @@ interface RewardShopProps {
 export function RewardShop({
   child,
   rewards,
-  availablePoints,
   onPurchase,
   onBack,
   chores = [],
@@ -300,8 +298,7 @@ export function RewardShop({
                           variant={canPurchase ? 'default' : 'secondary'}
                           className="flex items-center gap-1 font-fredoka text-base px-4 py-1"
                         >
-                          <Star weight="fill" />
-                          {customCost} points
+                          {customCost} {reward.categoryIds.map(catId => categoriesMap.get(catId)?.name).filter(Boolean).join(' / ')}
                         </Badge>
                       </div>
                     )}
@@ -370,13 +367,23 @@ export function RewardShop({
               Choose your rewards, {child.name}!
             </p>
           </div>
-          <div className="bg-primary text-primary-foreground rounded-2xl px-8 py-4 text-center">
-            <div className="text-sm font-medium opacity-90">Your Points</div>
-            <div className="text-4xl font-fredoka font-bold flex items-center justify-center gap-2">
-              <Star weight="fill" />
-              {availablePoints}
+          {sortedCategories.length > 0 && (
+            <div className="flex gap-3 flex-wrap justify-end">
+              {sortedCategories.map(category => {
+                const pts = categoryPoints.get(category.id) || 0
+                return (
+                  <div
+                    key={category.id}
+                    className="rounded-2xl px-6 py-3 text-center text-white"
+                    style={{ backgroundColor: category.color }}
+                  >
+                    <div className="text-sm font-medium opacity-90">{category.name}</div>
+                    <div className="text-3xl font-fredoka font-bold">{pts}</div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          )}
         </div>
 
         {activeRewards.length === 0 ? (
