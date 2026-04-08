@@ -207,6 +207,8 @@ export async function initDatabase() {
           { name: 'sort_order', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN sort_order INT DEFAULT 0' },
           { name: 'points_spent', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN points_spent INT DEFAULT 0' },
           { name: 'status', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN status VARCHAR(50) DEFAULT NULL' },
+          { name: 'fulfilled', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN fulfilled BOOLEAN DEFAULT FALSE' },
+          { name: 'cost', sql: 'ALTER TABLE tenant_purchases_v2 ADD COLUMN cost INT DEFAULT 0' },
         ];
         for (const migration of purchaseColumnMigrations) {
           const [cols] = await connection.query<RowDataPacket[]>(
