@@ -19,6 +19,15 @@ interface RewardCardProps {
 
 export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchaseCount = 0, childrenList = [], chores = [], categories }: RewardCardProps) {
   const hasCustomizations = (reward.costOverrides && reward.costOverrides.length > 0)
+  const hasMetadata = !!(
+    hasCustomizations ||
+    reward.purchaseLimit ||
+    reward.startDate ||
+    reward.expiryDate ||
+    reward.onlyOnSchoolHolidays ||
+    reward.inactiveOnSchoolHolidays ||
+    reward.holidayCostOverride !== undefined
+  )
   
   const getLimitText = () => {
     if (!reward.purchaseLimit) return null
@@ -76,7 +85,7 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleDisabled, purchas
                   })}
                 </div>
               )}
-      {(hasCustomizations || reward.purchaseLimit || reward.startDate || reward.expiryDate || reward.onlyOnSchoolHolidays || reward.inactiveOnSchoolHolidays || reward.holidayCostOverride !== undefined) && (
+      {hasMetadata && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {reward.costOverrides && reward.costOverrides.length > 0 && (
                     <Badge variant="outline" className="text-xs">
