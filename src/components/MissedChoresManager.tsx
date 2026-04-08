@@ -13,8 +13,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Warning, CheckCircle, XCircle, SunHorizon, MoonStars } from '@phosphor-icons/react'
-import { Child, Chore, ChoreAssignment, ChoreCompletion, MissedChore, ChildAvailabilityEntry } from '@/lib/types'
-import { isChoreMissed, isChoreCompletedForTimeOfDay, isChoreActive, isChoreActiveToday, getCurrentTimeOfDay, isChildAvailableForTimeOfDay } from '@/lib/helpers'
+import { Child, Chore, ChoreAssignment, ChoreCompletion, MissedChore, ChildAvailabilityEntry, SchoolHoliday } from '@/lib/types'
+import { isChoreMissed, isChoreCompletedForTimeOfDay, isChoreActive, isChoreActiveTodayWithHolidays, getCurrentTimeOfDay, isChildAvailableForTimeOfDay } from '@/lib/helpers'
 
 interface MissedChoresManagerProps {
   childrenList: Child[]
@@ -23,6 +23,7 @@ interface MissedChoresManagerProps {
   completions: ChoreCompletion[]
   dismissedMissedChores: MissedChore[]
   childAvailability: ChildAvailabilityEntry[]
+  schoolHolidays: SchoolHoliday[]
   onOverrideComplete: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
   onDismissMissed: (childId: string, choreId: string, timeOfDay?: 'am' | 'pm') => void
 }
@@ -40,6 +41,7 @@ export function MissedChoresManager({
   completions,
   dismissedMissedChores,
   childAvailability,
+  schoolHolidays,
   onOverrideComplete,
   onDismissMissed,
 }: MissedChoresManagerProps) {
@@ -60,7 +62,7 @@ export function MissedChoresManager({
 
       childAssignments.forEach((assignment) => {
         const chore = chores.find((c) => c.id === assignment.choreId)
-        if (!chore || !isChoreActive(assignment) || !isChoreActiveToday(assignment)) {
+        if (!chore || !isChoreActive(assignment) || !isChoreActiveTodayWithHolidays(chore, assignment, schoolHolidays)) {
           return
         }
         const isDismissed = (timeOfDay?: 'am' | 'pm') =>
@@ -106,7 +108,7 @@ export function MissedChoresManager({
     })
 
     return missed
-  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability])
+  }, [childrenList, chores, assignments, completions, dismissedMissedChores, childAvailability, schoolHolidays])
 
   const handleCompleteClick = (item: MissedChoreItem) => {
     setConfirmAction({ type: 'complete', item })
