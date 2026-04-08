@@ -94,7 +94,7 @@ async function migratePayloadJsonToColumns(key: string, tenantId: string): Promi
     const records = rows.map(row => {
       try {
         // mysql2 auto-parses JSON columns, so payload_json may already be an object
-        if (typeof row.payload_json === 'object') {
+        if (row.payload_json && typeof row.payload_json === 'object') {
           return row.payload_json;
         }
         return JSON.parse((row.payload_json as string) || '{}');

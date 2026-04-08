@@ -36,7 +36,7 @@ function parsePayload(payloadJson: unknown): Partial<PurchaseRecord> | null {
   }
 
   // mysql2 auto-parses JSON columns, so the value may already be an object
-  if (typeof payloadJson === 'object') {
+  if (payloadJson && typeof payloadJson === 'object') {
     return payloadJson as Partial<PurchaseRecord>;
   }
 
