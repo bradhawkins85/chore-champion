@@ -306,10 +306,8 @@ export function isChoreActiveOnDateWithHolidays(
   schoolHolidays: SchoolHoliday[]
 ): boolean {
   // Specific dates always activate the chore regardless of schedule or holiday settings
-  if (chore.specificDates && chore.specificDates.length > 0) {
-    if (isDateInSpecificDates(date, chore.specificDates)) {
-      return true
-    }
+  if (chore.specificDates && chore.specificDates.length > 0 && isDateInSpecificDates(date, chore.specificDates)) {
+    return true
   }
 
   // First check if the assignment is active for this date (days of week, repeat pattern)

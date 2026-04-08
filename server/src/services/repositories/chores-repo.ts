@@ -29,7 +29,7 @@ export interface ChoreRecord {
   speakDescription?: boolean | null;
   inactiveOnSchoolHolidays?: boolean | null;
   onlyOnSchoolHolidays?: boolean | null;
-  specificDates?: any;  // JSON array of timestamps
+  specificDates?: number[] | null;  // JSON array of timestamps
   rotationConfig?: any;  // JSON object
   createdAt?: number | null;
 }
