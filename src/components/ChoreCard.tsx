@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock, Timer, CloudSun } from '@phosphor-icons/react'
+import { Pencil, Trash, Calendar, CalendarBlank, CalendarCheck, SunHorizon, MoonStars, ClockCounterClockwise, Users, Trophy, Repeat, Clock, Timer, CloudSun, Sun, CalendarX } from '@phosphor-icons/react'
 import { Chore, DayOfWeek, Category } from '@/lib/types'
 import { isChoreActive, formatTime12Hour, formatDuration } from '@/lib/helpers'
 import { getWeatherConditionLabel } from '@/lib/weatherChoreHelper'
@@ -97,6 +97,35 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
         {label}
       </Badge>
     )
+  }
+
+  const getHolidayBadges = () => {
+    const badges = []
+    if (chore.onlyOnSchoolHolidays) {
+      badges.push(
+        <Badge key="only-holiday" variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-600">
+          <Sun className="h-3 w-3" />
+          Only Holiday
+        </Badge>
+      )
+    }
+    if (chore.inactiveOnSchoolHolidays) {
+      badges.push(
+        <Badge key="inactive-holiday" variant="outline" className="flex items-center gap-1 border-slate-500 text-slate-600">
+          <CalendarX className="h-3 w-3" />
+          Inactive On Holiday
+        </Badge>
+      )
+    }
+    if (chore.specificDates && chore.specificDates.length > 0) {
+      badges.push(
+        <Badge key="specific-dates" variant="outline" className="flex items-center gap-1 border-blue-500 text-blue-600">
+          <CalendarCheck className="h-3 w-3" />
+          Specific Dates ({chore.specificDates.length})
+        </Badge>
+      )
+    }
+    return badges
   }
 
   return (
@@ -197,6 +226,7 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
             {getTimeWindowBadge()}
             {getWeatherBadge()}
             {getCompletionTypeBadge()}
+            {getHolidayBadges()}
           </div>
         </div>
       </CardContent>

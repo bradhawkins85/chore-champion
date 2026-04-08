@@ -134,6 +134,7 @@ export interface Chore {
   speakDescription?: boolean
   inactiveOnSchoolHolidays?: boolean
   onlyOnSchoolHolidays?: boolean
+  specificDates?: number[]
   isActive?: boolean
   rotationConfig?: RotationConfig
   emoji?: string

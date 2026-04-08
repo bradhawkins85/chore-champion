@@ -29,6 +29,7 @@ export interface ChoreRecord {
   speakDescription?: boolean | null;
   inactiveOnSchoolHolidays?: boolean | null;
   onlyOnSchoolHolidays?: boolean | null;
+  specificDates?: number[] | null;  // JSON array of timestamps
   rotationConfig?: any;  // JSON object
   createdAt?: number | null;
 }
@@ -61,6 +62,7 @@ interface ChoreRow extends RowDataPacket {
   speak_description?: number | boolean | null;
   inactive_on_school_holidays?: number | boolean | null;
   only_on_school_holidays?: number | boolean | null;
+  specific_dates?: string | null;
   rotation_config?: string | null;
   created_at_timestamp?: number | null;
 }
@@ -134,6 +136,7 @@ function mapRow(row: ChoreRow): ChoreRecord {
     speakDescription: row.speak_description !== null ? Boolean(row.speak_description) : null,
     inactiveOnSchoolHolidays: row.inactive_on_school_holidays !== null ? Boolean(row.inactive_on_school_holidays) : null,
     onlyOnSchoolHolidays: row.only_on_school_holidays !== null ? Boolean(row.only_on_school_holidays) : null,
+    specificDates: parseJson(row.specific_dates),
     rotationConfig: parseJson(row.rotation_config),
     createdAt: row.created_at_timestamp,
   };
@@ -147,7 +150,7 @@ export async function listChores(tenantId: string, connection?: PoolConnection):
             category_ids, category_points, desired_time, time_of_day, time_window,
             estimated_duration, approval_configs, max_completions, reset_period,
             weather_conditions, speak_description, inactive_on_school_holidays,
-            only_on_school_holidays, rotation_config, created_at_timestamp
+            only_on_school_holidays, specific_dates, rotation_config, created_at_timestamp
      FROM tenant_chores_v2
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, created_at ASC`,
@@ -166,7 +169,7 @@ export async function getChoreById(tenantId: string, choreId: string, connection
             category_ids, category_points, desired_time, time_of_day, time_window,
             estimated_duration, approval_configs, max_completions, reset_period,
             weather_conditions, speak_description, inactive_on_school_holidays,
-            only_on_school_holidays, rotation_config, created_at_timestamp
+            only_on_school_holidays, specific_dates, rotation_config, created_at_timestamp
      FROM tenant_chores_v2
      WHERE tenant_id = ? AND id = ?`,
     [tenantId, choreId]
@@ -192,8 +195,8 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
      category_ids, category_points, desired_time, time_of_day, time_window,
      estimated_duration, approval_configs, max_completions, reset_period,
      weather_conditions, speak_description, inactive_on_school_holidays,
-     only_on_school_holidays, rotation_config, created_at_timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     only_on_school_holidays, specific_dates, rotation_config, created_at_timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       title = VALUES(title),
@@ -221,6 +224,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       speak_description = VALUES(speak_description),
       inactive_on_school_holidays = VALUES(inactive_on_school_holidays),
       only_on_school_holidays = VALUES(only_on_school_holidays),
+      specific_dates = VALUES(specific_dates),
       rotation_config = VALUES(rotation_config),
       created_at_timestamp = VALUES(created_at_timestamp)`,
     [
@@ -252,6 +256,7 @@ export async function upsertChore(tenantId: string, chore: ChoreRecord, connecti
       chore.speakDescription ?? null,
       chore.inactiveOnSchoolHolidays ?? null,
       chore.onlyOnSchoolHolidays ?? null,
+      stringifyJson(chore.specificDates),
       stringifyJson(chore.rotationConfig),
       chore.createdAt ?? null,
     ]
@@ -277,8 +282,8 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
        category_ids, category_points, desired_time, time_of_day, time_window,
        estimated_duration, approval_configs, max_completions, reset_period,
        weather_conditions, speak_description, inactive_on_school_holidays,
-       only_on_school_holidays, rotation_config, created_at_timestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       only_on_school_holidays, specific_dates, rotation_config, created_at_timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         chore.id,
         tenantId,
@@ -308,6 +313,7 @@ export async function replaceChores(tenantId: string, chores: ChoreRecord[], con
         chore.speakDescription ?? null,
         chore.inactiveOnSchoolHolidays ?? null,
         chore.onlyOnSchoolHolidays ?? null,
+        stringifyJson(chore.specificDates),
         stringifyJson(chore.rotationConfig),
         chore.createdAt ?? null,
       ]

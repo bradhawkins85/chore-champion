@@ -287,12 +287,29 @@ export function isChildAvailableForTimeOfDay(
   return timestamps.every((timestamp) => isChildAvailableAtTimestamp(childId, entries, timestamp))
 }
 
+export function isDateInSpecificDates(date: Date, specificDates: number[]): boolean {
+  if (!specificDates || specificDates.length === 0) return false
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
+  const checkTime = checkDate.getTime()
+  return specificDates.some(ts => {
+    const d = new Date(ts)
+    d.setHours(0, 0, 0, 0)
+    return d.getTime() === checkTime
+  })
+}
+
 export function isChoreActiveOnDateWithHolidays(
   chore: Chore,
   assignment: ChoreAssignment,
   date: Date,
   schoolHolidays: SchoolHoliday[]
 ): boolean {
+  // Specific dates always activate the chore regardless of schedule or holiday settings
+  if (chore.specificDates && chore.specificDates.length > 0 && isDateInSpecificDates(date, chore.specificDates)) {
+    return true
+  }
+
   // First check if the assignment is active for this date (days of week, repeat pattern)
   if (!isChoreActiveOnDate(assignment, date)) {
     return false
