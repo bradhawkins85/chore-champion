@@ -78,7 +78,7 @@ async function migratePayloadJsonToColumns(key: string, tenantId: string): Promi
     }
 
     // Check if there are records with non-null payload_json
-    const [rows] = await pool.query<(RowDataPacket & { id: string; payload_json?: string })[]>(
+    const [rows] = await pool.query<(RowDataPacket & { id: string; payload_json?: unknown })[]>(
       `SELECT id, payload_json FROM ${tableName} WHERE tenant_id = ? AND payload_json IS NOT NULL AND payload_json != 'null'`,
       [tenantId]
     );
@@ -93,7 +93,11 @@ async function migratePayloadJsonToColumns(key: string, tenantId: string): Promi
     // Parse payload_json and re-save using the repository functions
     const records = rows.map(row => {
       try {
-        return JSON.parse(row.payload_json || '{}');
+        // mysql2 auto-parses JSON columns, so payload_json may already be an object
+        if (row.payload_json && typeof row.payload_json === 'object') {
+          return row.payload_json;
+        }
+        return JSON.parse((row.payload_json as string) || '{}');
       } catch (error) {
         console.error(`Failed to parse payload_json for ${key} record ${row.id}:`, error);
         return null;
@@ -341,7 +345,7 @@ async function getNormalizedTenantData(key: NormalizedKey, tenantId: string): Pr
   }
 }
 
-type GenericCollectionRow = RowDataPacket & { id: string; payload_json?: string | null };
+type GenericCollectionRow = RowDataPacket & { id: string; payload_json?: unknown };
 type GenericSingletonRow = RowDataPacket & {
   pin_hash?: string | null;
   pin_hint?: string | null;
@@ -367,7 +371,11 @@ async function getGenericTableTenantData(key: string, tenantId: string): Promise
     return rows.map((row) => {
       if (row.payload_json) {
         try {
-          return JSON.parse(row.payload_json);
+          // mysql2 auto-parses JSON columns, so payload_json may already be an object
+          if (typeof row.payload_json === 'object') {
+            return row.payload_json;
+          }
+          return JSON.parse(row.payload_json as string);
         } catch {
           return { id: row.id };
         }

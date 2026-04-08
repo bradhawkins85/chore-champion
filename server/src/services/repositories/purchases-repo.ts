@@ -23,20 +23,25 @@ interface PurchaseRow extends RowDataPacket {
   status: string | null;
   points_spent: number | null;
   sort_order: number | null;
-  payload_json: string | null;
+  payload_json: unknown;
 }
 
 function getExecutor(connection?: PoolConnection): Pool | PoolConnection {
   return connection ?? pool;
 }
 
-function parsePayload(payloadJson: string | null): Partial<PurchaseRecord> | null {
+function parsePayload(payloadJson: unknown): Partial<PurchaseRecord> | null {
   if (!payloadJson) {
     return null;
   }
 
+  // mysql2 auto-parses JSON columns, so the value may already be an object
+  if (payloadJson && typeof payloadJson === 'object') {
+    return payloadJson as Partial<PurchaseRecord>;
+  }
+
   try {
-    const parsed = JSON.parse(payloadJson);
+    const parsed = JSON.parse(payloadJson as string);
     return parsed && typeof parsed === 'object' ? parsed : null;
   } catch (error) {
     console.error('Failed to parse purchase payload_json:', error);
