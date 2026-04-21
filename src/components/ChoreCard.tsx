@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -100,7 +101,7 @@ export function ChoreCard({ chore, onEdit, onDelete, categories = [] }: ChoreCar
   }
 
   const getHolidayBadges = () => {
-    const badges = []
+    const badges: ReactElement[] = []
     if (chore.onlyOnSchoolHolidays) {
       badges.push(
         <Badge key="only-holiday" variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-600">
