@@ -1214,14 +1214,24 @@ export function getChildPointsByCategory(
 
 export function getChildAvailablePointsByCategory(
   totalPoints: number,
-  purchases: { rewardId: string; cost: number }[],
+  purchases: { rewardId: string; cost: number; purchasedAt?: number }[],
   rewardsMap: Map<string, { categoryIds: string[] }>,
   categoryId: string,
-  swaps?: { fromCategoryId: string; toCategoryId: string; fromAmount: number; toAmount: number }[]
+  swaps?: { fromCategoryId: string; toCategoryId: string; fromAmount: number; toAmount: number }[],
+  category?: { pointsExpiry?: { enabled: boolean; interval: 'daily' | 'weekly' | 'monthly' | 'never' } }
 ): number {
+  // Spending belongs to the same earning window as the points it consumed. Without
+  // this filter an old purchase survives a category reset while its corresponding
+  // earned points expire, leaving the child with a negative balance in the new
+  // window. Purchases without a timestamp are retained for backwards compatibility.
+  const spendingPeriodStart = category?.pointsExpiry?.enabled && category.pointsExpiry.interval !== 'never'
+    ? getExpiryStartTime(category.pointsExpiry.interval)
+    : 0
+
   const spent = purchases.reduce((sum, p) => {
     const reward = rewardsMap.get(p.rewardId)
-    if (reward && reward.categoryIds.includes(categoryId)) {
+    const isInCurrentSpendingPeriod = !p.purchasedAt || p.purchasedAt >= spendingPeriodStart
+    if (reward && reward.categoryIds.includes(categoryId) && isInCurrentSpendingPeriod) {
       return sum + p.cost
     }
     return sum

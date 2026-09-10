@@ -671,6 +671,7 @@ function App() {
         .map((p) => ({
           rewardId: p.rewardId,
           cost: p.cost,
+          purchasedAt: p.purchasedAt,
         }))
       const childSwaps = safePointSwaps.filter((s) => s.childId === child.id)
       
@@ -681,7 +682,8 @@ function App() {
           childPurchases,
           rewardsMap,
           category.id,
-          childSwaps
+          childSwaps,
+          category
         )
         childAvailPoints.set(category.id, availablePoints)
       })
