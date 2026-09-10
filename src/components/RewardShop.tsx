@@ -84,11 +84,13 @@ export function RewardShop({
           .filter(p => p.childId === child.id)
           .map(p => ({ 
             rewardId: p.rewardId, 
-            cost: p.cost 
+            cost: p.cost,
+            purchasedAt: p.purchasedAt,
           })),
         rewardsMap,
         category.id,
-        childSwaps
+        childSwaps,
+        category
       )
       points.set(category.id, availablePoints)
     })
