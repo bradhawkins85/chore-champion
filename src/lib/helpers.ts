@@ -1217,7 +1217,7 @@ export function getChildAvailablePointsByCategory(
   purchases: { rewardId: string; cost: number; purchasedAt?: number }[],
   rewardsMap: Map<string, { categoryIds: string[] }>,
   categoryId: string,
-  swaps?: { fromCategoryId: string; toCategoryId: string; fromAmount: number; toAmount: number }[],
+  swaps?: { fromCategoryId: string; toCategoryId: string; fromAmount: number; toAmount: number; swappedAt?: number }[],
   category?: { pointsExpiry?: { enabled: boolean; interval: 'daily' | 'weekly' | 'monthly' | 'never' } }
 ): number {
   // Spending belongs to the same earning window as the points it consumed. Without
@@ -1240,6 +1240,12 @@ export function getChildAvailablePointsByCategory(
   let netSwaps = 0
   if (swaps) {
     swaps.forEach((swap) => {
+      // Like purchases, swaps must not carry deductions (or credits) into a new
+      // points window. Keep undated legacy records so upgrading does not silently
+      // discard balances that cannot be assigned to a specific reset period.
+      const isInCurrentSpendingPeriod = !swap.swappedAt || swap.swappedAt >= spendingPeriodStart
+      if (!isInCurrentSpendingPeriod) return
+
       if (swap.fromCategoryId === categoryId) {
         netSwaps -= swap.fromAmount
       }
