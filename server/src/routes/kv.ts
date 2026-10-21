@@ -3,6 +3,7 @@ import { pool } from '../config/database.js';
 import { deleteTenantData, getAllTenantData, getTenantData, setTenantData } from '../services/tenant-data-store.js';
 import { optionalAuth, AuthRequest } from '../middleware/auth.js';
 import { checkPlanLimits, updateSubscriptionQuantity } from '../services/subscription.js';
+import { saveWithNtfyEvents } from '../services/ntfy.js';
 
 const router = Router();
 
@@ -169,7 +170,11 @@ router.post('/:key', optionalAuth, async (req: AuthRequest, res: Response) => {
     }
     
     try {
-      await setTenantData(key, tenantId, value);
+      if ((key === 'completions' || key === 'purchases') && req.tenantId) {
+        await saveWithNtfyEvents(key, tenantId, value);
+      } else {
+        await setTenantData(key, tenantId, value);
+      }
     } catch (setError) {
       console.error(`Error setting tenant data for key "${key}" (tenantId: ${tenantId}):`, setError);
       console.error('Stack trace:', setError instanceof Error ? setError.stack : 'No stack trace available');

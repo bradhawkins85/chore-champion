@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { pool } from '../config/database.js';
 import { emailService } from '../services/email.js';
 import { createFreeSubscription } from '../services/subscription.js';
+import { ensureNtfySettings } from '../services/ntfy-settings.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 const router = Router();
@@ -78,6 +79,7 @@ router.post('/signup', async (req: Request, res: Response) => {
       );
 
       // Hash password
+      await ensureNtfySettings(tenantId, connection);
       const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
       // Create user

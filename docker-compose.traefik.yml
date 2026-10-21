@@ -58,6 +58,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chorequest}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-chorequest}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - NTFY_ENCRYPTION_KEY=${NTFY_ENCRYPTION_KEY:-}
       - TZ=${TIMEZONE:-UTC}
       - SMTP_ENABLED=${SMTP_ENABLED:-false}
       - SMTP_HOST=${SMTP_HOST:-}

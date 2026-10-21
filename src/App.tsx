@@ -57,7 +57,6 @@ import {
   ReportTemplate,
   WeatherSettings,
   SpeechSettings,
-  PushNotificationSettings,
   SchoolHoliday,
   ChildAvailabilityEntry,
   SchoolHolidayCountdownSettings,
@@ -71,8 +70,6 @@ import { WelcomePage } from '@/components/WelcomePage'
 import { fetchWeatherData } from '@/lib/weatherHelper'
 import { getSeasonalTheme, applyThemeToDOM } from '@/lib/themeHelper'
 import { WeatherData } from '@/lib/types'
-
-const DEFAULT_PUSH_NOTIFICATION_SETTINGS: PushNotificationSettings = { enabled: false, devices: [] }
 
 function App() {
   const location = useLocation()
@@ -181,10 +178,6 @@ function App() {
   const [pendingDigestItems, setPendingDigestItems] = useKV<any[]>('pending-digest-items', [])
   const [speechSettings, setSpeechSettings] = useKV<SpeechSettings>('speech-settings', {
     enabled: true,
-  })
-  const [pushNotificationSettings, setPushNotificationSettings] = useKV<PushNotificationSettings>('push-notification-settings', {
-    enabled: false,
-    devices: [],
   })
   const [schoolHolidays, setSchoolHolidays] = useKV<SchoolHoliday[]>('school-holidays', [])
   const [childAvailability, setChildAvailability] = useKV<ChildAvailabilityEntry[]>('child-availability', [])
@@ -1676,61 +1669,6 @@ function App() {
     setEmailAlertSettings(settings)
   }
 
-  const handleUpdatePushNotificationSettings = async (settings: PushNotificationSettings) => {
-    await setPushNotificationSettings(settings)
-  }
-
-  const sendPushNotification = async (
-    title: string,
-    body: string,
-    alertType: 'rewardPurchaseAlerts' | 'pendingApprovalAlerts' | 'weeklyReportAlerts',
-    data?: any
-  ) => {
-    if (!pushNotificationSettings?.enabled) {
-      return
-    }
-
-    const deviceId = getDeviceId()
-    const currentDeviceSettings = pushNotificationSettings.devices.find(d => d.deviceId === deviceId)
-
-    if (!currentDeviceSettings || !currentDeviceSettings.enabled || !currentDeviceSettings.subscription) {
-      return
-    }
-
-    // Check if the alert type is enabled for this device
-    if (!currentDeviceSettings[alertType]) {
-      return
-    }
-
-    // For pending approvals, also check digest mode
-    if (alertType === 'pendingApprovalAlerts') {
-      // Only send immediate notifications here - digest will be handled separately
-      if (currentDeviceSettings.digestMode !== 'immediate') {
-        return
-      }
-    }
-
-    // Check if service worker is ready
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready
-        
-        // Show notification on current device
-        await registration.showNotification(title, {
-          body,
-          icon: '/icons/icon-192x192.png',
-          badge: '/icons/icon-72x72.png',
-          tag: 'chorequest-notification',
-          data,
-        })
-        
-        console.log('Push notification sent')
-      } catch (error) {
-        console.error('Failed to send push notification:', error)
-      }
-    }
-  }
-
   // Helper function to get parent emails for a specific alert type
   const getParentEmailsForAlert = async (alertType: keyof Pick<ParentEmailAlertSettings, 'rewardPurchaseAlerts' | 'weeklyReportAlerts' | 'pendingApprovalAlerts'>): Promise<string[]> => {
     try {
@@ -1789,14 +1727,6 @@ Please fulfill this reward when you get a chance!
     toast.info('Email notification sent to parents', {
       description: `${child.name}'s reward claim notification sent`,
     })
-
-    // Also send push notification if enabled
-    await sendPushNotification(
-      '🎁 Reward Claimed!',
-      `${child.name} claimed ${reward.name}`,
-      'rewardPurchaseAlerts',
-      { type: 'reward-purchase', childId, rewardId }
-    )
   }
 
   const sendPendingApprovalEmail = async (childId: string, choreId: string, completionId: string) => {
@@ -1847,14 +1777,6 @@ Please log in to ChoreQuest to approve or reject this completion.
       toast.info('Approval notification sent to parents', {
         description: `${child.name}'s chore pending approval`,
       })
-
-      // Also send push notification if enabled (immediate mode)
-      await sendPushNotification(
-        '✅ Chore Needs Approval',
-        `${child.name} completed ${chore.name}`,
-        'pendingApprovalAlerts',
-        { type: 'pending-approval', childId, choreId, completionId }
-      )
     } else {
       setPendingDigestItems((current) => [
         ...(current || []),
@@ -1942,34 +1864,6 @@ Please log in to ChoreQuest to approve or reject this completion.
     toast.success('Digest email sent to parents', {
       description: `${items.length} pending approval${items.length > 1 ? 's' : ''} notified`,
     })
-
-    // Also send push notification digest if enabled
-    const deviceId = getDeviceId()
-    const currentDeviceSettings = pushNotificationSettings?.devices.find(d => d.deviceId === deviceId)
-    
-    if (currentDeviceSettings?.enabled && currentDeviceSettings.pendingApprovalAlerts && currentDeviceSettings.subscription) {
-      const childrenCount = groupedByChild.size
-      const summaryText = childrenCount === 1
-        ? `${items.length} chore${items.length > 1 ? 's' : ''} pending approval`
-        : `${items.length} chore${items.length > 1 ? 's' : ''} from ${childrenCount} children pending approval`
-      
-      // Send as pending approval with special digest data
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.ready
-          await registration.showNotification('⏳ Chores Pending Approval', {
-            body: summaryText,
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/icon-72x72.png',
-            tag: 'chorequest-digest',
-            data: { type: 'digest', count: items.length },
-          })
-          console.log('Push digest notification sent')
-        } catch (error) {
-          console.error('Failed to send push digest notification:', error)
-        }
-      }
-    }
   }
 
   const getDigestIntervalMs = (interval: string): number => {
@@ -2238,8 +2132,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           currentWeather={currentWeather}
           pendingDigestItems={safePendingDigestItems}
           speechSettings={speechSettings || { enabled: true }}
-          pushNotificationSettings={pushNotificationSettings || { enabled: false, devices: [] }}
-          currentDeviceId={getDeviceId()}
           hideChildrenWithNoActivity={hideChildrenWithNoActivity || false}
           schoolHolidays={schoolHolidays || []}
           childAvailability={safeChildAvailability}
@@ -2284,7 +2176,6 @@ Please log in to ChoreQuest to approve or reject this completion.
           onUpdateEmailAlertSettings={handleUpdateEmailAlertSettings}
           onUpdateEmailAlertSettingsMap={(settings) => setEmailAlertSettingsMap(settings)}
           onUpdateWeeklyReportSettingsMap={(settings) => setWeeklyReportSettingsMap(settings)}
-          onUpdatePushNotificationSettings={handleUpdatePushNotificationSettings}
           onUpdateSpeechSettings={(settings) => setSpeechSettings(settings)}
           onUpdateHideChildrenWithNoActivity={(value) => setHideChildrenWithNoActivity(value)}
           onUpdateBlockParentModeOnLinkedDevices={(value: boolean) => setBlockParentModeOnLinkedDevices(value)}
@@ -2438,11 +2329,9 @@ Please log in to ChoreQuest to approve or reject this completion.
               deviceIsLinked={deviceIsLinked}
               blockParentModeOnLinkedDevices={blockParentModeOnLinkedDevices}
               deviceRegistrationComplete={deviceRegistrationComplete}
-              pushNotificationSettings={pushNotificationSettings || DEFAULT_PUSH_NOTIFICATION_SETTINGS}
               wallpaperSettings={wallpaperSettings || { enabled: true, weatherWallpapersEnabled: true, nonWeatherWallpapersEnabled: true, galleryWallpapersEnabled: false, animationsEnabled: true, defaultMode: 'weather', galleryWallpaperId: null }}
               deviceWallpaperSettings={deviceWallpaperSettings || {}}
               currentWeather={currentWeather}
-              onOpenSettings={handleRequestParentMode}
               onSelect={setSelectedChild}
               onParentMode={handleRequestParentMode}
             />
