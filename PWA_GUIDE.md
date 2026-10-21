@@ -320,7 +320,7 @@ Legend:
 
 Potential PWA features to add:
 
-- [ ] Push notifications for chore reminders
+- [x] Family chore and reward notifications through ntfy (see [setup guide](NTFY_NOTIFICATIONS.md))
 - [ ] Background sync for offline completions
 - [ ] Share target (share files to ChoreQuest)
 - [ ] Media session API for audio controls

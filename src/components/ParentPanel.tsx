@@ -18,7 +18,7 @@ import {
 import { Plus, Package, Check, Sparkle, Users, ListChecks, Gift, X, Gear, ClockCounterClockwise, Warning, ClipboardText, Shield, Envelope, FileText, SpeakerHigh, Bell, House, Pulse, FolderUser, Devices, RocketLaunch, Question, CreditCard, ImageSquare, Pencil, Trash, CaretUp, CaretDown, SunHorizon, MoonStars, Clock, Calendar } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSubscription } from '@/hooks/use-subscription'
-import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, PushNotificationSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap, ChoreTimeOfDay } from '@/lib/types'
+import { Child, Chore, ChoreAssignment, Reward, RewardPurchase, ChoreCompletion, ChoreHistoryEvent, MissedChore, CelebrationSettings, Category, DayOfWeek, RepeatPattern, BiometricSettings, IPRestrictionSettings, IPAccessAttempt, WeeklyReportSettings, CategoryBonusCompletion, ReportTemplate, WeatherSettings, PointSwap, EmailAlertSettings, WeatherData, SpeechSettings, SchoolHoliday, SchoolHolidayCountdownSettings, ChildAvailabilityEntry, EmailAlertSettingsMap, WeeklyReportSettingsMap, GettingStartedState, WallpaperSettings, DeviceWallpaperSettingsMap, ChoreTimeOfDay } from '@/lib/types'
 import {
   DndContext,
   closestCenter,
@@ -57,7 +57,8 @@ import { BiometricSettings as BiometricSettingsComponent } from './BiometricSett
 import { IPRestrictions } from './IPRestrictions'
 import { ReportTemplatesManager } from './ReportTemplatesManager'
 import { WeatherSettingsComponent } from './WeatherSettings'
-import { PushNotificationSettingsComponent } from './PushNotificationSettings'
+import { NtfySettingsComponent } from './NtfySettings'
+import { useNtfySettings } from '@/hooks/use-ntfy-settings'
 import { SpeechSettings as SpeechSettingsComponent } from './SpeechSettings'
 import { DisplayPreferencesSettings } from './DisplayPreferencesSettings'
 import { SchoolHolidaySettings } from './SchoolHolidaySettings'
@@ -152,8 +153,6 @@ interface ParentPanelProps {
   currentWeather: WeatherData | null
   pendingDigestItems: any[]
   speechSettings: SpeechSettings
-  pushNotificationSettings: PushNotificationSettings
-  currentDeviceId: string
   hideChildrenWithNoActivity: boolean
   blockParentModeOnLinkedDevices: boolean
   schoolHolidays: SchoolHoliday[]
@@ -211,7 +210,6 @@ interface ParentPanelProps {
   onUpdateEmailAlertSettings: (settings: EmailAlertSettings) => void
   onUpdateEmailAlertSettingsMap: (settings: EmailAlertSettingsMap) => void
   onUpdateWeeklyReportSettingsMap: (settings: WeeklyReportSettingsMap) => void
-  onUpdatePushNotificationSettings: (settings: PushNotificationSettings) => Promise<void>
   onUpdateSpeechSettings: (settings: SpeechSettings) => void
   onUpdateHideChildrenWithNoActivity: (value: boolean) => void
   onUpdateBlockParentModeOnLinkedDevices: (value: boolean) => void
@@ -296,9 +294,6 @@ export function ParentPanel({
   onUpdateEmailAlertSettings,
   onUpdateEmailAlertSettingsMap,
   onUpdateWeeklyReportSettingsMap,
-  pushNotificationSettings,
-  currentDeviceId,
-  onUpdatePushNotificationSettings,
   speechSettings,
   onUpdateSpeechSettings,
   hideChildrenWithNoActivity,
@@ -327,6 +322,7 @@ export function ParentPanel({
   onExitParentMode,
 }: ParentPanelProps) {
   const { limits } = useSubscription()
+  const ntfy = useNtfySettings()
   
   // Calculate canAddChild locally for immediate UI feedback
   const canAddChild = useMemo(() => {
@@ -495,14 +491,13 @@ export function ParentPanel({
           shouldComplete = schoolHolidays.length > 0
           break
         case 'configure-notifications':
-          // Check if email or push notifications are configured
+          // Check if email or family ntfy notifications are configured
           const hasEmailAlerts = emailAlertSettingsMap && Object.values(emailAlertSettingsMap).some((settings: any) => 
             settings.rewardPurchaseAlerts || 
             settings.weeklyReportAlerts || settings.pendingApprovalAlerts
           )
-          const hasPushNotifications = pushNotificationSettings.enabled && 
-            pushNotificationSettings.devices && pushNotificationSettings.devices.length > 0
-          shouldComplete = hasEmailAlerts || hasPushNotifications
+          const hasNtfyNotifications = ntfy.settings?.enabled && Object.values(ntfy.settings.notificationTypes).some(Boolean)
+          shouldComplete = hasEmailAlerts || Boolean(hasNtfyNotifications)
           break
         case 'link-device':
           // Check if device settings have been explicitly configured
@@ -528,7 +523,7 @@ export function ParentPanel({
       })
     }
   }, [childrenList, chores, assignments, rewards, parentPin, emailAlertSettingsMap, weeklyReportSettingsMap, 
-      weatherSettings, schoolHolidays, pushNotificationSettings, blockParentModeOnLinkedDevices, 
+      weatherSettings, schoolHolidays, ntfy.settings, blockParentModeOnLinkedDevices,
       gettingStartedState, onUpdateGettingStartedState])
   // Define welcome cards with their content
   const welcomeCards = useMemo(() => {
@@ -1464,11 +1459,7 @@ export function ParentPanel({
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-4">
-              <PushNotificationSettingsComponent
-                pushSettings={pushNotificationSettings}
-                deviceId={currentDeviceId}
-                onUpdatePushSettings={onUpdatePushNotificationSettings}
-              />
+              <NtfySettingsComponent ntfy={ntfy} />
 
               <AccountSettings
                 emailAlertSettingsMap={emailAlertSettingsMap}

@@ -70,6 +70,7 @@
 - Secure parent approval workflows
 
 ### 📧 Communication
+- **ntfy Notifications** - Family topics, custom servers, credentials, and per-event preferences - [Setup guide](NTFY_NOTIFICATIONS.md)
 - **Parent Invitation Emails** - Secure email invitations with 7-day expiration
 - Email alerts for reward purchases
 - Pending approval notifications
@@ -416,7 +417,6 @@ The PWA manifest is configured in `/public/manifest.json`. You can customize:
 The service worker (`/public/service-worker.js`) handles:
 - Offline caching
 - Background sync
-- Push notifications (future feature)
 - Automatic updates
 
 When a new version is available, users will be prompted to reload the app.
@@ -676,8 +676,8 @@ Optimized for tablets and desktop displays.
 
 ## 🔐 Data & Privacy
 
-- All data is stored locally using the Spark KV store
-- No data is sent to external servers (except optional email notifications)
+- Family data and settings are stored in the backend MySQL database
+- Family chore and reward notifications are sent to the configured ntfy server (ntfy.sh by default); families can disable them in Settings → Notifications
 - Weather data fetched from Open-Meteo (privacy-friendly, no API key required)
 - Calendar feeds are fetched directly from provided URLs
 - IP addresses logged only for security features when enabled

@@ -87,7 +87,16 @@ self.addEventListener('activate', (event) => {
           }));
         });
       })
-      .then(() => self.clients.claim())
+      .then(async () => {
+        // Retire subscriptions created by the previous browser push feature.
+        try {
+          const subscription = await self.registration.pushManager?.getSubscription();
+          if (subscription) await subscription.unsubscribe();
+        } catch (error) {
+          console.warn('Unable to remove retired browser subscription:', error);
+        }
+        return self.clients.claim();
+      })
   );
 });
 
@@ -160,65 +169,4 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-});
-
-// Push notification event handler
-self.addEventListener('push', (event) => {
-  console.log('Push notification received:', event);
-  
-  let notificationData = {
-    title: 'ChoreQuest Notification',
-    body: 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    tag: 'chorequest-notification',
-    requireInteraction: false,
-  };
-  
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      notificationData = {
-        ...notificationData,
-        ...data,
-      };
-    } catch (e) {
-      console.warn('Failed to parse push notification data:', e);
-      notificationData.body = event.data.text();
-    }
-  }
-  
-  event.waitUntil(
-    self.registration.showNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      tag: notificationData.tag,
-      requireInteraction: notificationData.requireInteraction,
-      data: notificationData.data,
-    })
-  );
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked:', event);
-  
-  event.notification.close();
-  
-  // Open or focus the app when notification is clicked
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window open
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // If no window is open, open a new one
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
-  );
 });

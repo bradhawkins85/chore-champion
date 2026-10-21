@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import type { RowDataPacket } from 'mysql2';
 import { createTenantDataTables } from '../services/tenant-data-schema.js';
+import { createNtfyTables } from '../services/ntfy-schema.js';
 
 // Validate required environment variables in production
 if (process.env.NODE_ENV === 'production') {
@@ -160,6 +161,8 @@ export async function initDatabase() {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created kv_store table successfully');
+
+        await createNtfyTables(connection);
 
         await createTenantDataTables(connection);
         console.log('Created tenant data tables successfully');

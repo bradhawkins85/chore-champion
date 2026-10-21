@@ -645,32 +645,6 @@ export interface SpeechSettings {
   enabled: boolean
 }
 
-export interface PushSubscription {
-  endpoint: string
-  keys: {
-    p256dh: string
-    auth: string
-  }
-}
-
-export interface DevicePushSettings {
-  deviceId: string
-  subscription: PushSubscription | null
-  enabled: boolean
-  rewardPurchaseAlerts: boolean
-  weeklyReportAlerts: boolean
-  pendingApprovalAlerts: boolean
-  digestMode: DigestInterval
-  lastDigestSent: number | null
-  createdAt: number
-  updatedAt: number
-}
-
-export interface PushNotificationSettings {
-  enabled: boolean
-  devices: DevicePushSettings[]
-}
-
 export interface GettingStartedTask {
   id: string
   label: string
