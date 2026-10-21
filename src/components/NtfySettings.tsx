@@ -27,7 +27,7 @@ export function NtfySettingsComponent({ ntfy }: { ntfy: ReturnType<typeof useNtf
   )
 
   const saved = ntfy.settings
-  const dirty = credential !== '' || ['enabled', 'serverUrl', 'topic', 'authMode', 'username'].some(key => draft[key] !== saved[key])
+  const dirty = credential !== '' || (['enabled', 'serverUrl', 'topic', 'authMode', 'username'] as const).some(key => draft[key] !== saved[key])
     || JSON.stringify(draft.notificationTypes) !== JSON.stringify(saved.notificationTypes)
   const sameAccount = draft.serverUrl.replace(/\/+$/, '') === saved.serverUrl && draft.authMode === saved.authMode
     && (draft.authMode !== 'basic' || draft.username === saved.username)
