@@ -288,8 +288,8 @@ export function HelpMenu() {
                   <p className="text-muted-foreground">Choose between immediate or batched notifications to reduce email frequency.</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1">Push Notifications</h4>
-                  <p className="text-muted-foreground">Enable push notifications on PWA-installed devices for instant alerts.</p>
+                  <h4 className="font-semibold mb-1">ntfy Notifications</h4>
+                  <p className="text-muted-foreground">Open Settings → Notifications to subscribe to your family’s ntfy topic. Choose chore and reward alerts, or configure your own server and credentials.</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Parent Invitations</h4>
