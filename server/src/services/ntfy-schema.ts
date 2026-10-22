@@ -19,6 +19,7 @@ export async function createNtfyTables(connection: PoolConnection): Promise<void
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tenant_id VARCHAR(36) NOT NULL,
     event_type VARCHAR(40) NOT NULL,
+    chore_id VARCHAR(36) NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     attempts INT NOT NULL DEFAULT 0,
@@ -27,6 +28,8 @@ export async function createNtfyTables(connection: PoolConnection): Promise<void
     INDEX idx_pending (next_attempt_at),
     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  const [columns] = await connection.query<RowDataPacket[]>("SHOW COLUMNS FROM ntfy_outbox LIKE 'chore_id'");
+  if (!columns.length) await connection.query('ALTER TABLE ntfy_outbox ADD COLUMN chore_id VARCHAR(36) NULL');
   const [tenants] = await connection.query<RowDataPacket[]>(
     `SELECT id FROM tenants WHERE id NOT IN (SELECT tenant_id FROM tenant_ntfy_settings)`,
   );

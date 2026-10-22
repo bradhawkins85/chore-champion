@@ -61,6 +61,11 @@ All types are enabled by default and can be disabled independently:
 
 Notifications include the child and chore or reward name. Chore notifications
 include the AM/PM slot when present, and reward requests include the point cost.
+Inactive chores and chores in any category hidden from Up Next or the calendar
+are ignored for all chore notification types. Visibility is checked again before
+delivery, so hiding a chore also discards its queued retries. On upgrade, legacy
+queued chore messages without a chore ID are discarded because their visibility
+cannot be checked.
 The family switch disables all delivery. Pending queued messages are also
 discarded if their family or notification type is disabled before delivery.
 

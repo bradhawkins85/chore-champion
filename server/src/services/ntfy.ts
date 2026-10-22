@@ -5,8 +5,9 @@ import { listCompletions, type CompletionRecord } from './repositories/completio
 import { listPurchases, type PurchaseRecord } from './repositories/purchases-repo.js';
 import { listChildren } from './repositories/children-repo.js';
 import { listChores } from './repositories/chores-repo.js';
+import { listCategories } from './repositories/categories-repo.js';
 import { listRewards } from './repositories/rewards-repo.js';
-import { getNtfyEvents, type NtfyEvent } from './ntfy-events.js';
+import { getNtfyEvents, isChoreNotificationVisible, type NtfyEvent } from './ntfy-events.js';
 import { getNtfySettingsRow, publicNtfySettings, decryptNtfyCredential, type NtfySettingsRow, type NtfyEventType } from './ntfy-settings.js';
 
 export async function publishNtfy(row: NtfySettingsRow, event: Pick<NtfyEvent, 'title' | 'message'>, fetcher = fetch): Promise<void> {
@@ -39,8 +40,8 @@ export async function enqueueNtfyEvents(tenantId: string, events: NtfyEvent[], c
   for (const event of events) {
     if (!settings.notificationTypes[event.type]) continue;
     await connection.query(
-      'INSERT INTO ntfy_outbox (tenant_id, event_type, title, message) VALUES (?, ?, ?, ?)',
-      [tenantId, event.type, event.title, event.message],
+      'INSERT INTO ntfy_outbox (tenant_id, event_type, title, message, chore_id) VALUES (?, ?, ?, ?, ?)',
+      [tenantId, event.type, event.title, event.message, event.choreId ?? null],
     );
   }
 }
@@ -60,6 +61,7 @@ export async function saveWithNtfyEvents(key: 'completions' | 'purchases', tenan
       children: await listChildren(tenantId, connection),
       chores: await listChores(tenantId, connection),
       rewards: await listRewards(tenantId, connection),
+      categories: await listCategories(tenantId, connection),
     };
     await enqueueNtfyEvents(tenantId, getNtfyEvents(key, before, value, names), connection);
     await connection.commit();
@@ -80,14 +82,20 @@ export async function flushNtfyOutbox(): Promise<void> {
       try {
         await connection.beginTransaction();
         // Database locks allow more than one API instance to safely drain the queue.
-        const [jobs] = await connection.query<(RowDataPacket & { id: number; tenant_id: string; event_type: NtfyEventType; title: string; message: string; attempts: number })[]>(
+        const [jobs] = await connection.query<(RowDataPacket & { id: number; tenant_id: string; event_type: NtfyEventType; title: string; message: string; attempts: number; chore_id: string | null })[]>(
           'SELECT * FROM ntfy_outbox WHERE next_attempt_at <= NOW() ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED',
         );
         if (!jobs.length) { await connection.commit(); break; }
         const job = jobs[0];
         const row = await getNtfySettingsRow(job.tenant_id, connection);
         const settings = publicNtfySettings(row);
-        if (!settings.enabled || !settings.notificationTypes[job.event_type]) {
+        let hiddenChore = false;
+        if (job.event_type.startsWith('chore')) {
+          // Legacy jobs have no chore ID, so they cannot be checked safely.
+          const chore = job.chore_id ? (await listChores(job.tenant_id, connection)).find(chore => chore.id === job.chore_id) : undefined;
+          hiddenChore = !chore || !isChoreNotificationVisible(chore, await listCategories(job.tenant_id, connection));
+        }
+        if (!settings.enabled || !settings.notificationTypes[job.event_type] || hiddenChore) {
           await connection.query('DELETE FROM ntfy_outbox WHERE id = ?', [job.id]);
         } else {
           try {
