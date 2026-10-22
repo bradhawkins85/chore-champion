@@ -153,3 +153,37 @@ test('removed children or chores do not produce misleading completion undo notif
   assert.deepEqual(getNtfyEvents('completions', [completion], [], { ...names, children: [] }), []);
   assert.deepEqual(getNtfyEvents('completions', [completion], [], { ...names, chores: [] }), []);
 });
+
+
+test('hidden categories and inactive chores suppress every chore transition', () => {
+  const undone = { ...completion, undoneAt: 123 };
+  const transitions = [
+    [[], [completion]],
+    [[], [{ ...completion, overridden: true }]],
+    [[completion], [undone]],
+    [[undone], [completion]],
+    [[completion], []],
+    [[completion], [{ ...completion, approvalStatus: 'approved' }]],
+    [[completion], [{ ...completion, approvalStatus: 'rejected' }]],
+  ] as const;
+  for (const hidden of [
+    { chores: [{ ...names.chores[0], active: false }] },
+    { chores: [{ ...names.chores[0], categoryIds: ['visible', 'hidden'] }], categories: [{ id: 'visible' }, { id: 'hidden', showInUpNext: false }] },
+    { chores: [{ ...names.chores[0], categoryIds: ['hidden'] }], categories: [{ id: 'hidden', showInCalendar: false }] },
+  ]) {
+    const context = { ...names, ...hidden };
+    for (const [before, after] of transitions) {
+      assert.deepEqual(getNtfyEvents('completions', [...before], [...after], context), []);
+    }
+    assert.equal(getNtfyEvents('purchases', [], [purchase], context)[0].type, 'rewardRequested');
+  }
+});
+
+test('visible, uncategorized and missing-category chores retain notifications and their chore ID', () => {
+  for (const categoryIds of [[], ['visible'], ['missing']]) {
+    const context = { ...names, chores: [{ ...names.chores[0], active: true, categoryIds }], categories: [{ id: 'visible', showInUpNext: true, showInCalendar: true }] };
+    const events = getNtfyEvents('completions', [], [completion], context);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].choreId, completion.choreId);
+  }
+});

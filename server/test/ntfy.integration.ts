@@ -146,6 +146,36 @@ test('ntfy API and durable delivery with MySQL and a local ntfy server', { skip:
       assert.equal(deliveries.at(-1)!.body.title, 'Chore completion undone');
     });
 
+    await t.test('hidden category chores persist changes without queuing or delivering alerts', async () => {
+      const start = deliveries.length;
+      await setTenantData('categories', familyA, [{ id: 'hidden', name: 'Hidden', showInUpNext: false }]);
+      await setTenantData('chores', familyA, [{ id: 'chore', name: 'Make bed', categoryIds: ['hidden'] }]);
+      for (const value of [[completion], [{ ...completion, approvalStatus: 'approved' }], [{ ...completion, approvalStatus: 'rejected' }], [{ ...completion, undoneAt: Date.now() }], [completion], []]) {
+        assert.equal((await write('completions', value)).status, 200);
+        await drain();
+        assert.equal(deliveries.length, start);
+      }
+      await setTenantData('chores', familyA, [{ id: 'chore', name: 'Make bed' }]);
+    });
+
+    await t.test('queued chore alerts are discarded when their category is hidden before retry', async () => {
+      remoteStatus = 503;
+      await write('completions', [completion]);
+      await eventually(async () => {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT attempts FROM ntfy_outbox WHERE tenant_id = ?', [familyA]);
+        return rows.length === 1 && rows[0].attempts === 1;
+      });
+      const start = deliveries.length;
+      await setTenantData('categories', familyA, [{ id: 'hidden', name: 'Hidden', showInCalendar: false }]);
+      await setTenantData('chores', familyA, [{ id: 'chore', name: 'Make bed', categoryIds: ['hidden'] }]);
+      remoteStatus = 200;
+      await pool.query('UPDATE ntfy_outbox SET next_attempt_at = NOW() WHERE tenant_id = ?', [familyA]);
+      await drain();
+      assert.equal(deliveries.length, start);
+      await write('completions', []); await drain();
+      await setTenantData('chores', familyA, [{ id: 'chore', name: 'Make bed' }]);
+    });
+
     await t.test('forwards reward request, fulfillment and cancellation to the correct family only', async () => {
       await write('purchases', [purchase]); await drain();
       assert.equal(deliveries.at(-1)!.body.title, 'Reward requested');
